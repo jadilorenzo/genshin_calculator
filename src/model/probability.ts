@@ -16,6 +16,7 @@ export function artifactProbability(target: ArtifactTarget): ArtifactProbability
   const substats = probabilityOfRequiredSubstats(
     target.mainStat,
     target.requiredSubstats ?? [],
+    target.substatMode ?? 'all',
   )
   return {
     set,

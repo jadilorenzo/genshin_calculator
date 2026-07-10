@@ -59,4 +59,24 @@ describe('probabilityOfRequiredSubstats', () => {
     expect(p).toBeGreaterThan(0.05)
     expect(p).toBeLessThan(0.12)
   })
+
+  it('with any-mode is higher than all-mode for multiple substats', () => {
+    const all = probabilityOfRequiredSubstats('hp', ['critRate', 'critDamage'], 'all')
+    const any = probabilityOfRequiredSubstats('hp', ['critRate', 'critDamage'], 'any')
+    expect(any).toBeGreaterThan(all)
+    expect(any).toBeLessThan(1)
+  })
+
+  it('with any-mode matches all-mode for a single substat', () => {
+    const all = probabilityOfRequiredSubstats('hp', ['critRate'], 'all')
+    const any = probabilityOfRequiredSubstats('hp', ['critRate'], 'any')
+    expect(any).toBeCloseTo(all)
+  })
+
+  it('with any-mode equals one minus probability of avoiding all options', () => {
+    const any = probabilityOfRequiredSubstats('hp', ['critRate', 'critDamage'], 'any')
+    // Either crit line is fairly common among four rolls.
+    expect(any).toBeGreaterThan(0.5)
+    expect(any).toBeLessThan(0.7)
+  })
 })

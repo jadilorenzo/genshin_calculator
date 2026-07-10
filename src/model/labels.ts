@@ -32,8 +32,11 @@ export const STAT_LABELS: Record<Stat, string> = {
 
 export const SLOTS: Slot[] = ['flower', 'plume', 'sands', 'goblet', 'circlet']
 
-/** 50% chance of at least one match. */
-export const LIKELY_CONFIDENCE = 0.5
+/** Median wait — half the time you get a match by here. */
+export const ESTIMATED_CONFIDENCE = 0.5
+
+/** Conservative “you’ll probably have it” threshold. */
+export const LIKELY_CONFIDENCE = 0.75
 
 /** 95% chance of at least one match (“effectively guaranteed”). */
 export const GUARANTEED_CONFIDENCE = 0.95

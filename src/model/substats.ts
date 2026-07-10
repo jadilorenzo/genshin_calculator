@@ -3,7 +3,7 @@ import {
   SUBSTAT_WEIGHTS,
   type Substat,
 } from './rates'
-import type { Stat } from './types'
+import type { Stat, SubstatMode } from './types'
 
 const LINE_COUNT = 4
 
@@ -52,33 +52,64 @@ function probabilityOfExactSet(mainStat: Stat, set: Substat[]): number {
   return total
 }
 
-/**
- * Probability that a 5★ artifact's four substat lines include every required
- * substat. Flower/plume/sands/goblet/circlet all use the same weighted draws;
- * the main stat is excluded from the pool.
- */
-export function probabilityOfRequiredSubstats(
+function normalizeRequired(
   mainStat: Stat,
   requiredSubstats: Stat[],
-): number {
-  if (requiredSubstats.length === 0) return 1
-  if (requiredSubstats.length > LINE_COUNT) return 0
-
+): Substat[] | null {
   const required: Substat[] = []
   const seen = new Set<Stat>()
   for (const stat of requiredSubstats) {
-    if (stat === mainStat) return 0
-    if (!isSubstat(stat)) return 0
-    if (seen.has(stat)) return 0
+    if (stat === mainStat) return null
+    if (!isSubstat(stat)) return null
+    if (seen.has(stat)) return null
     seen.add(stat)
     required.push(stat)
   }
+  return required
+}
 
-  const pool = ALL_SUBSTATS.filter((s) => s !== mainStat && !seen.has(s))
+/** Probability that none of `avoided` appear among the four lines. */
+function probabilityOfAvoidingSubstats(mainStat: Stat, avoided: Substat[]): number {
+  const blocked = new Set<Stat>(avoided)
+  const pool = ALL_SUBSTATS.filter((s) => s !== mainStat && !blocked.has(s))
+  if (pool.length < LINE_COUNT) return 0
+  let total = 0
+  for (const combo of combinations(pool, LINE_COUNT)) {
+    total += probabilityOfExactSet(mainStat, combo)
+  }
+  return total
+}
+
+function probabilityOfAllRequired(mainStat: Stat, required: Substat[]): number {
+  if (required.length > LINE_COUNT) return 0
+  const blocked = new Set<Stat>(required)
+  const pool = ALL_SUBSTATS.filter((s) => s !== mainStat && !blocked.has(s))
   const extrasNeeded = LINE_COUNT - required.length
   let total = 0
   for (const extras of combinations(pool, extrasNeeded)) {
     total += probabilityOfExactSet(mainStat, [...required, ...extras])
   }
   return total
+}
+
+/**
+ * Probability that a 5★ artifact's four substat lines match the requirement.
+ * - `all`: every required substat appears
+ * - `any`: at least one required substat appears
+ */
+export function probabilityOfRequiredSubstats(
+  mainStat: Stat,
+  requiredSubstats: Stat[],
+  mode: SubstatMode = 'all',
+): number {
+  if (requiredSubstats.length === 0) return 1
+
+  const required = normalizeRequired(mainStat, requiredSubstats)
+  if (required === null) return 0
+
+  if (mode === 'any') {
+    return 1 - probabilityOfAvoidingSubstats(mainStat, required)
+  }
+
+  return probabilityOfAllRequired(mainStat, required)
 }

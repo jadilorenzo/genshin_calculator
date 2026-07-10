@@ -26,14 +26,22 @@ export type Stat =
   | 'geoDamage'
   | 'physicalDamage'
 
+/** How multiple required substats combine. */
+export type SubstatMode = 'all' | 'any'
+
 /** Criteria for a desired artifact drop. */
 export interface ArtifactTarget {
   /** Probability the drop is the desired set (default 0.5 for a two-set domain). */
   setChance?: number
   slot: Slot
   mainStat: Stat
-  /** Substats that must all appear among the artifact's four lines. */
+  /**
+   * Substats to match among the artifact's four lines.
+   * With mode `all` (default), every listed substat must appear.
+   * With mode `any`, at least one listed substat must appear.
+   */
   requiredSubstats?: Stat[]
+  substatMode?: SubstatMode
 }
 
 /** Probability breakdown for one 5★ artifact matching the target. */
