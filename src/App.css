@@ -297,16 +297,54 @@ input[type='text']:focus,
 }
 
 .pace-panel-tab {
+  display: grid;
+  gap: 1.15rem;
   margin-top: 1.35rem;
+}
+
+.dailies-callout {
+  display: grid;
+  gap: 0.15rem;
+  margin-top: 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.dailies-callout .stat-value {
+  margin: 0;
+  line-height: 0.95;
+}
+
+.dailies-callout .field-note {
+  margin-top: 0.2rem;
 }
 
 .pace-result {
   justify-content: end;
 }
 
+.pace-result .stat-value {
+  margin: 0;
+  line-height: 0.95;
+}
+
 .pace-value {
-  margin: 0.15rem 0 0;
   color: var(--gold-bright);
+}
+
+.text-button {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--gold-bright);
+  font: inherit;
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.text-button:hover {
+  color: var(--mist);
 }
 
 .pity-chart {

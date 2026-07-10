@@ -1,16 +1,35 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { useBannerSchedule } from '../hooks/useBannerSchedule.ts'
 import { useLocalStorage } from '../hooks/useLocalStorage.ts'
-import { ESTIMATED_CONFIDENCE } from '../model/labels.ts'
+import { ESTIMATED_CONFIDENCE, GUARANTEED_CONFIDENCE } from '../model/labels.ts'
+import {
+  TYPICAL_BANNER_PHASE_DAYS,
+  type BannerSchedule,
+} from '../model/bannerSchedule.ts'
 import {
   HARD_PITY,
+  PRIMOS_PER_DAILY,
+  PRIMOS_PER_PULL,
+  PULLS_FROM_DAILIES_PER_DAY,
   SOFT_PITY_START,
+  dailiesContribution,
   featuredSuccessChance,
   nextFiveStarDistribution,
+  pullsFromPrimos,
   pullsPerDay,
   pullsToReachChance,
+  totalPullsAvailable,
 } from '../model/wishes.ts'
 
 type PullSubTab = 'odds' | 'pace'
+type BannerHorizon = 'next' | 'afterNext'
+
+function liveDaysForHorizon(schedule: BannerSchedule, horizon: BannerHorizon): number {
+  return Math.max(
+    1,
+    horizon === 'afterNext' ? schedule.daysUntilAfterNext : schedule.daysUntilNext,
+  )
+}
 
 function formatChance(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return '0%'
@@ -214,25 +233,76 @@ function parseNonNegInt(raw: string, fallback = 0): number {
   return Math.max(0, Math.floor(n))
 }
 
+function daysUntilDate(target: Date, from = new Date()): number {
+  const start = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate())
+  const end = Date.UTC(target.getFullYear(), target.getMonth(), target.getDate())
+  return Math.max(1, Math.round((end - start) / (24 * 60 * 60 * 1000)))
+}
+
+/** Offline fallback if the live calendar cannot be reached. */
+const FALLBACK_NEXT_BANNER_DATE = new Date(2026, 6, 21)
+const FALLBACK_DAYS_UNTIL_BANNER = String(daysUntilDate(FALLBACK_NEXT_BANNER_DATE))
+const FALLBACK_DAYS_UNTIL_AFTER_NEXT = String(
+  daysUntilDate(FALLBACK_NEXT_BANNER_DATE) + TYPICAL_BANNER_PHASE_DAYS,
+)
+
+function formatBannerEnd(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
 function PullPage() {
   const [subTab, setSubTab] = useLocalStorage<PullSubTab>('gc:pulls:subTab', 'odds')
   const [pity, setPity] = useLocalStorage('gc:pulls:pity', '0')
   const [savedPulls, setSavedPulls] = useLocalStorage('gc:pulls:savedPulls', '0')
-  const [daysUntilBanner, setDaysUntilBanner] = useLocalStorage('gc:pulls:daysUntilBanner', '21')
+  const [primos, setPrimos] = useLocalStorage('gc:pulls:primos', '0')
+  const [bannerHorizon, setBannerHorizon] = useLocalStorage<BannerHorizon>(
+    'gc:pulls:bannerHorizon',
+    'next',
+  )
+  const [daysUntilBanner, setDaysUntilBanner] = useLocalStorage(
+    'gc:pulls:daysUntilNextBanner',
+    FALLBACK_DAYS_UNTIL_BANNER,
+  )
+  const [daysManual, setDaysManual] = useLocalStorage('gc:pulls:daysManual', false)
   const [guaranteed, setGuaranteed] = useLocalStorage('gc:pulls:guaranteed', false)
+  const { schedule, status, error, refresh } = useBannerSchedule()
+
+  useEffect(() => {
+    if (daysManual || !schedule) return
+    setDaysUntilBanner(String(liveDaysForHorizon(schedule, bannerHorizon)))
+  }, [schedule, daysManual, bannerHorizon, setDaysUntilBanner])
+
+  const applyHorizon = (horizon: BannerHorizon) => {
+    setBannerHorizon(horizon)
+    setDaysManual(false)
+    if (schedule) {
+      setDaysUntilBanner(String(liveDaysForHorizon(schedule, horizon)))
+      return
+    }
+    setDaysUntilBanner(
+      horizon === 'afterNext' ? FALLBACK_DAYS_UNTIL_AFTER_NEXT : FALLBACK_DAYS_UNTIL_BANNER,
+    )
+  }
 
   const clampedPity = Math.min(HARD_PITY - 1, parseNonNegInt(pity))
   const safeSaved = parseNonNegInt(savedPulls)
+  const safePrimos = parseNonNegInt(primos)
+  const pullsFromSavedPrimos = pullsFromPrimos(safePrimos)
+  const totalPulls = totalPullsAvailable(safeSaved, safePrimos)
   const safeDays = Math.max(1, parseNonNegInt(daysUntilBanner, 1))
 
   const successChance = useMemo(
     () =>
       featuredSuccessChance({
         currentPity: clampedPity,
-        pullsAvailable: safeSaved,
+        pullsAvailable: totalPulls,
         guaranteed,
       }),
-    [clampedPity, safeSaved, guaranteed],
+    [clampedPity, totalPulls, guaranteed],
   )
 
   const likelyPlan = useMemo(
@@ -241,12 +311,29 @@ function PullPage() {
         currentPity: clampedPity,
         guaranteed,
         targetChance: ESTIMATED_CONFIDENCE,
-        alreadyHave: safeSaved,
+        alreadyHave: totalPulls,
       }),
-    [clampedPity, guaranteed, safeSaved],
+    [clampedPity, guaranteed, totalPulls],
   )
 
-  const dailyPulls = pullsPerDay(likelyPlan.pullsShort, safeDays)
+  const guaranteePlan = useMemo(
+    () =>
+      pullsToReachChance({
+        currentPity: clampedPity,
+        guaranteed,
+        targetChance: GUARANTEED_CONFIDENCE,
+        alreadyHave: totalPulls,
+      }),
+    [clampedPity, guaranteed, totalPulls],
+  )
+
+  /** Past likely → plan for 95% “guaranteed”; otherwise plan for likely. */
+  const pacePlan = likelyPlan.alreadyMet ? guaranteePlan : likelyPlan
+  const paceTarget = likelyPlan.alreadyMet ? GUARANTEED_CONFIDENCE : ESTIMATED_CONFIDENCE
+  const paceTargetLabel = likelyPlan.alreadyMet ? 'guarantee' : 'likely'
+
+  const dailyPulls = pullsPerDay(pacePlan.pullsShort, safeDays)
+  const dailies = dailiesContribution(pacePlan.pullsShort, safeDays)
   const dailyLabel = !Number.isFinite(dailyPulls)
     ? '—'
     : dailyPulls === 0
@@ -257,8 +344,16 @@ function PullPage() {
           ? dailyPulls.toFixed(1)
           : String(Math.ceil(dailyPulls))
 
+  const dailiesPercentLabel = `${dailies.percentOfGoal >= 10 ? Math.round(dailies.percentOfGoal) : dailies.percentOfGoal.toFixed(1)}%`
+  const pacePct = (paceTarget * 100).toFixed(0)
+
   const remainingToHard = HARD_PITY - clampedPity
   const progress = clampedPity / HARD_PITY
+
+  const pullsBreakdown =
+    pullsFromSavedPrimos > 0
+      ? `${safeSaved.toLocaleString()} fates + ${pullsFromSavedPrimos.toLocaleString()} from primos`
+      : 'Saved Intertwined Fates'
 
   return (
     <>
@@ -267,7 +362,7 @@ function PullPage() {
         <p className="lede">
           {subTab === 'odds'
             ? 'Check your featured 5★ odds from pity and saved fates.'
-            : 'See how many pulls per day you need before the banner to reach likely odds.'}
+            : 'See how many pulls per day you need before the banner to reach likely — or guarantee if you’re already past likely.'}
         </p>
         <div className="sub-tabs" role="tablist" aria-label="Pull tools">
           <button
@@ -333,6 +428,29 @@ function PullPage() {
               />
               <p className="field-note">Intertwined Fates</p>
             </div>
+
+            <div className="field">
+              <label className="label" htmlFor="primos">
+                Primogems
+              </label>
+              <input
+                id="primos"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={primos}
+                onChange={(e) => {
+                  const next = e.target.value
+                  if (next === '' || /^\d+$/.test(next)) setPrimos(next)
+                }}
+                onBlur={() => setPrimos(String(safePrimos))}
+              />
+              <p className="field-note">
+                {pullsFromSavedPrimos > 0
+                  ? `= ${pullsFromSavedPrimos.toLocaleString()} pull${pullsFromSavedPrimos === 1 ? '' : 's'} (${PRIMOS_PER_PULL}/pull)`
+                  : `${PRIMOS_PER_PULL} per pull`}
+              </p>
+            </div>
           </div>
 
           <div className="field">
@@ -370,8 +488,8 @@ function PullPage() {
             <section className="results results-pull" aria-live="polite">
               <div className="stat-block">
                 <p className="stat-label">Pulls available</p>
-                <p className="stat-value">{safeSaved.toLocaleString()}</p>
-                <p className="stat-note">Saved Intertwined Fates</p>
+                <p className="stat-value">{totalPulls.toLocaleString()}</p>
+                <p className="stat-note">{pullsBreakdown}</p>
               </div>
               <div className="stat-block accent">
                 <p className="stat-label">Success chance</p>
@@ -385,14 +503,40 @@ function PullPage() {
               included.
             </p>
 
-            <PityChart currentPity={clampedPity} pullsAvailable={safeSaved} />
+            <PityChart currentPity={clampedPity} pullsAvailable={totalPulls} />
           </>
         ) : (
           <section className="pace-panel pace-panel-tab" aria-label="Daily pace to likely">
+            <div className="field">
+              <span className="label" id="horizon-label">
+                Plan until
+              </span>
+              <div className="chip-row wrap" role="group" aria-labelledby="horizon-label">
+                <button
+                  type="button"
+                  className={bannerHorizon === 'next' ? 'chip active' : 'chip'}
+                  aria-pressed={bannerHorizon === 'next'}
+                  onClick={() => applyHorizon('next')}
+                >
+                  Next banner
+                </button>
+                <button
+                  type="button"
+                  className={bannerHorizon === 'afterNext' ? 'chip active' : 'chip'}
+                  aria-pressed={bannerHorizon === 'afterNext'}
+                  onClick={() => applyHorizon('afterNext')}
+                >
+                  Banner after next
+                </button>
+              </div>
+            </div>
+
             <div className="field-row">
               <div className="field">
                 <label className="label" htmlFor="banner-days">
-                  Days until banner
+                  {bannerHorizon === 'afterNext'
+                    ? 'Days until banner after next'
+                    : 'Days until next banner'}
                 </label>
                 <input
                   id="banner-days"
@@ -402,26 +546,89 @@ function PullPage() {
                   value={daysUntilBanner}
                   onChange={(e) => {
                     const next = e.target.value
-                    if (next === '' || /^\d+$/.test(next)) setDaysUntilBanner(next)
+                    if (next === '' || /^\d+$/.test(next)) {
+                      setDaysManual(true)
+                      setDaysUntilBanner(next)
+                    }
                   }}
                   onBlur={() => setDaysUntilBanner(String(safeDays))}
                 />
-                <p className="field-note">Time left to save before you need to pull</p>
+                <p className="field-note">
+                  {status === 'loading' && 'Loading live banner schedule…'}
+                  {status === 'ready' && schedule && (
+                    <>
+                      Live: {schedule.featuredFiveStars.join(' / ') || 'character banners'} through{' '}
+                      {formatBannerEnd(schedule.nextChangeAt)}
+                      {bannerHorizon === 'afterNext' && (
+                        <>
+                          {' '}
+                          · +{schedule.phaseLengthDays}d next phase →{' '}
+                          {schedule.daysUntilAfterNext} days
+                        </>
+                      )}{' '}
+                      · {schedule.source}
+                      {daysManual && (
+                        <>
+                          {' · '}
+                          <button
+                            type="button"
+                            className="text-button"
+                            onClick={() => {
+                              setDaysManual(false)
+                              setDaysUntilBanner(
+                                String(liveDaysForHorizon(schedule, bannerHorizon)),
+                              )
+                            }}
+                          >
+                            Reset to live
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                  {status === 'error' && (
+                    <>
+                      Live schedule unavailable{error ? ` (${error})` : ''}. Using fallback / manual
+                      value.{' '}
+                      <button type="button" className="text-button" onClick={refresh}>
+                        Retry
+                      </button>
+                    </>
+                  )}
+                </p>
               </div>
               <div className="field pace-result">
-                <p className="label">Pulls / day for likely</p>
+                <p className="label">Pulls / day for {paceTargetLabel}</p>
                 <p className="stat-value pace-value">{dailyLabel}</p>
                 <p className="field-note">
-                {likelyPlan.alreadyMet
-                    ? `Already at ${(ESTIMATED_CONFIDENCE * 100).toFixed(0)}%+ with what you have`
-                    : `${likelyPlan.pullsShort.toLocaleString()} more pulls to ${(ESTIMATED_CONFIDENCE * 100).toFixed(0)}% over ${safeDays} day${safeDays === 1 ? '' : 's'}`}
-              </p>
+                  {pacePlan.alreadyMet
+                    ? `Already at ${pacePct}%+ with what you have`
+                    : likelyPlan.alreadyMet
+                      ? `Past likely · ${pacePlan.pullsShort.toLocaleString()} more pulls to ${pacePct}% over ${safeDays} day${safeDays === 1 ? '' : 's'}`
+                      : `${pacePlan.pullsShort.toLocaleString()} more pulls to ${pacePct}% over ${safeDays} day${safeDays === 1 ? '' : 's'}`}
+                </p>
+              </div>
             </div>
-          </div>
-          <p className="odds">
-            Likely means {(ESTIMATED_CONFIDENCE * 100).toFixed(0)}% chance of the featured 5★ with
-            your pity and guarantee status.
-          </p>
+
+            {!pacePlan.alreadyMet && (
+              <div className="dailies-callout" aria-live="polite">
+                <p className="stat-label">Dailies cover</p>
+                <p className="stat-value pace-value">{dailiesPercentLabel}</p>
+                <p className="field-note">
+                  {PRIMOS_PER_DAILY} primos/day ≈ {PULLS_FROM_DAILIES_PER_DAY} pulls/day ·{' '}
+                  {dailies.pullsFromDailies < 10
+                    ? dailies.pullsFromDailies.toFixed(1)
+                    : Math.round(dailies.pullsFromDailies).toLocaleString()}{' '}
+                  pulls over {safeDays} day{safeDays === 1 ? '' : 's'}
+                </p>
+              </div>
+            )}
+
+            <p className="odds">
+              {likelyPlan.alreadyMet
+                ? `You’re past likely (${(ESTIMATED_CONFIDENCE * 100).toFixed(0)}%), so this plans for guarantee — ${(GUARANTEED_CONFIDENCE * 100).toFixed(0)}% chance of the featured 5★.`
+                : `Likely means ${(ESTIMATED_CONFIDENCE * 100).toFixed(0)}% chance of the featured 5★. Once you’re there, pace switches to guarantee (${(GUARANTEED_CONFIDENCE * 100).toFixed(0)}%).`}
+            </p>
           </section>
         )}
       </main>

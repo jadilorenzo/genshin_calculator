@@ -1,6 +1,12 @@
 /** Primogems per Intertwined Fate / wish. */
 export const PRIMOS_PER_PULL = 160
 
+/** Primogems from completing all four daily commissions. */
+export const PRIMOS_PER_DAILY = 60
+
+/** Pulls earned per day from commissions alone (60 / 160). */
+export const PULLS_FROM_DAILIES_PER_DAY = PRIMOS_PER_DAILY / PRIMOS_PER_PULL
+
 /** Character event wish hard pity. */
 export const HARD_PITY = 90
 
@@ -163,6 +169,24 @@ export function pullsPerDay(pullsShort: number, days: number): number {
   if (pullsShort <= 0) return 0
   if (!(days > 0)) return Number.POSITIVE_INFINITY
   return pullsShort / days
+}
+
+/**
+ * How much daily commissions contribute toward the remaining pulls for a goal.
+ */
+export function dailiesContribution(
+  pullsShort: number,
+  days: number,
+): { pullsFromDailies: number; percentOfGoal: number } {
+  const safeDays = Math.max(0, days)
+  const pullsFromDailies = PULLS_FROM_DAILIES_PER_DAY * safeDays
+  if (pullsShort <= 0) {
+    return { pullsFromDailies, percentOfGoal: 100 }
+  }
+  return {
+    pullsFromDailies,
+    percentOfGoal: Math.min(100, (pullsFromDailies / pullsShort) * 100),
+  }
 }
 
 function clampPity(pity: number): number {

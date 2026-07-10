@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   HARD_PITY,
+  dailiesContribution,
   featuredSuccessChance,
   fiveStarRate,
   nextFiveStarDistribution,
@@ -127,5 +128,18 @@ describe('pullsPerDay', () => {
   it('spreads remaining pulls across days', () => {
     expect(pullsPerDay(21, 7)).toBe(3)
     expect(pullsPerDay(0, 7)).toBe(0)
+  })
+})
+
+describe('dailiesContribution', () => {
+  it('credits 60 primos per day toward the remaining pull goal', () => {
+    // 11 days × 0.375 pulls = 4.125; of 10 pulls short → 41.25%
+    const result = dailiesContribution(10, 11)
+    expect(result.pullsFromDailies).toBeCloseTo(4.125)
+    expect(result.percentOfGoal).toBeCloseTo(41.25)
+  })
+
+  it('caps at 100% when dailies alone cover the shortfall', () => {
+    expect(dailiesContribution(2, 11).percentOfGoal).toBe(100)
   })
 })
