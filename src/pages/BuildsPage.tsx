@@ -53,6 +53,14 @@ const EMPTY_SUBS: Record<Slot, Stat[]> = {
   circlet: [],
 }
 
+const EMPTY_OWNED: Record<Slot, boolean> = {
+  flower: false,
+  plume: false,
+  sands: false,
+  goblet: false,
+  circlet: false,
+}
+
 const DEFAULT_SUB_MODES: Record<Slot, SubstatMode> = {
   flower: 'all',
   plume: 'all',
@@ -146,6 +154,7 @@ export default function BuildsPage() {
     DEFAULT_SUB_MODES,
   )
   const [setMode, setSetMode] = useLocalStorage<LineupSetMode>('gc:builds:setMode', 'oneOff')
+  const [owned, setOwned] = useLocalStorage<Record<Slot, boolean>>('gc:builds:owned', EMPTY_OWNED)
   const [unit, setUnit] = useLocalStorage<DisplayUnit>('gc:builds:unit', 'days')
 
   const pieces = useMemo(
@@ -164,7 +173,31 @@ export default function BuildsPage() {
     [mains, subs, subModes],
   )
 
-  const estimate = useMemo(() => estimateLineupResin(pieces, setMode), [pieces, setMode])
+  const remainingPieces = useMemo(
+    () => pieces.filter((piece) => !owned[piece.slot]),
+    [pieces, owned],
+  )
+
+  const estimate = useMemo(
+    () => estimateLineupResin(remainingPieces, setMode),
+    [remainingPieces, setMode],
+  )
+
+  const rateBySlot = useMemo(() => {
+    const map = new Map<Slot, number>()
+    remainingPieces.forEach((piece, index) => {
+      map.set(piece.slot, estimate.probabilities[index] ?? 0)
+    })
+    return map
+  }, [remainingPieces, estimate.probabilities])
+
+  const remainingCount = remainingPieces.length
+  const fillNote =
+    remainingCount === 0
+      ? 'All pieces owned'
+      : remainingCount === 5
+        ? 'to fill all 5'
+        : `to fill remaining ${remainingCount}`
 
   const estimated = estimate.resinForConfidence(ESTIMATED_CONFIDENCE)
   const likely = estimate.resinForConfidence(LIKELY_CONFIDENCE)
@@ -185,6 +218,10 @@ export default function BuildsPage() {
       ...prev,
       [slot]: (prev[slot] ?? []).filter((s) => s !== mainStat),
     }))
+  }
+
+  function toggleOwned(slot: Slot) {
+    setOwned((prev) => ({ ...prev, [slot]: !prev[slot] }))
   }
 
   function toggleSubstat(slot: Slot, mainStat: Stat, stat: Stat) {
@@ -232,26 +269,41 @@ export default function BuildsPage() {
           </div>
 
           <ul className="build-lineup">
-            {pieces.map((piece, index) => {
+            {pieces.map((piece) => {
               const options = mainStatsForSlot(piece.slot)
               const locked = options.length === 1
-              const p = estimate.probabilities[index] ?? 0
+              const have = owned[piece.slot]
+              const p = rateBySlot.get(piece.slot)
               const pieceSubs = piece.requiredSubstats ?? []
               const mode = piece.substatMode ?? 'all'
               const availableSubs = ALL_SUBSTATS.filter((stat) => stat !== piece.mainStat)
 
               return (
-                <li key={piece.slot} className="build-piece">
+                <li
+                  key={piece.slot}
+                  className={have ? 'build-piece owned' : 'build-piece'}
+                >
                   <div className="build-piece-head">
-                    <span className="build-slot">{SLOT_LABELS[piece.slot]}</span>
-                    <span className="build-piece-rate">{formatPercent(p)} / 5★</span>
+                    <label className="build-slot-check">
+                      <input
+                        type="checkbox"
+                        checked={!have}
+                        onChange={() => toggleOwned(piece.slot)}
+                      />
+                      <span className="build-slot">{SLOT_LABELS[piece.slot]}</span>
+                    </label>
+                    <span className="build-piece-rate">
+                      {have ? 'Owned' : `${formatPercent(p ?? 0)} / 5★`}
+                    </span>
                   </div>
+
                   {locked ? (
                     <p className="field-note">{STAT_LABELS[piece.mainStat]} (fixed)</p>
                   ) : (
                     <select
                       aria-label={`${SLOT_LABELS[piece.slot]} main stat`}
                       value={piece.mainStat}
+                      disabled={have}
                       onChange={(e) => setMain(piece.slot, e.target.value as Stat)}
                     >
                       {options.map((stat) => (
@@ -262,59 +314,61 @@ export default function BuildsPage() {
                     </select>
                   )}
 
-                  <OutsideCloseDetails
-                    summary={
-                      <>
-                        Substats
-                        <span className="hint">{substatSummary(pieceSubs, mode)}</span>
-                      </>
-                    }
-                  >
-                    <div className="chip-row wrap" role="group" aria-label="Substat match mode">
-                      <button
-                        type="button"
-                        className={mode === 'all' ? 'chip compact active' : 'chip compact'}
-                        aria-pressed={mode === 'all'}
-                        onClick={() =>
-                          setSubModes((prev) => ({ ...prev, [piece.slot]: 'all' }))
-                        }
-                      >
-                        All (AND)
-                      </button>
-                      <button
-                        type="button"
-                        className={mode === 'any' ? 'chip compact active' : 'chip compact'}
-                        aria-pressed={mode === 'any'}
-                        onClick={() =>
-                          setSubModes((prev) => ({ ...prev, [piece.slot]: 'any' }))
-                        }
-                      >
-                        Any (OR)
-                      </button>
-                    </div>
-                    <div
-                      className="chip-row wrap"
-                      role="group"
-                      aria-label={`${SLOT_LABELS[piece.slot]} required substats`}
+                  {!have && (
+                    <OutsideCloseDetails
+                      summary={
+                        <>
+                          Substats
+                          <span className="hint">{substatSummary(pieceSubs, mode)}</span>
+                        </>
+                      }
                     >
-                      {availableSubs.map((stat) => {
-                        const selected = pieceSubs.includes(stat)
-                        const disabled = !selected && pieceSubs.length >= 4
-                        return (
-                          <button
-                            key={stat}
-                            type="button"
-                            className={selected ? 'chip compact active' : 'chip compact'}
-                            aria-pressed={selected}
-                            disabled={disabled}
-                            onClick={() => toggleSubstat(piece.slot, piece.mainStat, stat)}
-                          >
-                            {STAT_LABELS[stat]}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </OutsideCloseDetails>
+                      <div className="chip-row wrap" role="group" aria-label="Substat match mode">
+                        <button
+                          type="button"
+                          className={mode === 'all' ? 'chip compact active' : 'chip compact'}
+                          aria-pressed={mode === 'all'}
+                          onClick={() =>
+                            setSubModes((prev) => ({ ...prev, [piece.slot]: 'all' }))
+                          }
+                        >
+                          All (AND)
+                        </button>
+                        <button
+                          type="button"
+                          className={mode === 'any' ? 'chip compact active' : 'chip compact'}
+                          aria-pressed={mode === 'any'}
+                          onClick={() =>
+                            setSubModes((prev) => ({ ...prev, [piece.slot]: 'any' }))
+                          }
+                        >
+                          Any (OR)
+                        </button>
+                      </div>
+                      <div
+                        className="chip-row wrap"
+                        role="group"
+                        aria-label={`${SLOT_LABELS[piece.slot]} required substats`}
+                      >
+                        {availableSubs.map((stat) => {
+                          const selected = pieceSubs.includes(stat)
+                          const disabled = !selected && pieceSubs.length >= 4
+                          return (
+                            <button
+                              key={stat}
+                              type="button"
+                              className={selected ? 'chip compact active' : 'chip compact'}
+                              aria-pressed={selected}
+                              disabled={disabled}
+                              onClick={() => toggleSubstat(piece.slot, piece.mainStat, stat)}
+                            >
+                              {STAT_LABELS[stat]}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </OutsideCloseDetails>
+                  )}
                 </li>
               )
             })}
@@ -344,17 +398,17 @@ export default function BuildsPage() {
           <div className="stat-block accent">
             <p className="stat-label">Estimated</p>
             <p className="stat-value">{formatCost(estimated, unit)}</p>
-            <p className="stat-note">50% to fill all 5</p>
+            <p className="stat-note">50% {fillNote}</p>
           </div>
           <div className="stat-block">
             <p className="stat-label">Likely</p>
             <p className="stat-value">{formatCost(likely, unit)}</p>
-            <p className="stat-note">75% to fill all 5</p>
+            <p className="stat-note">75% {fillNote}</p>
           </div>
           <div className="stat-block">
             <p className="stat-label">Guaranteed</p>
             <p className="stat-value">{formatCost(guaranteed, unit)}</p>
-            <p className="stat-note">95% to fill all 5</p>
+            <p className="stat-note">95% {fillNote}</p>
           </div>
         </section>
 

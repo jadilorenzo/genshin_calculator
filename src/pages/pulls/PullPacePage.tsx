@@ -9,6 +9,7 @@ import {
 } from '../../model/bannerSchedule.ts'
 import {
   PRIMOS_PER_DAILY,
+  PRIMOS_PER_PULL,
   PULLS_FROM_DAILIES_PER_DAY,
   dailiesContribution,
   pullsPerDay,
@@ -16,6 +17,7 @@ import {
 } from '../../model/wishes.ts'
 
 type BannerHorizon = 'next' | 'afterNext'
+type PaceUnit = 'pulls' | 'primos'
 
 function parseNonNegInt(raw: string, fallback = 0): number {
   if (raw.trim() === '') return fallback
@@ -62,6 +64,7 @@ export default function PullPacePage() {
     FALLBACK_DAYS_UNTIL_BANNER,
   )
   const [daysManual, setDaysManual] = useLocalStorage('gc:pulls:daysManual', false)
+  const [paceUnit, setPaceUnit] = useLocalStorage<PaceUnit>('gc:pulls:paceUnit', 'pulls')
   const { schedule, status, error, refresh } = useBannerSchedule()
 
   useEffect(() => {
@@ -110,16 +113,20 @@ export default function PullPacePage() {
   const paceTargetLabel = likelyPlan.alreadyMet ? 'guarantee' : 'likely'
 
   const dailyPulls = pullsPerDay(pacePlan.pullsShort, safeDays)
+  const dailyPrimos = Number.isFinite(dailyPulls) ? dailyPulls * PRIMOS_PER_PULL : Number.NaN
   const dailies = dailiesContribution(pacePlan.pullsShort, safeDays)
-  const dailyLabel = !Number.isFinite(dailyPulls)
-    ? '—'
-    : dailyPulls === 0
-      ? '0'
-      : dailyPulls < 0.1
-        ? dailyPulls.toFixed(2)
-        : dailyPulls < 10
-          ? dailyPulls.toFixed(1)
-          : String(Math.ceil(dailyPulls))
+
+  function formatPaceAmount(value: number): string {
+    if (!Number.isFinite(value)) return '—'
+    if (value === 0) return '0'
+    if (value < 0.1) return value.toFixed(2)
+    if (value < 10) return value.toFixed(1)
+    return String(Math.ceil(value))
+  }
+
+  const dailyLabel =
+    paceUnit === 'primos' ? formatPaceAmount(dailyPrimos) : formatPaceAmount(dailyPulls)
+  const paceUnitLabel = paceUnit === 'primos' ? 'Primos' : 'Pulls'
 
   const dailiesPercentLabel = `${dailies.percentOfGoal >= 10 ? Math.round(dailies.percentOfGoal) : dailies.percentOfGoal.toFixed(1)}%`
   const pacePct = (paceTarget * 100).toFixed(0)
@@ -215,14 +222,40 @@ export default function PullPacePage() {
           </p>
         </div>
         <div className="field pace-result">
-          <p className="label">Pulls / day for {paceTargetLabel}</p>
+          <div className="pace-result-head">
+            <p className="label">
+              {paceUnitLabel} / day for {paceTargetLabel}
+            </p>
+            <div className="chip-row" role="group" aria-label="Pace unit">
+              <button
+                type="button"
+                className={paceUnit === 'pulls' ? 'chip compact active' : 'chip compact'}
+                aria-pressed={paceUnit === 'pulls'}
+                onClick={() => setPaceUnit('pulls')}
+              >
+                Pulls
+              </button>
+              <button
+                type="button"
+                className={paceUnit === 'primos' ? 'chip compact active' : 'chip compact'}
+                aria-pressed={paceUnit === 'primos'}
+                onClick={() => setPaceUnit('primos')}
+              >
+                Primos
+              </button>
+            </div>
+          </div>
           <p className="stat-value pace-value">{dailyLabel}</p>
           <p className="field-note">
             {pacePlan.alreadyMet
               ? `Already at ${pacePct}%+ with what you have`
               : likelyPlan.alreadyMet
-                ? `Past likely · ${pacePlan.pullsShort.toLocaleString()} more pulls to ${pacePct}% over ${safeDays} day${safeDays === 1 ? '' : 's'}`
-                : `${pacePlan.pullsShort.toLocaleString()} more pulls to ${pacePct}% over ${safeDays} day${safeDays === 1 ? '' : 's'}`}
+                ? `Past likely · ${pacePlan.pullsShort.toLocaleString()} more pulls (${(
+                    pacePlan.pullsShort * PRIMOS_PER_PULL
+                  ).toLocaleString()} primos) to ${pacePct}% over ${safeDays} day${safeDays === 1 ? '' : 's'}`
+                : `${pacePlan.pullsShort.toLocaleString()} more pulls (${(
+                    pacePlan.pullsShort * PRIMOS_PER_PULL
+                  ).toLocaleString()} primos) to ${pacePct}% over ${safeDays} day${safeDays === 1 ? '' : 's'}`}
           </p>
         </div>
       </div>

@@ -393,6 +393,22 @@ input[type='text']:focus,
   justify-content: end;
 }
 
+.pace-result-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.pace-result-head .label {
+  margin: 0;
+}
+
+.pace-result-head .chip-row {
+  flex: 0 0 auto;
+}
+
 .pace-result .stat-value {
   margin: 0;
   line-height: 0.95;
@@ -583,11 +599,31 @@ input[type='text']:focus,
   background: rgba(255, 255, 255, 0.02);
 }
 
+.build-piece.owned {
+  opacity: 0.72;
+  background: rgba(168, 196, 188, 0.06);
+}
+
 .build-piece-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+.build-slot-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+
+.build-slot-check input {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
+  accent-color: var(--gold);
+  cursor: pointer;
 }
 
 .build-slot {
