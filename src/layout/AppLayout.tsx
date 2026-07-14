@@ -6,6 +6,8 @@ const links = [
   { to: '/builds', label: 'Builds' },
 ]
 
+const GITHUB_URL = 'https://github.com/jadilorenzo/genshin_calculator'
+
 export function AppLayout() {
   return (
     <div className="app">
@@ -24,6 +26,18 @@ export function AppLayout() {
         </nav>
       </header>
       <Outlet />
+      <footer className="site-footnote">
+        <p>
+          Built by Jacob Di Lorenzo ·{' '}
+          <a href={GITHUB_URL} target="_blank" rel="noreferrer">
+            GitHub
+          </a>
+        </p>
+        <p>
+          Estimates use community rate models and may not match live in-game odds or drop
+          tables. Not affiliated with HoYoverse.
+        </p>
+      </footer>
     </div>
   )
 }

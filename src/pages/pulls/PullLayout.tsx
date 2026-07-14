@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { ClearPageButton } from '../../components/ClearPageButton.tsx'
 import { useWishPlannerInputs } from '../../hooks/useWishPlannerInputs.ts'
 
 export default function PullLayout() {
@@ -25,7 +26,10 @@ export default function PullLayout() {
   return (
     <>
       <header className="hero">
-        <h1>Wish planner</h1>
+        <div className="hero-top">
+          <h1>Wish planner</h1>
+          <ClearPageButton prefix="gc:pulls:" />
+        </div>
         <p className="lede">
           {isPace
             ? 'See how many pulls per day you need before the banner to reach likely — or guarantee if you’re already past likely.'

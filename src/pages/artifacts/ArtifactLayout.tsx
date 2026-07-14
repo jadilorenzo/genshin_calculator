@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { ClearPageButton } from '../../components/ClearPageButton.tsx'
 import {
   ArtifactTargetProvider,
   useArtifactTarget,
@@ -176,7 +177,10 @@ export default function ArtifactLayout() {
   return (
     <>
       <header className="hero">
-        <h1>Artifact resin odds</h1>
+        <div className="hero-top">
+          <h1>Artifact resin odds</h1>
+          <ClearPageButton prefix="gc:artifacts:" />
+        </div>
         <p className="lede">
           {isCompare
             ? 'See how common your piece is per 5★ drop next to everyday farm targets — easiest fills 80%.'

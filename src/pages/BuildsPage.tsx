@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { ClearPageButton } from '../components/ClearPageButton.tsx'
 import { useLocalStorage } from '../hooks/useLocalStorage.ts'
 import {
   ALL_SUBSTATS,
@@ -238,7 +239,10 @@ export default function BuildsPage() {
   return (
     <>
       <header className="hero">
-        <h1>Build lineup</h1>
+        <div className="hero-top">
+          <h1>Build lineup</h1>
+          <ClearPageButton prefix="gc:builds:" />
+        </div>
         <p className="lede">
           Set main stats for all five pieces. Projected time accounts for parallel
           progress — early drops can fill any empty slot, so the full set finishes sooner
