@@ -117,6 +117,7 @@
   font: inherit;
   font-size: 0.88rem;
   font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
   transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
 }
@@ -149,6 +150,73 @@
 .controls {
   display: grid;
   gap: 1.25rem;
+}
+
+.artifact-workspace {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.85rem 1rem;
+}
+
+.artifact-workspace > .field {
+  flex: 1 1 11rem;
+  min-width: 0;
+  gap: 0.4rem;
+}
+
+.artifact-workspace > .field-wide {
+  flex: 1 1 100%;
+}
+
+.artifact-workspace select {
+  max-width: none;
+  width: 100%;
+  padding: 0.5rem 2rem 0.5rem 0.65rem;
+}
+
+.artifact-summary {
+  flex: 0 1 14rem;
+  min-width: min(100%, 11rem);
+  margin-left: auto;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  background: rgba(226, 197, 122, 0.06);
+}
+
+.artifact-summary-list {
+  margin: 0.45rem 0 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.artifact-summary-list > div {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr;
+  gap: 0.45rem;
+  align-items: baseline;
+}
+
+.artifact-summary-list dt {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+
+.artifact-summary-list dd {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--gold-bright);
+  line-height: 1.25;
+}
+
+.chip.compact {
+  padding: 0.32rem 0.58rem;
+  font-size: 0.84rem;
 }
 
 .field {
@@ -300,6 +368,8 @@ input[type='text']:focus,
   display: grid;
   gap: 1.15rem;
   margin-top: 1.35rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
 }
 
 .dailies-callout {
@@ -381,8 +451,8 @@ input[type='text']:focus,
 .unit-bar {
   display: grid;
   gap: 0.45rem;
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
+  margin-top: 1.15rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--line);
 }
 
@@ -435,6 +505,68 @@ input[type='text']:focus,
   font-weight: 600;
 }
 
+.rarity-compare {
+  margin-top: 1.35rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.rarity-compare-intro {
+  margin: 1rem 0 0;
+}
+
+.rarity-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.95rem;
+}
+
+.rarity-row-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.rarity-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--mist);
+}
+
+.rarity-row.yours .rarity-label,
+.rarity-row.selected .rarity-label {
+  color: var(--gold-bright);
+}
+
+.rarity-pct {
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rarity-track {
+  height: 1.35rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.rarity-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(168, 196, 188, 0.45), rgba(226, 197, 122, 0.7));
+  transition: width 220ms ease;
+}
+
+.rarity-row.yours .rarity-fill,
+.rarity-row.selected .rarity-fill {
+  background: linear-gradient(90deg, rgba(226, 197, 122, 0.55), rgba(226, 197, 122, 0.95));
+}
+
 @media (max-width: 640px) {
   .results {
     grid-template-columns: 1fr;
@@ -443,5 +575,19 @@ input[type='text']:focus,
 
   .chip-row:not(.wrap) {
     mask-image: linear-gradient(90deg, #000 85%, transparent);
+  }
+
+  .artifact-summary {
+    flex: 1 1 100%;
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .artifact-workspace > .field {
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+
+  .artifact-workspace > .field-wide {
+    flex: 1 1 100%;
   }
 }
