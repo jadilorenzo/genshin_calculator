@@ -3,6 +3,7 @@ import { AppLayout } from './layout/AppLayout.tsx'
 import ArtifactLayout from './pages/artifacts/ArtifactLayout.tsx'
 import ArtifactChancesPage from './pages/artifacts/ArtifactChancesPage.tsx'
 import ArtifactComparePage from './pages/artifacts/ArtifactComparePage.tsx'
+import BuildsPage from './pages/BuildsPage.tsx'
 import PullLayout from './pages/pulls/PullLayout.tsx'
 import PullOddsPage from './pages/pulls/PullOddsPage.tsx'
 import PullPacePage from './pages/pulls/PullPacePage.tsx'
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="odds" element={<PullOddsPage />} />
             <Route path="pace" element={<PullPacePage />} />
           </Route>
+          <Route path="builds" element={<BuildsPage />} />
           <Route path="*" element={<Navigate to="/artifacts/compare" replace />} />
         </Route>
       </Routes>

@@ -10,6 +10,17 @@ export {
 export { probabilityOfRequiredSubstats } from './substats'
 export { artifactProbability, estimateResin } from './probability'
 export {
+  RESIN_PER_FIVE_STAR,
+  dropsForLineupConfidence,
+  dropsForLineupConfidenceWithOffPiece,
+  estimateLineupResin,
+  expectedDropsToFillLineup,
+  expectedDropsToFillLineupWithOffPiece,
+  lineupMainProbability,
+  lineupPieceProbability,
+} from './buildLineup'
+export type { LineupPiece, LineupSetMode } from './buildLineup'
+export {
   HARD_PITY,
   PRIMOS_PER_DAILY,
   PRIMOS_PER_PULL,
