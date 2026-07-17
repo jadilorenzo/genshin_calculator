@@ -46,31 +46,35 @@ function budgetEndPity(startPity: number, pulls: number): number {
 
 export function PityChart({
   currentPity,
-  pullsAvailable,
+  pullsAvailable = 0,
   startPity,
+  showProjection = true,
 }: {
   currentPity: number
-  pullsAvailable: number
+  pullsAvailable?: number
   /** Optional session-start pity marker (pulling day). */
   startPity?: number
+  /** When false, only mark current pity on the curve (no budget/start bands). */
+  showProjection?: boolean
 }) {
   const baseline = useMemo(() => nextFiveStarDistribution(0), [])
   const maxProb = Math.max(...baseline.map((p) => p.probability), 1e-9)
   const segments = useMemo(
-    () => budgetSegments(currentPity, pullsAvailable),
-    [currentPity, pullsAvailable],
+    () => (showProjection ? budgetSegments(currentPity, pullsAvailable) : []),
+    [showProjection, currentPity, pullsAvailable],
   )
   const endPity = useMemo(
-    () => budgetEndPity(currentPity, pullsAvailable),
-    [currentPity, pullsAvailable],
+    () => (showProjection ? budgetEndPity(currentPity, pullsAvailable) : currentPity),
+    [showProjection, currentPity, pullsAvailable],
   )
   const loopsPastFirst = segments.length > 1
   const showStart =
-    startPity !== undefined && Number.isFinite(startPity) && startPity !== currentPity
+    showProjection &&
+    startPity !== undefined &&
+    Number.isFinite(startPity) &&
+    startPity !== currentPity
   const progressSegments = useMemo(() => {
     if (!showStart || startPity === undefined) return []
-    // Band from session start toward current pity on the first cycle only.
-    // If current < start (pity reset after a 5★), skip — path crossed hard pity.
     if (currentPity < startPity) return []
     return [{ start: startPity, end: currentPity }]
   }, [showStart, startPity, currentPity])
@@ -99,6 +103,8 @@ export function PityChart({
   const peak = baseline.reduce((best, p) => (p.probability > best.probability ? p : best))
   const youLabelOffset =
     startX !== null && Math.abs(youX - startX) < 48 ? 24 : 11
+  const showEnd =
+    showProjection && pullsAvailable > 0 && endPity !== currentPity
 
   return (
     <figure className="pity-chart">
@@ -207,7 +213,7 @@ export function PityChart({
           {showStart ? `Now · ${currentPity}` : `You · ${currentPity}`}
         </text>
 
-        {pullsAvailable > 0 && endPity !== currentPity && (
+        {showEnd && (
           <>
             <line
               x1={endX}
@@ -239,15 +245,19 @@ export function PityChart({
           {HARD_PITY}
         </text>
       </svg>
-      <p className="field-note">
-        {showStart
-          ? progressSegments.length > 0
-            ? 'Mist band = pulls so far this session. Gold band = remaining budget from now.'
-            : 'Start marks where this session began. Gold band = remaining budget from now.'
-          : loopsPastFirst
-            ? 'Saved pulls reach past hard pity, so the gold band loops into the next pity cycle.'
-            : 'Gold band = saved pulls from your current pity toward hard pity.'}
-      </p>
+      {showProjection ? (
+        <p className="field-note">
+          {showStart
+            ? progressSegments.length > 0
+              ? 'Mist band = pulls so far this session. Gold band = remaining budget from now.'
+              : 'Start marks where this session began. Gold band = remaining budget from now.'
+            : loopsPastFirst
+              ? 'Saved pulls reach past hard pity, so the gold band loops into the next pity cycle.'
+              : 'Gold band = saved pulls from your current pity toward hard pity.'}
+        </p>
+      ) : (
+        <p className="field-note">Marker follows your pity as you log pulls.</p>
+      )}
     </figure>
   )
 }

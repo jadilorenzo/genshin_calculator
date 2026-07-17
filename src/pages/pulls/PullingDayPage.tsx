@@ -9,6 +9,7 @@ import { PityChart } from './PityChart.tsx'
 
 type PullOutcome = 'miss' | 'standard' | 'featured' | 'hard-pity'
 type PullSize = 1 | 10
+type OutcomeChoice = 'miss' | 'standard' | 'featured'
 
 interface SessionState {
   pity: number
@@ -69,8 +70,8 @@ export default function PullingDayPage() {
   const [session, setSession] = useState<SessionState | null>(null)
   const [history, setHistory] = useState<Snapshot[]>([])
   const [pullSize, setPullSize] = useState<PullSize>(1)
+  const [outcomeChoice, setOutcomeChoice] = useState<OutcomeChoice>('miss')
   const [fiveStarAtRaw, setFiveStarAtRaw] = useState('1')
-  const [pendingFiveStar, setPendingFiveStar] = useState<'standard' | 'featured' | null>(null)
   const [sessionPullsDraft, setSessionPullsDraft] = useState<string | null>(null)
 
   const baselineChance = useMemo(
@@ -95,7 +96,7 @@ export default function PullingDayPage() {
     })
     setHistory([])
     setSessionPullsDraft(null)
-    setPendingFiveStar(null)
+    setOutcomeChoice('miss')
     setFiveStarAtRaw('1')
   }
 
@@ -103,7 +104,7 @@ export default function PullingDayPage() {
     setSession(null)
     setHistory([])
     setSessionPullsDraft(null)
-    setPendingFiveStar(null)
+    setOutcomeChoice('miss')
   }
 
   function applySpend(
@@ -155,7 +156,6 @@ export default function PullingDayPage() {
 
   function logMiss() {
     if (!session) return
-    setPendingFiveStar(null)
     const requested = pullSize
     const pullsToHardStar = HARD_PITY - session.pity
 
@@ -188,7 +188,7 @@ export default function PullingDayPage() {
   function logFiveStar(outcome: 'standard' | 'featured', atOverride?: number) {
     if (!session) return
     const requested = pullSize
-    const at = atOverride ?? resolveFiveStarAt(requested, session.pity)
+    const at = atOverride ?? (pullSize === 1 ? 1 : resolveFiveStarAt(requested, session.pity))
     const remainingAfter = requested - at
     const gotFeatured = outcome === 'featured'
 
@@ -201,23 +201,23 @@ export default function PullingDayPage() {
       guaranteed: outcome === 'standard',
       featuredObtained: session.featuredObtained + (gotFeatured ? 1 : 0),
     })
-    setPendingFiveStar(null)
     setFiveStarAtRaw('1')
   }
 
-  function beginFiveStar(outcome: 'standard' | 'featured') {
-    if (!session) return
-    if (pullSize === 1) {
-      logFiveStar(outcome, 1)
+  function logSelected() {
+    if (outcomeChoice === 'miss') {
+      logMiss()
       return
     }
-    setFiveStarAtRaw('1')
-    setPendingFiveStar(outcome)
+    const outcome =
+      session?.guaranteed && outcomeChoice === 'standard' ? 'featured' : outcomeChoice
+    logFiveStar(outcome)
+    setOutcomeChoice('miss')
   }
 
-  function confirmPendingFiveStar() {
-    if (!session || !pendingFiveStar) return
-    logFiveStar(pendingFiveStar)
+  function chooseOutcome(choice: OutcomeChoice) {
+    setOutcomeChoice(choice)
+    if (choice !== 'miss') setFiveStarAtRaw('1')
   }
 
   function undo() {
@@ -234,7 +234,6 @@ export default function PullingDayPage() {
     })
     setHistory((prev) => prev.slice(0, -1))
     setSessionPullsDraft(null)
-    setPendingFiveStar(null)
   }
 
   if (!session) {
@@ -261,7 +260,7 @@ export default function PullingDayPage() {
           </p>
         </div>
 
-        <PityChart currentPity={clampedPity} pullsAvailable={totalPulls} />
+        <PityChart currentPity={clampedPity} showProjection={false} />
       </section>
     )
   }
@@ -287,11 +286,7 @@ export default function PullingDayPage() {
         </p>
       </div>
 
-      <PityChart
-        currentPity={session.pity}
-        pullsAvailable={session.pullsLeft}
-        startPity={session.startingPity}
-      />
+      <PityChart currentPity={session.pity} showProjection={false} />
 
       <div className="results results-pulling" aria-live="polite">
         <div className="stat-block">
@@ -344,10 +339,7 @@ export default function PullingDayPage() {
             type="button"
             className={pullSize === 1 ? 'chip active' : 'chip'}
             aria-pressed={pullSize === 1}
-            onClick={() => {
-              setPullSize(1)
-              setPendingFiveStar(null)
-            }}
+            onClick={() => setPullSize(1)}
           >
             1 pull
           </button>
@@ -362,104 +354,83 @@ export default function PullingDayPage() {
         </div>
       </div>
 
-      <div className="field">
-        <span className="label" id="miss-label">
-          No 5★ / keep pulling
+      <div className="field pulling-day-actions-block">
+        <span className="label" id="pull-outcome-label">
+          What happened
         </span>
-        <div className="chip-row wrap" role="group" aria-labelledby="miss-label">
-          <button
-            type="button"
-            className="chip"
-            disabled={pendingFiveStar !== null}
-            onClick={logMiss}
-          >
-            No 5★
-          </button>
-        </div>
-        <p className="field-note">
-          {pullsToHardStar <= pullSize
-            ? `Hitting hard pity without picking featured assumes ${session.guaranteed ? 'featured (already guaranteed)' : 'not featured → guarantee'}; leftover pulls continue for the next featured.`
-            : 'Advances pity and spends from the session budget.'}
-        </p>
-      </div>
-
-      <div className="field">
-        <span className="label" id="five-star-label">
-          Got a 5★
-        </span>
-        <div className="chip-row wrap" role="group" aria-labelledby="five-star-label">
-          {!session.guaranteed && (
+        <div className="pulling-day-log-row">
+          <div className="switch-group" role="radiogroup" aria-labelledby="pull-outcome-label">
             <button
               type="button"
-              className={pendingFiveStar === 'standard' ? 'chip active' : 'chip'}
-              aria-pressed={pendingFiveStar === 'standard'}
-              onClick={() => beginFiveStar('standard')}
+              role="radio"
+              className={outcomeChoice === 'miss' ? 'switch-option on' : 'switch-option'}
+              aria-checked={outcomeChoice === 'miss'}
+              onClick={() => chooseOutcome('miss')}
             >
-              Lost 50/50
+              No 5★
             </button>
-          )}
-          <button
-            type="button"
-            className={pendingFiveStar === 'featured' ? 'chip active' : 'chip'}
-            aria-pressed={pendingFiveStar === 'featured'}
-            onClick={() => beginFiveStar('featured')}
-          >
-            {session.guaranteed ? 'Got featured' : 'Won 50/50'}
+            {!session.guaranteed && (
+              <button
+                type="button"
+                role="radio"
+                className={outcomeChoice === 'standard' ? 'switch-option on' : 'switch-option'}
+                aria-checked={outcomeChoice === 'standard'}
+                onClick={() => chooseOutcome('standard')}
+              >
+                Lost 50/50
+              </button>
+            )}
+            <button
+              type="button"
+              role="radio"
+              className={
+                outcomeChoice === 'featured' || (session.guaranteed && outcomeChoice === 'standard')
+                  ? 'switch-option on'
+                  : 'switch-option'
+              }
+              aria-checked={
+                outcomeChoice === 'featured' || (session.guaranteed && outcomeChoice === 'standard')
+              }
+              onClick={() => chooseOutcome('featured')}
+            >
+              {session.guaranteed ? 'Got featured' : 'Won 50/50'}
+            </button>
+          </div>
+          <button type="button" className="chip filled log-outcome-button" onClick={logSelected}>
+            Log
           </button>
         </div>
+
+        {outcomeChoice !== 'miss' && pullSize === 10 && (
+          <div className="five-star-at-row">
+            <label className="label" htmlFor="five-star-at">
+              5★ on pull #
+            </label>
+            <input
+              id="five-star-at"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={fiveStarAtRaw}
+              onChange={(e) => {
+                const next = e.target.value
+                if (next === '' || /^\d+$/.test(next)) setFiveStarAtRaw(next)
+              }}
+              onBlur={() => setFiveStarAtRaw(String(resolveFiveStarAt(10, session.pity)))}
+            />
+          </div>
+        )}
+
         <p className="field-note">
-          {pullSize === 10
-            ? 'On a 10-pull, you’ll set which wish the 5★ was on before confirming.'
-            : 'Counts as 1 pull, then pity resets.'}
+          {outcomeChoice !== 'miss' && pullSize === 10
+            ? `5★ on pull # within the 10-pull (1–${maxFiveStarAt}${maxFiveStarAt < 10 ? `, hard pity by #${maxFiveStarAt}` : ''}).`
+            : pullsToHardStar <= pullSize && outcomeChoice === 'miss'
+              ? `Hitting hard pity without picking featured assumes ${session.guaranteed ? 'featured (already guaranteed)' : 'not featured → guarantee'}; leftover pulls continue for the next featured.`
+              : outcomeChoice === 'miss'
+                ? 'Advances pity and spends from the session budget.'
+                : 'Resets pity; leftover pulls in a 10-pull continue after the 5★.'}
         </p>
       </div>
-
-      {pendingFiveStar !== null && pullSize === 10 && (
-        <div className="field five-star-at-panel">
-          <label className="label" htmlFor="five-star-at">
-            5★ on pull #
-          </label>
-          <div className="field-row">
-            <div className="field">
-              <input
-                id="five-star-at"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={fiveStarAtRaw}
-                onChange={(e) => {
-                  const next = e.target.value
-                  if (next === '' || /^\d+$/.test(next)) setFiveStarAtRaw(next)
-                }}
-                onBlur={() => setFiveStarAtRaw(String(resolveFiveStarAt(10, session.pity)))}
-              />
-              <p className="field-note">
-                Within the 10-pull (1–{maxFiveStarAt}
-                {maxFiveStarAt < 10 ? `, hard pity by #${maxFiveStarAt}` : ''}). Misses before /
-                leftovers after update pity.
-              </p>
-            </div>
-            <div className="field">
-              <span className="label">Confirm</span>
-              <div className="chip-row wrap">
-                <button type="button" className="chip active" onClick={confirmPendingFiveStar}>
-                  Log 5★
-                </button>
-                <button
-                  type="button"
-                  className="chip"
-                  onClick={() => {
-                    setPendingFiveStar(null)
-                    setFiveStarAtRaw('1')
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <p className="pulling-day-actions">
         {history.length > 0 && (
