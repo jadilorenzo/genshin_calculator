@@ -12,7 +12,7 @@ describe('artifact rates', () => {
     expect(SLOT_CHANCE).toBeCloseTo(0.2)
   })
 
-  it('uses AR45 domain average of ~1.065 five-stars per 20 resin', () => {
+  it('uses max-domain 5★ drop and resin cost', () => {
     expect(DOMAIN_FIVE_STAR_PER_RUN).toBeCloseTo(1.065)
     expect(RESIN_PER_RUN).toBe(20)
   })

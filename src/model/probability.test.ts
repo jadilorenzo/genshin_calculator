@@ -100,4 +100,5 @@ describe('estimateResin', () => {
     expect(() => estimate.resinForConfidence(0)).toThrow()
     expect(() => estimate.resinForConfidence(1)).toThrow()
   })
-})
+}
+)

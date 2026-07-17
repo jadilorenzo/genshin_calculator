@@ -47,9 +47,12 @@ function budgetEndPity(startPity: number, pulls: number): number {
 export function PityChart({
   currentPity,
   pullsAvailable,
+  startPity,
 }: {
   currentPity: number
   pullsAvailable: number
+  /** Optional session-start pity marker (pulling day). */
+  startPity?: number
 }) {
   const baseline = useMemo(() => nextFiveStarDistribution(0), [])
   const maxProb = Math.max(...baseline.map((p) => p.probability), 1e-9)
@@ -62,6 +65,15 @@ export function PityChart({
     [currentPity, pullsAvailable],
   )
   const loopsPastFirst = segments.length > 1
+  const showStart =
+    startPity !== undefined && Number.isFinite(startPity) && startPity !== currentPity
+  const progressSegments = useMemo(() => {
+    if (!showStart || startPity === undefined) return []
+    // Band from session start toward current pity on the first cycle only.
+    // If current < start (pity reset after a 5★), skip — path crossed hard pity.
+    if (currentPity < startPity) return []
+    return [{ start: startPity, end: currentPity }]
+  }, [showStart, startPity, currentPity])
 
   const width = 640
   const height = 220
@@ -83,7 +95,10 @@ export function PityChart({
 
   const youX = x(currentPity)
   const endX = x(endPity)
+  const startX = showStart && startPity !== undefined ? x(startPity) : null
   const peak = baseline.reduce((best, p) => (p.probability > best.probability ? p : best))
+  const youLabelOffset =
+    startX !== null && Math.abs(youX - startX) < 48 ? 24 : 11
 
   return (
     <figure className="pity-chart">
@@ -108,6 +123,22 @@ export function PityChart({
           height={innerH}
           fill="rgba(168, 196, 188, 0.08)"
         />
+
+        {progressSegments.map((segment, index) => {
+          const left = x(segment.start)
+          const right = x(segment.end)
+          if (right <= left) return null
+          return (
+            <rect
+              key={`progress-${segment.start}-${segment.end}-${index}`}
+              x={left}
+              y={pad.top}
+              width={right - left}
+              height={innerH}
+              fill="rgba(168, 196, 188, 0.22)"
+            />
+          )
+        })}
 
         {segments.map((segment, index) => {
           const left = x(segment.start)
@@ -134,6 +165,29 @@ export function PityChart({
           strokeLinejoin="round"
         />
 
+        {startX !== null && startPity !== undefined && (
+          <>
+            <line
+              x1={startX}
+              x2={startX}
+              y1={pad.top}
+              y2={pad.top + innerH}
+              stroke="var(--fog)"
+              strokeWidth="1.5"
+              strokeDasharray="3 3"
+            />
+            <circle cx={startX} cy={y(0)} r="3.5" fill="var(--fog)" />
+            <text
+              x={startX}
+              y={pad.top + 11}
+              textAnchor="middle"
+              className="chart-marker-label chart-marker-start"
+            >
+              Start · {startPity}
+            </text>
+          </>
+        )}
+
         <line
           x1={youX}
           x2={youX}
@@ -144,8 +198,13 @@ export function PityChart({
           strokeDasharray="4 3"
         />
         <circle cx={youX} cy={y(0)} r="4" fill="var(--mist)" />
-        <text x={youX} y={pad.top + 11} textAnchor="middle" className="chart-marker-label">
-          You · {currentPity}
+        <text
+          x={youX}
+          y={pad.top + youLabelOffset}
+          textAnchor="middle"
+          className="chart-marker-label"
+        >
+          {showStart ? `Now · ${currentPity}` : `You · ${currentPity}`}
         </text>
 
         {pullsAvailable > 0 && endPity !== currentPity && (
@@ -161,7 +220,7 @@ export function PityChart({
             <circle cx={endX} cy={y(0)} r="4" fill="var(--gold-bright)" />
             <text
               x={endX}
-              y={pad.top + (Math.abs(endX - youX) < 48 ? 24 : 11)}
+              y={pad.top + (Math.abs(endX - youX) < 48 ? youLabelOffset + 13 : 11)}
               textAnchor="middle"
               className="chart-marker-label chart-marker-end"
             >
@@ -181,9 +240,13 @@ export function PityChart({
         </text>
       </svg>
       <p className="field-note">
-        {loopsPastFirst
-          ? 'Saved pulls reach past hard pity, so the gold band loops into the next pity cycle.'
-          : 'Gold band = saved pulls from your current pity toward hard pity.'}
+        {showStart
+          ? progressSegments.length > 0
+            ? 'Mist band = pulls so far this session. Gold band = remaining budget from now.'
+            : 'Start marks where this session began. Gold band = remaining budget from now.'
+          : loopsPastFirst
+            ? 'Saved pulls reach past hard pity, so the gold band loops into the next pity cycle.'
+            : 'Gold band = saved pulls from your current pity toward hard pity.'}
       </p>
     </figure>
   )

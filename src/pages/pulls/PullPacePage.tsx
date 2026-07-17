@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useBannerSchedule } from '../../hooks/useBannerSchedule.ts'
 import { useLocalStorage } from '../../hooks/useLocalStorage.ts'
-import { useWishPlannerInputs } from '../../hooks/useWishPlannerInputs.ts'
+import { useWishPlannerInputs } from '../../hooks/useWishPlannerInputs.tsx'
 import { ESTIMATED_CONFIDENCE, GUARANTEED_CONFIDENCE } from '../../model/labels.ts'
 import {
   TYPICAL_BANNER_PHASE_DAYS,

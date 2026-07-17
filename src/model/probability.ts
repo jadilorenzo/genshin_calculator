@@ -29,7 +29,7 @@ export function artifactProbability(target: ArtifactTarget): ArtifactProbability
 
 /**
  * Converts match probability into expected resin and confidence-based resin.
- * Uses AR45 domain average 5★ drops per run.
+ * Uses max Domain of Blessing drop rates (AR45+).
  */
 export function estimateResin(target: ArtifactTarget): ResinEstimate {
   const { total: probabilityPerArtifact } = artifactProbability(target)

@@ -7,8 +7,8 @@ export const SLOT_CHANCE = 1 / 5
 export const RESIN_PER_RUN = 20
 
 /**
- * Average 5★ artifacts per 20 Resin at AR45+ max domain difficulty (KQM).
- * Modeled as 1 guaranteed + 6.5% chance of a second.
+ * Average 5★ artifacts per 20 Resin at max domain difficulty (AR45+, KQM).
+ * Level III domains: 1 guaranteed + small chance of a second.
  */
 export const DOMAIN_FIVE_STAR_PER_RUN = 1.065
 

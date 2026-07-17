@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useWishPlannerInputs } from '../../hooks/useWishPlannerInputs.ts'
+import { useWishPlannerInputs } from '../../hooks/useWishPlannerInputs.tsx'
 import { HARD_PITY, SOFT_PITY_START, featuredSuccessChance } from '../../model/wishes.ts'
 import { PityChart } from './PityChart.tsx'
 

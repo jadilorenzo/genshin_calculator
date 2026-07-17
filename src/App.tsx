@@ -7,6 +7,7 @@ import BuildsPage from './pages/BuildsPage.tsx'
 import PullLayout from './pages/pulls/PullLayout.tsx'
 import PullOddsPage from './pages/pulls/PullOddsPage.tsx'
 import PullPacePage from './pages/pulls/PullPacePage.tsx'
+import PullingDayPage from './pages/pulls/PullingDayPage.tsx'
 import './App.css'
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
             <Route index element={<Navigate to="odds" replace />} />
             <Route path="odds" element={<PullOddsPage />} />
             <Route path="pace" element={<PullPacePage />} />
+            <Route path="day" element={<PullingDayPage />} />
           </Route>
           <Route path="builds" element={<BuildsPage />} />
           <Route path="*" element={<Navigate to="/artifacts/compare" replace />} />

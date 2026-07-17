@@ -23,7 +23,7 @@ export interface LineupPiece {
  */
 export type LineupSetMode = 'onSet' | 'anySet' | 'oneOff'
 
-/** Average Original Resin spent per 5★ drop at AR45+. */
+/** Average Original Resin spent per 5★ drop at max domain difficulty. */
 export const RESIN_PER_FIVE_STAR = RESIN_PER_RUN / DOMAIN_FIVE_STAR_PER_RUN
 
 function mainChance(piece: LineupPiece): number {
@@ -329,6 +329,8 @@ export function estimateLineupResin(
   resinForConfidence: (confidence: number) => number
 } {
   const { display, onProbs, offProbs } = ratesForMode(pieces, mode)
+  const resinEach = RESIN_PER_FIVE_STAR
+
 
   const expectedDrops =
     mode === 'oneOff'
@@ -337,7 +339,7 @@ export function estimateLineupResin(
 
   const expectedResin =
     Number.isFinite(expectedDrops) && expectedDrops > 0
-      ? expectedDrops * RESIN_PER_FIVE_STAR
+      ? expectedDrops * resinEach
       : expectedDrops === 0
         ? 0
         : Number.POSITIVE_INFINITY
@@ -349,7 +351,7 @@ export function estimateLineupResin(
       naiveSumResin = Number.POSITIVE_INFINITY
       break
     }
-    naiveSumResin += RESIN_PER_FIVE_STAR / p
+    naiveSumResin += resinEach / p
   }
 
   return {
@@ -363,7 +365,7 @@ export function estimateLineupResin(
           ? dropsForLineupConfidenceWithOffPiece(onProbs, offProbs, confidence)
           : dropsForLineupConfidence(onProbs, confidence)
       if (!Number.isFinite(drops)) return Number.POSITIVE_INFINITY
-      return drops * RESIN_PER_FIVE_STAR
+      return drops * resinEach
     },
   }
 }
