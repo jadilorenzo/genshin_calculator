@@ -54,6 +54,9 @@
   --bar-track: linear-gradient(90deg, rgba(100, 140, 175, 0.45), rgba(160, 205, 235, 0.85));
   --bar-fill: linear-gradient(90deg, rgba(80, 155, 205, 0.7), rgba(170, 215, 245, 0.98));
   --accent-wash: rgba(90, 160, 215, 0.12);
+  --scrollbar-track: rgba(200, 220, 245, 0.04);
+  --scrollbar-thumb: rgba(150, 180, 210, 0.28);
+  --scrollbar-thumb-hover: rgba(170, 200, 230, 0.45);
 }
 
 [data-theme='light'] {
@@ -103,4 +106,7 @@
   --bar-track: linear-gradient(90deg, rgba(90, 107, 130, 0.35), rgba(91, 122, 154, 0.75));
   --bar-fill: linear-gradient(90deg, rgba(91, 122, 154, 0.65), rgba(61, 95, 130, 0.95));
   --accent-wash: rgba(91, 122, 154, 0.1);
+  --scrollbar-track: rgba(30, 45, 70, 0.06);
+  --scrollbar-thumb: rgba(90, 110, 140, 0.35);
+  --scrollbar-thumb-hover: rgba(70, 95, 130, 0.5);
 }

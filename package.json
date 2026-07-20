@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "extract:kits": "node scripts/extractCharacterKits.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

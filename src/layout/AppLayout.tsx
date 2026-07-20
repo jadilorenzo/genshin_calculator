@@ -4,9 +4,10 @@ import { useTheme } from '../hooks/useTheme.ts'
 import { THEME_LABEL } from '../theme'
 
 const links = [
-  { to: '/artifacts', label: 'Artifacts' },
-  { to: '/pulls', label: 'Pulls' },
   { to: '/builds', label: 'Builds' },
+  { to: '/artifacts', label: 'Artifacts' },
+  { to: '/rotations', label: 'Rotations' },
+  { to: '/pulls', label: 'Pulls' },
 ]
 
 const GITHUB_URL = 'https://github.com/jadilorenzo/genshin_calculator'
@@ -28,8 +29,8 @@ export function AppLayout() {
                 <p className="brand-eyebrow">Genshin Impact tools</p>
                 <h1 className="brand">False Moon's Reckoning</h1>
                 <p className="brand-tagline">
-                  Wish pity, artifact odds, and build pacing — estimated from community rate
-                  models.
+                  Wish pity, artifact odds, build pacing, and rotation sketches — estimated
+                  from community rate models.
                 </p>
               </div>
             </div>

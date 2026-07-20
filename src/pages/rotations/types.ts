@@ -1,0 +1,96 @@
+export type Element =
+  | 'Anemo'
+  | 'Cryo'
+  | 'Dendro'
+  | 'Electro'
+  | 'Geo'
+  | 'Hydro'
+  | 'Pyro'
+  | string
+
+export type WeaponType =
+  | 'Sword'
+  | 'Claymore'
+  | 'Polearm'
+  | 'Bow'
+  | 'Catalyst'
+  | string
+
+export interface KitAttribute {
+  name: string
+  paramKey?: string
+  format?: string
+  raw: number | string | null
+  unit: 's' | 'energy' | null
+}
+
+export interface KitSkill {
+  name: string
+  description: string
+  cooldown: number | null
+  energyCost: number | null
+  duration: number | null
+  attributes: KitAttribute[]
+  labels: string[]
+  parameters: Record<string, number[]>
+}
+
+export interface KitPassive {
+  name: string
+  description: string
+}
+
+export interface KitConstellation {
+  level: number
+  name: string
+  description: string
+}
+
+export interface CharacterKit {
+  normalAttack: KitSkill | null
+  elementalSkill: KitSkill | null
+  elementalBurst: KitSkill | null
+  passives: KitPassive[]
+  constellations: KitConstellation[]
+}
+
+export interface CharacterData {
+  id: string
+  name: string
+  element: Element
+  weapon: WeaponType
+  rarity: number
+  constellationName: string
+  version: string | null
+  iconFile?: string | null
+  icon: string | null
+  sideIcon: string | null
+  kit: CharacterKit
+}
+
+export interface CharacterKitsFile {
+  source: string
+  extractedAt: string
+  talentLevelForScalars: number
+  count: number
+  characters: CharacterData[]
+}
+
+/** A character placement on the rotation timeline. */
+export interface TimelinePlacement {
+  id: string
+  characterId: string
+  /** Start time in seconds */
+  start: number
+  /** On-field / block duration in seconds */
+  duration: number
+  /** Include skill cast time in default on-field */
+  castSkill: boolean
+  /** Include burst cast time in default on-field */
+  castBurst: boolean
+  /** Press vs hold skill when the kit supports both (defaults to hold) */
+  skillVariant: 'press' | 'hold'
+  /** Selected kit duration overlays (e.g. "skill:Shield Duration") */
+  activeDurations: string[]
+}
+
