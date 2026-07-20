@@ -4,7 +4,7 @@ import {
 } from './artifactDurationOptions'
 import { CharacterIcon } from './CharacterIcon'
 import { getCharacter } from './characters'
-import { getKitDurationOptions } from './durationOptions'
+import { getKitCooldownOptions, getKitEffectOptions } from './durationOptions'
 import {
   defaultOnFieldDuration,
   effectiveCastTimes,
@@ -246,7 +246,8 @@ function SelectedPlacementDetail({
     placement.skillVariant,
     kitHold,
   )
-  const kitOptions = getKitDurationOptions(char)
+  const kitOptions = getKitEffectOptions(char)
+  const cooldownOptions = getKitCooldownOptions(char)
   const artifactOptions = getArtifactDurationOptions(char)
   const selectedArtifactId =
     placement.activeDurations.find((id) =>
@@ -475,6 +476,35 @@ function SelectedPlacementDetail({
                     type="button"
                     className={on ? 'chip compact active' : 'chip compact'}
                     title={`${opt.skillName} · after ${opt.trigger ?? opt.source}`}
+                    onClick={() => onToggleDurationOverlay(opt.id)}
+                  >
+                    {opt.label}
+                    <span className="rotation-dur-chip-secs">{opt.seconds}s</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {cooldownOptions.length > 0 ? (
+          <div className="rotation-selected-row">
+            <span className="label" id={`dur-cd-${placement.id}`}>
+              CDs
+            </span>
+            <div
+              className="chip-row wrap"
+              role="group"
+              aria-labelledby={`dur-cd-${placement.id}`}
+            >
+              {cooldownOptions.map((opt) => {
+                const on = placement.activeDurations.includes(opt.id)
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={on ? 'chip compact active' : 'chip compact'}
+                    title={`${opt.skillName} · CD from cast start`}
                     onClick={() => onToggleDurationOverlay(opt.id)}
                   >
                     {opt.label}

@@ -845,10 +845,10 @@ export function parseCastOrder(raw: unknown): CastOrder {
 }
 
 /**
- * Seconds from on-field start until each ability's animation finishes.
- * Timed kit effects (Omen, Pale Hymn, etc.) begin at these offsets.
+ * Seconds from on-field start until each ability's animation starts and finishes.
+ * Buffs / shred usually begin at *end*; cooldowns begin at *start*.
  */
-export function castEndOffsets(
+export function castTimingOffsets(
   characterId: string,
   opts: {
     skill: boolean
@@ -859,7 +859,12 @@ export function castEndOffsets(
     skillVariant?: SkillCastVariant
     kitHoldSeconds?: number | null
   },
-): { skillEnd: number; burstEnd: number } {
+): {
+  skillStart: number
+  skillEnd: number
+  burstStart: number
+  burstEnd: number
+} {
   const mode = opts.mode ?? DEFAULT_TIMING_MODE
   const variant =
     opts.skillVariant ??
@@ -878,31 +883,54 @@ export function castEndOffsets(
 
   if (order === 'burst-first') {
     if (burstStandalone) {
+      const burstStart = 0
       const burstEnd = t.burstCast
       return {
+        burstStart,
         burstEnd,
+        skillStart: skill ? burstEnd : 0,
         skillEnd: skill ? round(burstEnd + t.skillCast) : 0,
       }
     }
     if (wovenBurst) {
       const end = t.skillCast
-      return { skillEnd: end, burstEnd: end }
+      return { skillStart: 0, skillEnd: end, burstStart: 0, burstEnd: end }
     }
     return {
+      burstStart: 0,
       burstEnd: 0,
+      skillStart: skill ? 0 : 0,
       skillEnd: skill ? t.skillCast : 0,
     }
   }
 
   // skill-first (default)
+  const skillStart = skill ? 0 : 0
   const skillEnd = skill ? t.skillCast : 0
   if (burstStandalone) {
-    return { skillEnd, burstEnd: round(skillEnd + t.burstCast) }
+    return {
+      skillStart,
+      skillEnd,
+      burstStart: skillEnd,
+      burstEnd: round(skillEnd + t.burstCast),
+    }
   }
   if (wovenBurst) {
-    return { skillEnd, burstEnd: skillEnd }
+    return { skillStart, skillEnd, burstStart: skillStart, burstEnd: skillEnd }
   }
-  return { skillEnd, burstEnd: 0 }
+  return { skillStart, skillEnd, burstStart: 0, burstEnd: 0 }
+}
+
+/**
+ * Seconds from on-field start until each ability's animation finishes.
+ * Timed kit effects (Omen, Pale Hymn, etc.) begin at these offsets.
+ */
+export function castEndOffsets(
+  characterId: string,
+  opts: Parameters<typeof castTimingOffsets>[1],
+): { skillEnd: number; burstEnd: number } {
+  const t = castTimingOffsets(characterId, opts)
+  return { skillEnd: t.skillEnd, burstEnd: t.burstEnd }
 }
 
 /** Normalize persisted placements that predate cast toggles / skill variant. */

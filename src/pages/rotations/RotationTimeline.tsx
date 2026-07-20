@@ -10,9 +10,9 @@ import {
 import { getCharacter } from './characters'
 import { readCharacterDrag } from './CharacterPalette'
 import { CharacterIcon } from './CharacterIcon'
-import { effectStartOffset, getDurationOptions } from './durationOptions'
+import { effectStartOffset, getDurationOptions, isCooldownOption } from './durationOptions'
 import {
-  castEndOffsets,
+  castTimingOffsets,
   defaultOnFieldDuration,
   defaultSkillVariant,
   kitHoldChannelSeconds,
@@ -179,6 +179,7 @@ export function RotationTimeline({
       element: string
       lane: number
       loop: boolean
+      cooldown: boolean
     }[] = []
 
     let lane = 0
@@ -186,7 +187,7 @@ export function RotationTimeline({
       const char = getCharacter(p.characterId)
       if (!char) continue
       const kitHold = kitHoldChannelSeconds(char.kit.elementalSkill)
-      const ends = castEndOffsets(p.characterId, {
+      const timing = castTimingOffsets(p.characterId, {
         skill: p.castSkill ?? true,
         burst: p.castBurst ?? true,
         castOrder: parseCastOrder(p.castOrder),
@@ -199,8 +200,9 @@ export function RotationTimeline({
       for (const optionId of p.activeDurations) {
         const opt = options.find((o) => o.id === optionId)
         if (!opt) continue
-        const offset = effectStartOffset(opt, ends)
+        const offset = effectStartOffset(opt, timing)
         const start = p.start + offset
+        const cooldown = isCooldownOption(opt)
         rows.push({
           placementId: p.id,
           optionId: opt.id,
@@ -210,6 +212,7 @@ export function RotationTimeline({
           element: char.element,
           lane,
           loop: false,
+          cooldown,
         })
         if (showLoop) {
           rows.push({
@@ -221,6 +224,7 @@ export function RotationTimeline({
             element: char.element,
             lane,
             loop: true,
+            cooldown,
           })
         }
         lane += 1
@@ -597,12 +601,14 @@ export function RotationTimeline({
               {durationRows.map((row) => (
                 <div
                   key={`${row.placementId}-${row.optionId}-${row.loop ? 'loop' : 'main'}`}
-                  className={
-                    row.loop
-                      ? 'rotation-duration-line loop'
-                      : 'rotation-duration-line'
-                  }
-                  data-element={row.element}
+                  className={[
+                    'rotation-duration-line',
+                    row.loop ? 'loop' : '',
+                    row.cooldown ? 'cooldown' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  data-element={row.cooldown ? undefined : row.element}
                   title={row.label}
                   style={{
                     top: `${row.lane * rowHeight + 0.15}rem`,

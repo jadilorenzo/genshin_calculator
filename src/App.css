@@ -1620,6 +1620,19 @@ input[type='text']:focus,
   border-style: solid;
 }
 
+/* Cooldowns: outline only (no fill), muted */
+.rotation-duration-line.cooldown,
+.rotation-duration-line.cooldown[data-element] {
+  background: transparent;
+  border-color: rgba(110, 118, 130, 0.55);
+  color: rgba(70, 78, 90, 0.72);
+  font-weight: 600;
+}
+
+.rotation-duration-line.cooldown.loop {
+  opacity: 0.4;
+}
+
 .rotation-duration-empty {
   margin: 0.35rem 0 0.55rem;
   padding: 0 0.25rem;

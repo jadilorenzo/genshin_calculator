@@ -26,7 +26,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
-          <Route index element={<Navigate to="/artifacts/compare" replace />} />
+          <Route index element={<Navigate to="/rotations" replace />} />
+          <Route path="rotations" element={<RotationsRoute />} />
           <Route path="builds" element={<BuildsPage />} />
           <Route path="artifacts" element={<ArtifactLayout />}>
             <Route index element={<Navigate to="compare" replace />} />
@@ -35,14 +36,13 @@ export default function App() {
             <Route path="chances" element={<Navigate to="/artifacts/expectations" replace />} />
             <Route path="farm" element={<Navigate to="/artifacts/expectations" replace />} />
           </Route>
-          <Route path="rotations" element={<RotationsRoute />} />
           <Route path="pulls" element={<PullLayout />}>
             <Route index element={<Navigate to="odds" replace />} />
             <Route path="odds" element={<PullOddsPage />} />
             <Route path="pace" element={<PullPacePage />} />
             <Route path="day" element={<PullingDayPage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/artifacts/compare" replace />} />
+          <Route path="*" element={<Navigate to="/rotations" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -4,9 +4,9 @@ import { useTheme } from '../hooks/useTheme.ts'
 import { THEME_LABEL } from '../theme'
 
 const links = [
+  { to: '/rotations', label: 'Rotations' },
   { to: '/builds', label: 'Builds' },
   { to: '/artifacts', label: 'Artifacts' },
-  { to: '/rotations', label: 'Rotations' },
   { to: '/pulls', label: 'Pulls' },
 ]
 

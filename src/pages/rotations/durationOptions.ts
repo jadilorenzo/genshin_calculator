@@ -7,6 +7,8 @@ export type DurationSource = 'skill' | 'burst' | 'artifact'
 /** When an artifact (or dual-trigger kit) buff starts relative to casts. */
 export type DurationTrigger = 'skill' | 'burst' | 'first' | 'last'
 
+export type DurationKind = 'effect' | 'cooldown'
+
 export interface DurationOption {
   id: string
   label: string
@@ -15,10 +17,13 @@ export interface DurationOption {
   skillName: string
   seconds: number
   /**
-   * Cast that starts the timer (after that cast finishes).
+   * Cast that starts the timer (after that cast finishes for effects;
+   * at cast start for cooldowns).
    * Defaults from `source` when omitted (`artifact` requires an explicit trigger).
    */
   trigger?: DurationTrigger
+  /** Cooldown bars render muted; effects use element tint. */
+  kind?: DurationKind
 }
 
 export function optionTrigger(opt: DurationOption): DurationTrigger {
@@ -28,21 +33,57 @@ export function optionTrigger(opt: DurationOption): DurationTrigger {
   return 'skill'
 }
 
+export function isCooldownOption(opt: DurationOption): boolean {
+  return opt.kind === 'cooldown'
+}
+
+export interface CastTimingWindow {
+  skillStart: number
+  skillEnd: number
+  burstStart: number
+  burstEnd: number
+}
+
 /** Seconds from on-field start until this overlay should begin. */
 export function effectStartOffset(
   opt: DurationOption,
-  ends: { skillEnd: number; burstEnd: number },
+  timing: CastTimingWindow,
 ): number {
   const trigger = optionTrigger(opt)
-  if (trigger === 'burst') return ends.burstEnd
+  const cooldown = isCooldownOption(opt)
+
+  if (cooldown) {
+    if (trigger === 'burst') return timing.burstStart
+    if (trigger === 'first' || trigger === 'last') {
+      const starts: number[] = []
+      if (timing.skillEnd > 0) starts.push(timing.skillStart)
+      if (timing.burstEnd > 0) starts.push(timing.burstStart)
+      if (starts.length === 0) return 0
+      return trigger === 'last' ? Math.max(...starts) : Math.min(...starts)
+    }
+    return timing.skillStart
+  }
+
+  if (trigger === 'burst') return timing.burstEnd
   if (trigger === 'first' || trigger === 'last') {
-    const candidates = [ends.skillEnd, ends.burstEnd].filter((t) => t > 0)
+    const candidates = [timing.skillEnd, timing.burstEnd].filter((t) => t > 0)
     if (candidates.length === 0) return 0
     return trigger === 'last'
       ? Math.max(...candidates)
       : Math.min(...candidates)
   }
-  return ends.skillEnd
+  return timing.skillEnd
+}
+
+function isCooldownAttrName(name: string): boolean {
+  return /^cd$/i.test(name) || /\bcd\b/i.test(name) || /cooldown/i.test(name)
+}
+
+function cooldownLabel(source: 'skill' | 'burst', attrName: string): string {
+  if (/^cd$/i.test(attrName) || /^cooldown$/i.test(attrName)) {
+    return source === 'burst' ? 'Burst CD' : 'Skill CD'
+  }
+  return attrName
 }
 
 function optionsFromSkill(
@@ -56,27 +97,47 @@ function optionsFromSkill(
   for (const attr of skill.attributes) {
     if (attr.unit !== 's') continue
     if (typeof attr.raw !== 'number' || !(attr.raw > 0)) continue
-    if (/^cd$/i.test(attr.name) || /\bcd\b/i.test(attr.name) || /cooldown/i.test(attr.name))
-      continue
 
+    const cooldown = isCooldownAttrName(attr.name)
     const id = `${source}:${attr.name}`
     if (seen.has(id)) continue
     seen.add(id)
     out.push({
       id,
-      label: attr.name,
+      label: cooldown ? cooldownLabel(source, attr.name) : attr.name,
       source,
       skillName: skill.name,
       seconds: attr.raw,
       trigger: source,
+      kind: cooldown ? 'cooldown' : 'effect',
     })
+  }
+
+  // Fallback when kit only exposes a top-level cooldown
+  if (
+    skill.cooldown != null &&
+    skill.cooldown > 0 &&
+    !out.some((o) => o.kind === 'cooldown' && o.source === source)
+  ) {
+    const id = `${source}:CD`
+    if (!seen.has(id)) {
+      out.push({
+        id,
+        label: source === 'burst' ? 'Burst CD' : 'Skill CD',
+        source,
+        skillName: skill.name,
+        seconds: skill.cooldown,
+        trigger: source,
+        kind: 'cooldown',
+      })
+    }
   }
 
   // Fallback when kit only exposes a generic duration field
   if (
     skill.duration != null &&
     skill.duration > 0 &&
-    !out.some((o) => o.label === 'Duration')
+    !out.some((o) => o.kind !== 'cooldown' && o.label === 'Duration')
   ) {
     out.push({
       id: `${source}:Duration`,
@@ -85,18 +146,29 @@ function optionsFromSkill(
       skillName: skill.name,
       seconds: skill.duration,
       trigger: source,
+      kind: 'effect',
     })
   }
 
   return out
 }
 
-/** Timed effects from a character kit (shields, skill uptime, etc.). */
+/** Timed effects from a character kit (shields, skill uptime, CDs, etc.). */
 export function getKitDurationOptions(character: CharacterData): DurationOption[] {
   return [
     ...optionsFromSkill('skill', character.kit.elementalSkill),
     ...optionsFromSkill('burst', character.kit.elementalBurst),
   ]
+}
+
+/** Kit effects only (no cooldowns). */
+export function getKitEffectOptions(character: CharacterData): DurationOption[] {
+  return getKitDurationOptions(character).filter((o) => o.kind !== 'cooldown')
+}
+
+/** Skill / burst cooldown overlays. */
+export function getKitCooldownOptions(character: CharacterData): DurationOption[] {
+  return getKitDurationOptions(character).filter((o) => o.kind === 'cooldown')
 }
 
 /** Kit + common artifact set duration overlays. */
