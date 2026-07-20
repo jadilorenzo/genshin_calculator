@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ClearPageButton } from '../components/ClearPageButton.tsx'
+import { SlotIcon } from '../components/icons.tsx'
 import { useLocalStorage } from '../hooks/useLocalStorage.ts'
 import {
   ALL_SUBSTATS,
@@ -294,7 +295,10 @@ export default function BuildsPage() {
                         checked={!have}
                         onChange={() => toggleOwned(piece.slot)}
                       />
-                      <span className="build-slot">{SLOT_LABELS[piece.slot]}</span>
+                      <span className="build-slot">
+                        <SlotIcon slot={piece.slot} />
+                        <span>{SLOT_LABELS[piece.slot]}</span>
+                      </span>
                     </label>
                     <span className="build-piece-rate">
                       {have ? 'Owned' : `${formatPercent(p ?? 0)} / 5★`}

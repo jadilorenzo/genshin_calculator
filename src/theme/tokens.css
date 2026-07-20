@@ -1,0 +1,106 @@
+/**
+ * Single source of truth for light/dark visual tokens.
+ * Accent is lunar silver (new moon) — not warm gold.
+ * Components should use these CSS variables only.
+ */
+
+:root,
+[data-theme='dark'] {
+  /* Surfaces — deep new-moon void */
+  --page: #0b0d12;
+  --page-bg:
+    radial-gradient(ellipse 65% 48% at 12% -4%, rgba(110, 170, 230, 0.2), transparent 52%),
+    radial-gradient(ellipse 50% 42% at 92% 6%, rgba(90, 130, 210, 0.16), transparent 48%),
+    radial-gradient(ellipse 45% 38% at 70% 85%, rgba(70, 160, 180, 0.1), transparent 55%),
+    radial-gradient(ellipse 50% 35% at 40% 110%, rgba(40, 55, 90, 0.45), transparent 55%),
+    linear-gradient(168deg, #12151d 0%, #0b0d12 48%, #07080c 100%);
+  --panel: rgba(18, 22, 32, 0.9);
+  --panel-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --chip-surface: rgba(200, 220, 245, 0.05);
+  --input-surface: rgba(200, 220, 245, 0.07);
+  --row-surface: rgba(200, 220, 245, 0.04);
+
+  /* Ink / text — cool pearl */
+  --ink: #0b0d12;
+  --ink-soft: #1a1f2b;
+  --text: #e8eef6;
+  --mist: #e8eef6;
+  --fog: #a8b8cc;
+  --muted: #8fa0b5;
+  --line: rgba(200, 220, 245, 0.16);
+
+  /* Accent — moonlight silver + cool ice/blue highlights */
+  --gold: #8eb8d8;
+  --gold-bright: #d7e8f6;
+  --gold-soft: rgba(110, 170, 220, 0.32);
+  --gold-hover: rgba(140, 190, 230, 0.55);
+  --focus: rgba(130, 185, 230, 0.6);
+  --mist-soft: rgba(120, 175, 220, 0.12);
+  --brand-glow: 0 0 36px rgba(100, 170, 230, 0.28);
+  --header-surface: rgba(12, 16, 26, 0.94);
+  --header-wash: rgba(100, 160, 220, 0.06);
+  --header-glow: rgba(100, 165, 230, 0.2);
+  --header-glow-alt: rgba(70, 170, 190, 0.12);
+  --mark-glow: rgba(130, 190, 235, 0.28);
+  --active-wash: rgba(90, 160, 215, 0.16);
+
+  /* Charts / bars */
+  --chart-fill-top: rgba(140, 195, 235, 0.52);
+  --chart-fill-bottom: rgba(80, 150, 200, 0.05);
+  --chart-soft-band: rgba(100, 165, 220, 0.12);
+  --chart-progress: rgba(90, 160, 215, 0.18);
+  --chart-budget-a: rgba(90, 160, 200, 0.18);
+  --chart-budget-b: rgba(150, 200, 235, 0.28);
+  --bar-track: linear-gradient(90deg, rgba(100, 140, 175, 0.45), rgba(160, 205, 235, 0.85));
+  --bar-fill: linear-gradient(90deg, rgba(80, 155, 205, 0.7), rgba(170, 215, 245, 0.98));
+  --accent-wash: rgba(90, 160, 215, 0.12);
+}
+
+[data-theme='light'] {
+  /* Surfaces — pale lunar mist */
+  --page: #eef2f7;
+  --page-bg:
+    radial-gradient(ellipse 75% 48% at 8% -8%, rgba(140, 170, 210, 0.28), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(255, 255, 255, 0.9), transparent 45%),
+    linear-gradient(168deg, #f7f9fc 0%, #e8eef5 50%, #dce4ef 100%);
+  --panel: rgba(255, 255, 255, 0.92);
+  --panel-shadow: 0 10px 32px rgba(40, 60, 90, 0.1);
+  --chip-surface: rgba(30, 45, 70, 0.05);
+  --input-surface: rgba(30, 45, 70, 0.06);
+  --row-surface: rgba(30, 45, 70, 0.035);
+
+  /* Ink / text */
+  --ink: #0e1218;
+  --ink-soft: #1c2430;
+  --text: #141a22;
+  --mist: #1c2430;
+  --fog: #4a5a70;
+  --muted: #5a6b82;
+  --line: rgba(30, 45, 70, 0.16);
+
+  /* Accent — deeper moonlight on pale ground */
+  --gold: #5b7a9a;
+  --gold-bright: #3d5f82;
+  --gold-soft: rgba(91, 122, 154, 0.2);
+  --gold-hover: rgba(61, 95, 130, 0.4);
+  --focus: rgba(61, 95, 130, 0.45);
+  --mist-soft: rgba(30, 45, 70, 0.06);
+  --brand-glow: none;
+  --header-surface: rgba(255, 255, 255, 0.72);
+  --header-wash: rgba(255, 255, 255, 0.45);
+  --header-glow: rgba(140, 170, 210, 0.22);
+  --header-glow-alt: rgba(100, 160, 190, 0.1);
+  --mark-glow: transparent;
+  --active-wash: rgba(91, 122, 154, 0.12);
+
+  /* Charts / bars */
+  --chart-fill-top: rgba(91, 122, 154, 0.4);
+  --chart-fill-bottom: rgba(91, 122, 154, 0.05);
+  --chart-soft-band: rgba(61, 95, 130, 0.08);
+  --chart-progress: rgba(61, 95, 130, 0.12);
+  --chart-budget-a: rgba(91, 122, 154, 0.14);
+  --chart-budget-b: rgba(91, 122, 154, 0.26);
+  --bar-track: linear-gradient(90deg, rgba(90, 107, 130, 0.35), rgba(91, 122, 154, 0.75));
+  --bar-fill: linear-gradient(90deg, rgba(91, 122, 154, 0.65), rgba(61, 95, 130, 0.95));
+  --accent-wash: rgba(91, 122, 154, 0.1);
+}

@@ -1,23 +1,20 @@
 :root {
-  font-family: 'Source Sans 3', system-ui, sans-serif;
+  font-family: 'Manrope', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #e8f1ee;
-  background-color: #0e1c24;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--text);
+  background-color: var(--page);
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    radial-gradient(ellipse 90% 60% at 10% -10%, rgba(196, 163, 90, 0.22), transparent 55%),
-    radial-gradient(ellipse 70% 50% at 100% 0%, rgba(72, 130, 120, 0.28), transparent 50%),
-    linear-gradient(165deg, #132833 0%, #0e1c24 45%, #0a151b 100%);
+  background: var(--page-bg);
 }
 
 button,

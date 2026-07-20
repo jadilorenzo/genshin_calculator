@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { ClearPageButton } from '../../components/ClearPageButton.tsx'
+import { SlotIcon } from '../../components/icons.tsx'
 import {
   ArtifactTargetProvider,
   useArtifactTarget,
@@ -25,7 +26,10 @@ function ArtifactSummary() {
       <dl className="artifact-summary-list">
         <div>
           <dt>Slot</dt>
-          <dd>{SLOT_LABELS[slot]}</dd>
+          <dd className="slot-label-with-icon">
+            <SlotIcon slot={slot} />
+            <span>{SLOT_LABELS[slot]}</span>
+          </dd>
         </div>
         <div>
           <dt>Main</dt>
@@ -74,10 +78,11 @@ function ArtifactControls() {
             <button
               key={s}
               type="button"
-              className={slot === s ? 'chip compact active' : 'chip compact'}
+              className={slot === s ? 'chip compact active chip-with-icon' : 'chip compact chip-with-icon'}
               onClick={() => handleSlotChange(s)}
             >
-              {SLOT_LABELS[s]}
+              <SlotIcon slot={s} />
+              <span>{SLOT_LABELS[s]}</span>
             </button>
           ))}
         </div>

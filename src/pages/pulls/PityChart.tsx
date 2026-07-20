@@ -117,8 +117,8 @@ export function PityChart({
       >
         <defs>
           <linearGradient id="pity-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(226, 197, 122, 0.45)" />
-            <stop offset="100%" stopColor="rgba(226, 197, 122, 0.04)" />
+            <stop offset="0%" stopColor="var(--chart-fill-top)" />
+            <stop offset="100%" stopColor="var(--chart-fill-bottom)" />
           </linearGradient>
         </defs>
 
@@ -127,7 +127,7 @@ export function PityChart({
           y={pad.top}
           width={x(HARD_PITY) - x(SOFT_PITY_START)}
           height={innerH}
-          fill="rgba(168, 196, 188, 0.08)"
+          fill="var(--chart-soft-band)"
         />
 
         {progressSegments.map((segment, index) => {
@@ -141,7 +141,7 @@ export function PityChart({
               y={pad.top}
               width={right - left}
               height={innerH}
-              fill="rgba(168, 196, 188, 0.22)"
+              fill="var(--chart-progress)"
             />
           )
         })}
@@ -157,7 +157,7 @@ export function PityChart({
               y={pad.top}
               width={right - left}
               height={innerH}
-              fill={index === 0 ? 'rgba(226, 197, 122, 0.14)' : 'rgba(226, 197, 122, 0.22)'}
+              fill={index === 0 ? 'var(--chart-budget-a)' : 'var(--chart-budget-b)'}
             />
           )
         })}
