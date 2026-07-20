@@ -2012,6 +2012,22 @@ input[type='text']:focus,
   padding-top: 0.45rem;
 }
 
+.rotation-artifact-select {
+  width: 100%;
+  max-width: 22rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--input-surface);
+  color: var(--text);
+  padding: 0.4rem 0.55rem;
+  font: inherit;
+}
+
+.rotation-artifact-select:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
 .rotation-onfield-adjust {
   display: flex;
   align-items: center;

@@ -6,10 +6,13 @@
  * that longer option; UI can switch to the short cancel/press.
  * Human mode pads each enabled cast with humanLag (unless a human override exists).
  */
+import type { CastOrder } from './types'
+
 export type TimingMode = 'frame' | 'human'
 export type SkillCastVariant = 'press' | 'hold'
 /** How to label the short vs long skill option in the UI. */
 export type SkillPairStyle = 'hold' | 'charge' | 'state' | 'combo'
+export type { CastOrder }
 
 export const DEFAULT_TIMING_MODE: TimingMode = 'human'
 export const DEFAULT_HUMAN_LAG = 0.15
@@ -169,18 +172,6 @@ const TIMINGS_BY_ID: Record<string, FieldCastTimings> = {
   raiden: {
     skillCast: round(35 / 60),
     burstCast: round(110 / 60),
-  },
-  eula: {
-    skillCast: 0.6,
-    skillHoldCast: round(80 / 60),
-    burstCast: 1.8,
-    skillPairStyle: 'hold',
-  },
-  razor: {
-    skillCast: 0.6,
-    skillHoldCast: round(90 / 60),
-    burstCast: 1.5,
-    skillPairStyle: 'hold',
   },
   shenhe: {
     skillCast: 0.7,
@@ -849,6 +840,71 @@ export function defaultOnFieldDuration(
   return Math.max(0.5, round(total))
 }
 
+export function parseCastOrder(raw: unknown): CastOrder {
+  return raw === 'burst-first' ? 'burst-first' : 'skill-first'
+}
+
+/**
+ * Seconds from on-field start until each ability's animation finishes.
+ * Timed kit effects (Omen, Pale Hymn, etc.) begin at these offsets.
+ */
+export function castEndOffsets(
+  characterId: string,
+  opts: {
+    skill: boolean
+    burst: boolean
+    castOrder?: CastOrder
+    mode?: TimingMode
+    humanLag?: number
+    skillVariant?: SkillCastVariant
+    kitHoldSeconds?: number | null
+  },
+): { skillEnd: number; burstEnd: number } {
+  const mode = opts.mode ?? DEFAULT_TIMING_MODE
+  const variant =
+    opts.skillVariant ??
+    defaultSkillVariant(characterId, opts.kitHoldSeconds ?? null)
+  const t = effectiveCastTimes(
+    characterId,
+    mode,
+    opts.humanLag,
+    variant,
+    opts.kitHoldSeconds ?? null,
+  )
+  const skill = opts.skill
+  const wovenBurst = skill && !!t.comboIncludesBurst
+  const burstStandalone = opts.burst && !wovenBurst
+  const order = opts.castOrder ?? 'skill-first'
+
+  if (order === 'burst-first') {
+    if (burstStandalone) {
+      const burstEnd = t.burstCast
+      return {
+        burstEnd,
+        skillEnd: skill ? round(burstEnd + t.skillCast) : 0,
+      }
+    }
+    if (wovenBurst) {
+      const end = t.skillCast
+      return { skillEnd: end, burstEnd: end }
+    }
+    return {
+      burstEnd: 0,
+      skillEnd: skill ? t.skillCast : 0,
+    }
+  }
+
+  // skill-first (default)
+  const skillEnd = skill ? t.skillCast : 0
+  if (burstStandalone) {
+    return { skillEnd, burstEnd: round(skillEnd + t.burstCast) }
+  }
+  if (wovenBurst) {
+    return { skillEnd, burstEnd: skillEnd }
+  }
+  return { skillEnd, burstEnd: 0 }
+}
+
 /** Normalize persisted placements that predate cast toggles / skill variant. */
 export function sanitizePlacementCasts(
   p: TimelinePlacementLike,
@@ -856,6 +912,7 @@ export function sanitizePlacementCasts(
 ): {
   castSkill: boolean
   castBurst: boolean
+  castOrder: CastOrder
   skillVariant: SkillCastVariant
   activeDurations: string[]
   /** True when skillVariant was missing and should refresh on-field duration */
@@ -866,6 +923,7 @@ export function sanitizePlacementCasts(
   return {
     castSkill: p.castSkill ?? true,
     castBurst: p.castBurst ?? defaultCastBurst(characterId, kitHoldSeconds),
+    castOrder: parseCastOrder(p.castOrder),
     skillVariant: parseSkillVariant(p.skillVariant, characterId, kitHoldSeconds),
     activeDurations: Array.isArray(p.activeDurations) ? p.activeDurations : [],
     migratedVariant: !hadVariant,
@@ -876,6 +934,7 @@ interface TimelinePlacementLike {
   characterId?: string
   castSkill?: boolean
   castBurst?: boolean
+  castOrder?: CastOrder
   skillVariant?: SkillCastVariant
   activeDurations?: string[]
 }

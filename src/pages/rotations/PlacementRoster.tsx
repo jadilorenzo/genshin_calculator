@@ -1,15 +1,21 @@
+import {
+  getArtifactDurationOptions,
+  isArtifactDurationId,
+} from './artifactDurationOptions'
 import { CharacterIcon } from './CharacterIcon'
 import { getCharacter } from './characters'
-import { getDurationOptions } from './durationOptions'
+import { getKitDurationOptions } from './durationOptions'
 import {
   defaultOnFieldDuration,
   effectiveCastTimes,
   getFieldCastTimings,
   hasSkillHold,
   kitHoldChannelSeconds,
+  parseCastOrder,
   parseSkillVariant,
   skillToggleLabel,
   skillVariantLabels,
+  type CastOrder,
   type SkillCastVariant,
   type TimingMode,
 } from './fieldTimings'
@@ -30,6 +36,7 @@ function withCastDefaults(p: TimelinePlacement): TimelinePlacement {
     ...p,
     castSkill: p.castSkill ?? true,
     castBurst: p.castBurst ?? true,
+    castOrder: parseCastOrder(p.castOrder),
     skillVariant: parseSkillVariant(p.skillVariant, p.characterId, kitHold),
     activeDurations: p.activeDurations ?? [],
   }
@@ -173,8 +180,16 @@ export function PlacementRoster({
             updatePlacement(selected.id, { activeDurations: active })
             onSelect(selected.id)
           }}
+          onSetActiveDurations={(activeDurations) => {
+            updatePlacement(selected.id, { activeDurations })
+            onSelect(selected.id)
+          }}
           onToggleCast={(key, value) => {
             applyCastPatch(selected.id, { [key]: value })
+          }}
+          onCastOrder={(castOrder) => {
+            updatePlacement(selected.id, { castOrder })
+            onSelect(selected.id)
           }}
           onSkillVariant={(variant) => {
             applyCastPatch(selected.id, {
@@ -198,7 +213,9 @@ function SelectedPlacementDetail({
   onResetDuration,
   onSetDuration,
   onToggleDurationOverlay,
+  onSetActiveDurations,
   onToggleCast,
+  onCastOrder,
   onSkillVariant,
 }: {
   placement: TimelinePlacement
@@ -208,7 +225,9 @@ function SelectedPlacementDetail({
   onResetDuration: () => void
   onSetDuration: (duration: number) => void
   onToggleDurationOverlay: (optionId: string) => void
+  onSetActiveDurations: (activeDurations: string[]) => void
   onToggleCast: (key: 'castSkill' | 'castBurst', value: boolean) => void
+  onCastOrder: (order: CastOrder) => void
   onSkillVariant: (variant: SkillCastVariant) => void
 }) {
   const char = getCharacter(placement.characterId)
@@ -227,7 +246,12 @@ function SelectedPlacementDetail({
     placement.skillVariant,
     kitHold,
   )
-  const options = getDurationOptions(char)
+  const kitOptions = getKitDurationOptions(char)
+  const artifactOptions = getArtifactDurationOptions(char)
+  const selectedArtifactId =
+    placement.activeDurations.find((id) =>
+      artifactOptions.some((o) => o.id === id),
+    ) ?? ''
   const skill = char.kit.elementalSkill
   const burst = char.kit.elementalBurst
   const defaultDur = defaultOnFieldDuration(
@@ -239,6 +263,15 @@ function SelectedPlacementDetail({
     placement.skillVariant === 'hold' && base.skillHoldCast != null
       ? base.skillHoldCast
       : base.skillCast
+
+  function setArtifactOverlay(optionId: string) {
+    const withoutArtifacts = placement.activeDurations.filter(
+      (id) => !isArtifactDurationId(id),
+    )
+    onSetActiveDurations(
+      optionId ? [...withoutArtifacts, optionId] : withoutArtifacts,
+    )
+  }
 
   return (
     <article
@@ -268,42 +301,76 @@ function SelectedPlacementDetail({
           <span className="label">Casts</span>
           <div className="rotation-cast-stack">
             <div className="chip-row wrap" role="group" aria-label="Cast toggles">
-              <button
-                type="button"
-                className={
-                  placement.castSkill ? 'chip compact active' : 'chip compact'
-                }
-                onClick={() => onToggleCast('castSkill', !placement.castSkill)}
-                title={
-                  skill?.name
-                    ? `${skill.name} · frame ${frameSkill.toFixed(2)}s`
-                    : `${skillLabel} · frame ${frameSkill.toFixed(2)}s`
-                }
-              >
-                {skillLabel}
-                <span className="rotation-dur-chip-secs">
-                  {effective.skillCast.toFixed(2)}s
-                </span>
-              </button>
-              <button
-                type="button"
-                className={
-                  placement.castBurst ? 'chip compact active' : 'chip compact'
-                }
-                onClick={() => onToggleCast('castBurst', !placement.castBurst)}
-                title={
-                  combo
-                    ? 'Extra standalone burst (combo already includes woven bursts)'
-                    : burst?.name
-                      ? `${burst.name} · frame ${base.burstCast.toFixed(2)}s`
-                      : `Burst · frame ${base.burstCast.toFixed(2)}s`
-                }
-              >
-                Burst
-                <span className="rotation-dur-chip-secs">
-                  {effective.burstCast.toFixed(2)}s
-                </span>
-              </button>
+              {(placement.castOrder === 'burst-first'
+                ? (['burst', 'skill'] as const)
+                : (['skill', 'burst'] as const)
+              ).map((kind) =>
+                kind === 'skill' ? (
+                  <button
+                    key="skill"
+                    type="button"
+                    className={
+                      placement.castSkill ? 'chip compact active' : 'chip compact'
+                    }
+                    onClick={() =>
+                      onToggleCast('castSkill', !placement.castSkill)
+                    }
+                    title={
+                      skill?.name
+                        ? `${skill.name} · frame ${frameSkill.toFixed(2)}s`
+                        : `${skillLabel} · frame ${frameSkill.toFixed(2)}s`
+                    }
+                  >
+                    {skillLabel}
+                    <span className="rotation-dur-chip-secs">
+                      {effective.skillCast.toFixed(2)}s
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    key="burst"
+                    type="button"
+                    className={
+                      placement.castBurst ? 'chip compact active' : 'chip compact'
+                    }
+                    onClick={() =>
+                      onToggleCast('castBurst', !placement.castBurst)
+                    }
+                    title={
+                      combo
+                        ? 'Extra standalone burst (combo already includes woven bursts)'
+                        : burst?.name
+                          ? `${burst.name} · frame ${base.burstCast.toFixed(2)}s`
+                          : `Burst · frame ${base.burstCast.toFixed(2)}s`
+                    }
+                  >
+                    Burst
+                    <span className="rotation-dur-chip-secs">
+                      {effective.burstCast.toFixed(2)}s
+                    </span>
+                  </button>
+                ),
+              )}
+              {placement.castSkill && placement.castBurst && !combo ? (
+                <button
+                  type="button"
+                  className="chip compact"
+                  onClick={() =>
+                    onCastOrder(
+                      placement.castOrder === 'burst-first'
+                        ? 'skill-first'
+                        : 'burst-first',
+                    )
+                  }
+                  title={
+                    placement.castOrder === 'burst-first'
+                      ? 'Cast order: Burst → Skill (click to swap)'
+                      : 'Cast order: Skill → Burst (click to swap)'
+                  }
+                >
+                  {placement.castOrder === 'burst-first' ? 'Q→E' : 'E→Q'}
+                </button>
+              ) : null}
             </div>
             {canHold ? (
               <div
@@ -390,23 +457,24 @@ function SelectedPlacementDetail({
           </div>
         </div>
 
-        {options.length > 0 ? (
+        {kitOptions.length > 0 ? (
           <div className="rotation-selected-row">
-            <span className="label" id={`dur-${placement.id}`}>
-              Overlays
+            <span className="label" id={`dur-kit-${placement.id}`}>
+              Kit
             </span>
             <div
               className="chip-row wrap"
               role="group"
-              aria-labelledby={`dur-${placement.id}`}
+              aria-labelledby={`dur-kit-${placement.id}`}
             >
-              {options.map((opt) => {
+              {kitOptions.map((opt) => {
                 const on = placement.activeDurations.includes(opt.id)
                 return (
                   <button
                     key={opt.id}
                     type="button"
                     className={on ? 'chip compact active' : 'chip compact'}
+                    title={`${opt.skillName} · after ${opt.trigger ?? opt.source}`}
                     onClick={() => onToggleDurationOverlay(opt.id)}
                   >
                     {opt.label}
@@ -415,6 +483,27 @@ function SelectedPlacementDetail({
                 )
               })}
             </div>
+          </div>
+        ) : null}
+
+        {artifactOptions.length > 0 ? (
+          <div className="rotation-selected-row">
+            <span className="label" id={`dur-art-${placement.id}`}>
+              Artifact
+            </span>
+            <select
+              className="rotation-artifact-select"
+              aria-labelledby={`dur-art-${placement.id}`}
+              value={selectedArtifactId}
+              onChange={(e) => setArtifactOverlay(e.target.value)}
+            >
+              <option value="">None</option>
+              {artifactOptions.map((opt) => (
+                <option key={opt.id} value={opt.id} title={opt.skillName}>
+                  {opt.skillName} · {opt.seconds}s
+                </option>
+              ))}
+            </select>
           </div>
         ) : null}
       </div>

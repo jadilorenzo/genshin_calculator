@@ -76,6 +76,9 @@ export interface CharacterKitsFile {
   characters: CharacterData[]
 }
 
+/** Order of skill vs burst casts within an on-field window. */
+export type CastOrder = 'skill-first' | 'burst-first'
+
 /** A character placement on the rotation timeline. */
 export interface TimelinePlacement {
   id: string
@@ -88,6 +91,8 @@ export interface TimelinePlacement {
   castSkill: boolean
   /** Include burst cast time in default on-field */
   castBurst: boolean
+  /** Skill then burst (default) or burst then skill */
+  castOrder: CastOrder
   /** Press vs hold skill when the kit supports both (defaults to hold) */
   skillVariant: 'press' | 'hold'
   /** Selected kit duration overlays (e.g. "skill:Shield Duration") */

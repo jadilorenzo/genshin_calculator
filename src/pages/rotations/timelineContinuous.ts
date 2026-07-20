@@ -198,6 +198,7 @@ export function insertOnField(
         duration: rightDur,
         castSkill: target.castSkill ?? true,
         castBurst: target.castBurst ?? true,
+        castOrder: target.castOrder ?? 'skill-first',
         skillVariant: target.skillVariant ?? 'hold',
         activeDurations: [],
       },

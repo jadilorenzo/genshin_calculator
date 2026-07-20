@@ -10,11 +10,13 @@ import {
 import { getCharacter } from './characters'
 import { readCharacterDrag } from './CharacterPalette'
 import { CharacterIcon } from './CharacterIcon'
-import { getDurationOptions } from './durationOptions'
+import { effectStartOffset, getDurationOptions } from './durationOptions'
 import {
+  castEndOffsets,
   defaultOnFieldDuration,
   defaultSkillVariant,
   kitHoldChannelSeconds,
+  parseCastOrder,
   type TimingMode,
 } from './fieldTimings'
 import {
@@ -183,15 +185,27 @@ export function RotationTimeline({
     for (const p of placements) {
       const char = getCharacter(p.characterId)
       if (!char) continue
+      const kitHold = kitHoldChannelSeconds(char.kit.elementalSkill)
+      const ends = castEndOffsets(p.characterId, {
+        skill: p.castSkill ?? true,
+        burst: p.castBurst ?? true,
+        castOrder: parseCastOrder(p.castOrder),
+        mode: timingMode,
+        humanLag,
+        skillVariant: p.skillVariant,
+        kitHoldSeconds: kitHold,
+      })
       const options = getDurationOptions(char)
       for (const optionId of p.activeDurations) {
         const opt = options.find((o) => o.id === optionId)
         if (!opt) continue
+        const offset = effectStartOffset(opt, ends)
+        const start = p.start + offset
         rows.push({
           placementId: p.id,
           optionId: opt.id,
           label: `${char.name} · ${opt.label}`,
-          start: p.start,
+          start,
           seconds: opt.seconds,
           element: char.element,
           lane,
@@ -202,7 +216,7 @@ export function RotationTimeline({
             placementId: p.id,
             optionId: opt.id,
             label: `${char.name} · ${opt.label}`,
-            start: p.start + cycleLength,
+            start: start + cycleLength,
             seconds: opt.seconds,
             element: char.element,
             lane,
@@ -213,7 +227,7 @@ export function RotationTimeline({
       }
     }
     return rows
-  }, [placements, showLoop, cycleLength])
+  }, [placements, showLoop, cycleLength, timingMode, humanLag])
 
   const durationLaneCount = useMemo(() => {
     const lanes = new Set(durationRows.map((r) => r.lane))
@@ -256,6 +270,7 @@ export function RotationTimeline({
       }),
       castSkill,
       castBurst,
+      castOrder: 'skill-first',
       skillVariant,
       activeDurations: [],
     }
