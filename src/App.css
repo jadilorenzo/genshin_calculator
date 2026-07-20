@@ -11,6 +11,7 @@
 }
 
 .app {
+  --content-width: 1040px;
   width: 100%;
   min-height: 100vh;
   font-family: 'Manrope', sans-serif;
@@ -18,7 +19,7 @@
 }
 
 .app-body {
-  width: min(720px, 100%);
+  width: min(var(--content-width), 100%);
   margin: 0 auto;
   padding: 1.75rem 1.25rem 3rem;
 }
@@ -71,7 +72,7 @@
 
 .site-header-inner {
   position: relative;
-  width: min(920px, 100%);
+  width: min(var(--content-width), 100%);
   margin: 0 auto;
   padding: 1.35rem 1.25rem 0;
 }
