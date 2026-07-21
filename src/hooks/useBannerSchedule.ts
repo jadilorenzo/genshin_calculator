@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  fetchBannerSchedule,
+  fetchBannerCalendar,
+  scheduleFromCalendar,
+  type BannerCalendarData,
   type BannerSchedule,
 } from '../model/bannerSchedule.ts'
+import { useBannerRegion } from './useBannerRegion.tsx'
 
 export type BannerScheduleStatus = 'loading' | 'ready' | 'error'
 
@@ -12,7 +15,8 @@ export function useBannerSchedule(): {
   error: string | null
   refresh: () => void
 } {
-  const [schedule, setSchedule] = useState<BannerSchedule | null>(null)
+  const [region] = useBannerRegion()
+  const [calendar, setCalendar] = useState<BannerCalendarData | null>(null)
   const [status, setStatus] = useState<BannerScheduleStatus>('loading')
   const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
@@ -23,21 +27,15 @@ export function useBannerSchedule(): {
     setStatus('loading')
     setError(null)
 
-    fetchBannerSchedule()
-      .then((result) => {
+    fetchBannerCalendar()
+      .then((data) => {
         if (cancelled) return
-        if (!result) {
-          setSchedule(null)
-          setStatus('error')
-          setError('No active character banner found')
-          return
-        }
-        setSchedule(result)
+        setCalendar(data)
         setStatus('ready')
       })
       .catch((err: unknown) => {
         if (cancelled) return
-        setSchedule(null)
+        setCalendar(null)
         setStatus('error')
         setError(err instanceof Error ? err.message : 'Failed to load banner schedule')
       })
@@ -47,10 +45,18 @@ export function useBannerSchedule(): {
     }
   }, [tick])
 
+  const schedule = useMemo(() => {
+    if (!calendar) return null
+    return scheduleFromCalendar(calendar, Date.now(), region)
+  }, [calendar, region])
+
   return {
     schedule,
-    status,
-    error,
+    status: status === 'ready' && !schedule ? 'error' : status,
+    error:
+      status === 'ready' && !schedule
+        ? 'No active character banner found'
+        : error,
     refresh: () => setTick((n) => n + 1),
   }
 }

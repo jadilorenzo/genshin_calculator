@@ -1,12 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CHARACTER_KITS, ELEMENTS } from '../rotations/characters'
+import { useNavigate, useParams } from 'react-router-dom'
+import { PAGE_TITLES } from '../../documentTitles.ts'
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
+import { CHARACTER_KITS, ELEMENTS, getCharacter } from '../rotations/characters'
 import { CharacterIcon } from '../rotations/CharacterIcon'
 import { CharacterKitView } from './CharacterKitView'
 
 export default function CharactersPage() {
+  useDocumentTitle(PAGE_TITLES.characters)
+  const navigate = useNavigate()
+  const { characterId } = useParams()
   const [query, setQuery] = useState('')
   const [element, setElement] = useState<string>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!characterId) return
+    const character = getCharacter(characterId)
+    if (!character) return
+    setQuery('')
+    setElement('all')
+    setSelectedId(character.id)
+  }, [characterId])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -29,6 +44,11 @@ export default function CharactersPage() {
   }, [filtered, selectedId])
 
   const selected = filtered.find((c) => c.id === selectedId) ?? null
+
+  const openCharacter = (id: string) => {
+    setSelectedId(id)
+    navigate(`/characters/${id}`, { replace: true })
+  }
 
   return (
     <>
@@ -90,7 +110,7 @@ export default function CharactersPage() {
                         : 'characters-list-item'
                     }
                     data-element={c.element}
-                    onClick={() => setSelectedId(c.id)}
+                    onClick={() => openCharacter(c.id)}
                   >
                     <CharacterIcon
                       character={c}

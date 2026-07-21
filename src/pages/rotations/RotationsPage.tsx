@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ClearPageButton } from '../../components/ClearPageButton.tsx'
+import { PAGE_TITLES } from '../../documentTitles.ts'
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { useLocalStorage } from '../../hooks/useLocalStorage.ts'
 import { CharacterPalette } from './CharacterPalette'
 import { PlacementRoster } from './PlacementRoster'
@@ -54,6 +56,7 @@ function sanitizePlacements(
 }
 
 export default function RotationsPage() {
+  useDocumentTitle(PAGE_TITLES.rotations)
   const [placements, setPlacements] = useLocalStorage<TimelinePlacement[]>(
     'gc:rotations:placements',
     [],

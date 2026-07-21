@@ -603,6 +603,12 @@ input[type='text']:focus,
   border-top: 1px solid var(--line);
 }
 
+.banner-countdown.pace-panel-tab {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
 .dailies-callout {
   display: grid;
   gap: 0.15rem;
@@ -644,6 +650,309 @@ input[type='text']:focus,
 .banner-pulling-day-notice .chip.compact {
   flex: 0 0 auto;
   white-space: nowrap;
+}
+
+.banner-countdown-intro {
+  margin-top: 0;
+}
+
+.banner-featured-roster {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(211, 188, 142, 0.12), transparent 55%),
+    var(--row-surface);
+}
+
+.banner-featured-roster.upcoming {
+  opacity: 0.92;
+}
+
+.banner-featured-five-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.65rem;
+}
+
+.banner-featured-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 2px;
+}
+
+.banner-featured-card-link:hover .banner-featured-card,
+.banner-featured-card-link:focus-visible .banner-featured-card {
+  border-color: var(--gold-hover);
+  background: var(--active-wash);
+}
+
+.banner-featured-card-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.banner-featured-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 5.5rem;
+  padding: 0.55rem 0.65rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--chip-surface);
+  overflow: hidden;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.banner-featured-card[data-element='Pyro'] {
+  border-color: rgba(255, 127, 80, 0.35);
+  background: linear-gradient(135deg, rgba(255, 127, 80, 0.12), var(--chip-surface) 55%);
+}
+
+.banner-featured-card[data-element='Hydro'] {
+  border-color: rgba(75, 160, 255, 0.35);
+  background: linear-gradient(135deg, rgba(75, 160, 255, 0.12), var(--chip-surface) 55%);
+}
+
+.banner-featured-card[data-element='Electro'] {
+  border-color: rgba(186, 104, 255, 0.35);
+  background: linear-gradient(135deg, rgba(186, 104, 255, 0.12), var(--chip-surface) 55%);
+}
+
+.banner-featured-card[data-element='Anemo'] {
+  border-color: rgba(116, 229, 206, 0.35);
+  background: linear-gradient(135deg, rgba(116, 229, 206, 0.12), var(--chip-surface) 55%);
+}
+
+.banner-featured-card[data-element='Cryo'] {
+  border-color: rgba(168, 228, 255, 0.35);
+  background: linear-gradient(135deg, rgba(168, 228, 255, 0.12), var(--chip-surface) 55%);
+}
+
+.banner-featured-card[data-element='Dendro'] {
+  border-color: rgba(164, 214, 72, 0.35);
+  background: linear-gradient(135deg, rgba(164, 214, 72, 0.12), var(--chip-surface) 55%);
+}
+
+.banner-featured-card[data-element='Geo'] {
+  border-color: rgba(255, 204, 77, 0.35);
+  background: linear-gradient(135deg, rgba(255, 204, 77, 0.12), var(--chip-surface) 55%);
+}
+
+.banner-featured-portrait-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.1rem;
+  height: 5rem;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.banner-featured-portrait.featured {
+  width: 4.1rem;
+  height: 4.1rem;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.banner-featured-portrait.fallback.featured {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--gold-bright);
+}
+
+.banner-featured-card-copy {
+  display: grid;
+  gap: 0.15rem;
+  align-self: center;
+  min-width: 0;
+}
+
+.banner-featured-name {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.banner-featured-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.banner-featured-four-block {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.banner-featured-rateup-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.banner-featured-four-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.banner-featured-four-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.45rem 0.28rem 0.28rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--chip-surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.banner-featured-four-chip:hover,
+.banner-featured-four-chip:focus-visible {
+  border-color: var(--gold-hover);
+  background: var(--active-wash);
+}
+
+.banner-featured-four-chip:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.banner-featured-four-icon {
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--row-surface);
+}
+
+.banner-featured-four-icon.fallback {
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--gold-bright);
+}
+
+.banner-featured-four-name {
+  font-size: 0.78rem;
+  font-weight: 550;
+  color: var(--fog);
+}
+
+.banner-countdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.banner-countdown-card {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--row-surface);
+}
+
+.banner-countdown-card > .label {
+  margin: 0;
+}
+
+.banner-countdown-featured {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--gold-bright);
+}
+
+.banner-countdown-featured.muted {
+  color: var(--fog);
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.banner-countdown-digits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.15rem 0;
+}
+
+.banner-countdown-unit {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 3rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--chip-surface);
+  text-align: center;
+}
+
+.banner-countdown-value {
+  font-size: 1.65rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--gold-bright);
+}
+
+.banner-countdown-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.banner-countdown-source {
+  margin-top: 0.75rem;
+}
+
+.banner-countdown-near {
+  margin-top: 0.65rem;
+}
+
+.banner-countdown-near a {
+  color: var(--gold);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.banner-countdown-near a:hover {
+  text-decoration: underline;
 }
 
 .pace-result {

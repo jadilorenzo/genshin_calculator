@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { PAGE_TITLES } from '../../documentTitles.ts'
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { useLocalStorage } from '../../hooks/useLocalStorage.ts'
 import { useArtifactTarget } from '../../hooks/useArtifactTarget.tsx'
 import {
@@ -57,6 +59,7 @@ function formatPercent(value: number): string {
 }
 
 export default function ArtifactChancesPage() {
+  useDocumentTitle(PAGE_TITLES.artifactExpectations)
   const { target, onSetOnly } = useArtifactTarget()
   const [unit, setUnit] = useLocalStorage<DisplayUnit>('gc:artifacts:unit', 'runs')
 

@@ -15,14 +15,22 @@ export function BannerPullingDayNotice() {
   const featured =
     schedule.featuredFiveStars.length > 0
       ? schedule.featuredFiveStars.join(' / ')
-      : 'Character banner'
+      : schedule.upcomingFiveStars.length > 0
+        ? schedule.upcomingFiveStars.join(' / ')
+        : 'Character banner'
 
   const copy =
     kind === 'before'
-      ? schedule.daysUntilNext <= 1
-        ? `Banner changes soon${featured ? ` (${featured})` : ''}. Log pulls live on Pulling day.`
-        : `Banner changes in ${schedule.daysUntilNext} days${featured ? ` (${featured})` : ''}. Plan with Pulling day.`
-      : `${featured} banner just starting… Track pity live on Pulling day.`
+      ? schedule.phaseStartedInRegion
+        ? schedule.daysUntilNext <= 1
+          ? `Banner changes soon${featured ? ` (${featured})` : ''}. Log pulls live on Pulling day.`
+          : `Banner changes in ${schedule.daysUntilNext} days${featured ? ` (${featured})` : ''}. Plan with Pulling day.`
+        : schedule.daysUntilNext <= 1
+          ? `Banner change soon in your region${featured ? ` — up next: ${featured}` : ''}. Log pulls live on Pulling day.`
+          : `Banner change in ${schedule.daysUntilNext} days in your region${featured ? ` — up next: ${featured}` : ''}. Plan with Pulling day.`
+      : schedule.phaseStartedInRegion
+        ? `${featured} banner just starting… Track pity live on Pulling day.`
+        : `${featured ? `${featured} ` : ''}banner starting in your region… Track pity live on Pulling day.`
 
   return (
     <aside className="banner-pulling-day-notice" aria-label="Banner reminder">

@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { PAGE_TITLES } from '../../documentTitles.ts'
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { useWishPlannerInputs } from '../../hooks/useWishPlannerInputs.tsx'
 import {
   HARD_PITY,
@@ -65,6 +67,7 @@ function outcomeLabel(
 }
 
 export default function PullingDayPage() {
+  useDocumentTitle(PAGE_TITLES.pullingDay)
   const { clampedPity, guaranteed, totalPulls } = useWishPlannerInputs()
 
   const [session, setSession] = useState<SessionState | null>(null)

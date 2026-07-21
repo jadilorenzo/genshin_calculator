@@ -37,17 +37,24 @@ export {
 } from './wishes'
 export {
   BANNER_CALENDAR_URL,
+  BANNER_REGION_OPTIONS,
   PULLING_DAY_NOTICE_DAYS_AFTER,
   PULLING_DAY_NOTICE_DAYS_BEFORE,
   TYPICAL_BANNER_PHASE_DAYS,
+  adjustBannerTimestampForRegion,
+  countdownToTimestamp,
   daysUntilTimestamp,
+  fetchBannerCalendar,
   fetchBannerSchedule,
+  formatBannerDateTime,
+  inferBannerRegion,
   isNearBannerDate,
   phaseLengthDays,
   pullingDayNoticeKind,
+  regionalPhaseTimes,
   scheduleFromCalendar,
 } from './bannerSchedule'
-export type { BannerSchedule, PullingDayNoticeKind } from './bannerSchedule'
+export type { BannerFeaturedCharacter, BannerCalendarData, BannerRegion, BannerSchedule, CountdownParts, PullingDayNoticeKind } from './bannerSchedule'
 export {
   ESTIMATED_CONFIDENCE,
   GUARANTEED_CONFIDENCE,

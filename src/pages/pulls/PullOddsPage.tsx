@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { PAGE_TITLES } from '../../documentTitles.ts'
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { useWishPlannerInputs } from '../../hooks/useWishPlannerInputs.tsx'
 import { HARD_PITY, SOFT_PITY_START, featuredSuccessChance } from '../../model/wishes.ts'
 import { PityChart } from './PityChart.tsx'
@@ -11,6 +13,7 @@ function formatChance(value: number): string {
 }
 
 export default function PullOddsPage() {
+  useDocumentTitle(PAGE_TITLES.pullOdds)
   const {
     clampedPity,
     totalPulls,

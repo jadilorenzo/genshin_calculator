@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { PAGE_TITLES } from '../../documentTitles.ts'
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { useArtifactTarget } from '../../hooks/useArtifactTarget.tsx'
 import {
   SLOT_LABELS,
@@ -79,6 +81,7 @@ function matchesBenchmark(target: ArtifactTarget, benchmark: Benchmark): boolean
 }
 
 export default function ArtifactComparePage() {
+  useDocumentTitle(PAGE_TITLES.artifactCompare)
   const { target, onSetOnly, slot, mainStat, requiredSubstats, substatMode } =
     useArtifactTarget()
 

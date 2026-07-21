@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ClearPageButton } from '../components/ClearPageButton.tsx'
 import { SlotIcon } from '../components/icons.tsx'
+import { PAGE_TITLES } from '../documentTitles.ts'
+import { useDocumentTitle } from '../hooks/useDocumentTitle.ts'
 import { useLocalStorage } from '../hooks/useLocalStorage.ts'
 import {
   ALL_SUBSTATS,
@@ -146,6 +148,7 @@ function OutsideCloseDetails({
 }
 
 export default function BuildsPage() {
+  useDocumentTitle(PAGE_TITLES.builds)
   const [mains, setMains] = useLocalStorage<Record<Slot, Stat>>(
     'gc:builds:mains',
     DEFAULT_MAINS,
@@ -241,18 +244,19 @@ export default function BuildsPage() {
     <>
       <header className="hero">
         <div className="hero-top">
-          <h1>Build lineup</h1>
+          <h1>Build farm expectations</h1>
           <ClearPageButton prefix="gc:builds:" />
         </div>
         <p className="lede">
-          Set main stats for all five pieces. Projected time accounts for parallel
-          progress — early drops can fill any empty slot, so the full set finishes sooner
-          than farming each piece alone.
+          Expected resin to fill a five-piece lineup — estimated, likely, and
+          near-guaranteed confidence bands, not hard guarantees. Parallel farming
+          means early drops can fill any empty slot, so the full set often finishes
+          sooner than farming each piece alone.
         </p>
       </header>
 
       <main className="panel">
-        <section className="controls" aria-label="Build lineup">
+        <section className="controls" aria-label="Build farm expectations">
           <div className="field">
             <span className="label" id="build-set-label">
               Set
@@ -402,7 +406,7 @@ export default function BuildsPage() {
           </div>
         </div>
 
-        <section className="results" aria-live="polite">
+        <section className="results" aria-live="polite" aria-label="Resin expectations">
           <div className="stat-block accent">
             <p className="stat-label">Estimated</p>
             <p className="stat-value">{formatCost(estimated, unit)}</p>

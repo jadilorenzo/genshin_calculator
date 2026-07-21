@@ -125,6 +125,7 @@ function PullControls() {
 
 export default function PullLayout() {
   const location = useLocation()
+  const isCountdown = location.pathname.includes('/countdown')
   const isPace = location.pathname.includes('/pace')
   const isPullingDay = location.pathname.includes('/day')
 
@@ -136,13 +137,21 @@ export default function PullLayout() {
           <ClearPageButton prefix="gc:pulls:" />
         </div>
         <p className="lede">
-          {isPace
-            ? 'See how many pulls per day you need before the banner to reach likely — or guarantee if you’re already past likely.'
-            : isPullingDay
-              ? 'Pulling right now? Log each wish here to watch your pity move on the curve and see featured odds update live — without touching the saved numbers above.'
-              : 'Check your featured 5★ odds from pity and saved fates.'}
+          {isCountdown
+            ? 'Banner phase countdown by server region.'
+            : isPace
+              ? 'See how many pulls per day you need before the banner to reach likely — or guarantee if you’re already past likely.'
+              : isPullingDay
+                ? 'Pulling right now? Log each wish here to watch your pity move on the curve and see featured odds update live — without touching the saved numbers above.'
+                : 'Check your featured 5★ odds from pity and saved fates.'}
         </p>
         <nav className="sub-tabs" aria-label="Pull tools">
+          <NavLink
+            to="day"
+            className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
+          >
+            Pulling day
+          </NavLink>
           <NavLink
             to="odds"
             className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
@@ -156,17 +165,17 @@ export default function PullLayout() {
             Daily pace
           </NavLink>
           <NavLink
-            to="day"
+            to="countdown"
             className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
           >
-            Pulling day
+            Banner countdown
           </NavLink>
         </nav>
       </header>
 
       <main className="panel">
         <WishPlannerInputsProvider>
-          <PullControls />
+          {!isCountdown ? <PullControls /> : null}
           <Outlet />
         </WishPlannerInputsProvider>
       </main>

@@ -1,5 +1,7 @@
 import { useEffect, useMemo } from 'react'
+import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useBannerSchedule } from '../../hooks/useBannerSchedule.ts'
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { useLocalStorage } from '../../hooks/useLocalStorage.ts'
 import { useWishPlannerInputs } from '../../hooks/useWishPlannerInputs.tsx'
 import { ESTIMATED_CONFIDENCE, GUARANTEED_CONFIDENCE } from '../../model/labels.ts'
@@ -54,6 +56,7 @@ function formatBannerEnd(unixSeconds: number): string {
 }
 
 export default function PullPacePage() {
+  useDocumentTitle(PAGE_TITLES.pullPace)
   const { clampedPity, totalPulls, guaranteed } = useWishPlannerInputs()
   const [bannerHorizon, setBannerHorizon] = useLocalStorage<BannerHorizon>(
     'gc:pulls:bannerHorizon',
@@ -183,7 +186,12 @@ export default function PullPacePage() {
             {status === 'loading' && 'Loading live banner schedule…'}
             {status === 'ready' && schedule && (
               <>
-                Live: {schedule.featuredFiveStars.join(' / ') || 'character banners'} through{' '}
+                Live:{' '}
+                {(schedule.phaseStartedInRegion
+                  ? schedule.featuredFiveStars
+                  : schedule.upcomingFiveStars
+                ).join(' / ') || 'character banners'}
+                {!schedule.phaseStartedInRegion ? ' (up next)' : ''} through{' '}
                 {formatBannerEnd(schedule.nextChangeAt)}
                 {bannerHorizon === 'afterNext' && (
                   <>

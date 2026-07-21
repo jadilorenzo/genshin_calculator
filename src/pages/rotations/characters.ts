@@ -9,6 +9,10 @@ export const CHARACTER_BY_ID: Record<string, CharacterData> = Object.fromEntries
   CHARACTER_KITS.map((c) => [c.id, c]),
 )
 
+export const CHARACTER_BY_NAME: Record<string, CharacterData> = Object.fromEntries(
+  CHARACTER_KITS.map((c) => [c.name.toLowerCase(), c]),
+)
+
 export const ELEMENTS = [
   'Anemo',
   'Cryo',
@@ -21,4 +25,8 @@ export const ELEMENTS = [
 
 export function getCharacter(id: string): CharacterData | undefined {
   return CHARACTER_BY_ID[id]
+}
+
+export function getCharacterByName(name: string): CharacterData | undefined {
+  return CHARACTER_BY_NAME[name.toLowerCase()]
 }
