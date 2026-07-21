@@ -1,5 +1,5 @@
 /**
- * Theme modes + persistence. Visual tokens live in `./tokens.css` only —
+ * Theme modes + persistence. Visual tokens live in `../styles/_tokens.scss` only —
  * change colors there; components should use CSS variables.
  */
 export type ThemeMode = 'dark' | 'light'

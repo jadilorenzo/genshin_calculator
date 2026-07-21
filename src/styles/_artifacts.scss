@@ -1,0 +1,144 @@
+.artifact-inner-tabs {
+  margin-top: 0;
+  margin-bottom: 0.85rem;
+}
+
+.artifact-workspace {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.85rem 1rem;
+}
+
+.artifact-workspace > .field {
+  flex: 1 1 11rem;
+  min-width: 0;
+  gap: 0.4rem;
+}
+
+.artifact-workspace > .field-wide {
+  flex: 1 1 100%;
+}
+
+.artifact-workspace select {
+  max-width: none;
+  width: 100%;
+  padding: 0.5rem 2rem 0.5rem 0.65rem;
+}
+
+.artifact-summary {
+  flex: 0 1 14rem;
+  min-width: min(100%, 11rem);
+  margin-left: auto;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  background: var(--accent-wash);
+}
+
+.artifact-summary-list {
+  margin: 0.45rem 0 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.artifact-summary-list > div {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr;
+  gap: 0.45rem;
+  align-items: baseline;
+}
+
+.artifact-summary-list dt {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+
+.artifact-summary-list dd {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--gold-bright);
+  line-height: 1.25;
+}
+
+.rarity-compare {
+  margin-top: 1.35rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.rarity-compare-intro {
+  margin: 1rem 0 0;
+}
+
+.rarity-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.95rem;
+}
+
+.rarity-row-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.rarity-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--mist);
+}
+
+.rarity-row.yours .rarity-label,
+.rarity-row.selected .rarity-label {
+  color: var(--gold-bright);
+}
+
+.rarity-pct {
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rarity-track {
+  height: 1.35rem;
+  border: 1px solid var(--line);
+  background: var(--chip-surface);
+  overflow: hidden;
+}
+
+.rarity-fill {
+  height: 100%;
+  background: var(--bar-track);
+  transition: width 220ms ease;
+}
+
+.rarity-row.yours .rarity-fill,
+.rarity-row.selected .rarity-fill {
+  background: var(--bar-fill);
+}
+
+@media (max-width: 640px) {
+  .artifact-summary {
+      flex: 1 1 100%;
+      max-width: none;
+      margin-left: 0;
+    }
+
+  .artifact-workspace > .field {
+      flex: 1 1 calc(50% - 0.5rem);
+    }
+
+  .artifact-workspace > .field-wide {
+      flex: 1 1 100%;
+    }
+}

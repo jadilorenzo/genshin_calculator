@@ -12,7 +12,7 @@ import PullOddsPage from './pages/pulls/PullOddsPage.tsx'
 import PullPacePage from './pages/pulls/PullPacePage.tsx'
 import PullingDayPage from './pages/pulls/PullingDayPage.tsx'
 import BannerCountdownPage from './pages/pulls/BannerCountdownPage.tsx'
-import './App.css'
+import './styles/main.scss'
 
 const RotationsPage = lazy(() => import('./pages/RotationsPage.tsx'))
 const CharactersPage = lazy(() => import('./pages/characters/CharactersPage.tsx'))
