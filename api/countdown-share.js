@@ -28,7 +28,7 @@ export async function GET(request) {
   let title = `Genshin Banner Countdown · ${SITE_NAME}`
   let description =
     'Live character banner countdown by server region — track when the current phase ends.'
-  let ogImage = `${SITE_ORIGIN}/api/og?region=${region}`
+  let ogImage = `${SITE_ORIGIN}/og.png`
 
   try {
     const schedule = await loadBannerSchedule(region)
@@ -37,7 +37,6 @@ export async function GET(request) {
       const featured = featuredLine(schedule)
       title = `${countdown} · ${featured} · ${SITE_NAME}`
       description = shareDescription(schedule)
-      ogImage = `${SITE_ORIGIN}/api/og?region=${region}&v=${schedule.nextChangeAt}`
     }
   } catch {
     // Keep defaults.

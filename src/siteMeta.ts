@@ -6,6 +6,6 @@ export const SITE_NAME = "False Moon's Reckoning"
 export const DEFAULT_OG_DESCRIPTION =
   'Wish pity, artifact odds, build pacing, rotation buff timelines, and live banner countdown for Genshin Impact.'
 
-export function ogImageUrl(path = '/api/og'): string {
+export function ogImageUrl(path = '/og.png'): string {
   return `${SITE_ORIGIN}${path}`
 }
