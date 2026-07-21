@@ -3,13 +3,20 @@ import {
   useEffect,
   useRef,
   useState,
+  type FormEvent,
   type SetStateAction,
 } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useAuth, useUser } from "@clerk/react";
 import { ClearPageButton } from "../../components/ClearPageButton.tsx";
-import { PAGE_TITLES } from "../../documentTitles.ts";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle.ts";
 import { useUndoableLocalStorage } from "../../hooks/useUndoableLocalStorage.ts";
 import { CharacterPalette } from "./CharacterPalette";
+import {
+  createCommunityRotation,
+  getCommunityRotation,
+  updateCommunityRotation,
+} from "./communityApi";
 import { PlacementRoster } from "./PlacementRoster";
 import { RotationSettingsMenu } from "./RotationSettingsMenu";
 import {
@@ -36,6 +43,7 @@ import {
   type RotationDoc,
 } from "./rotationDoc";
 
+const clerkConfigured = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 const placementIdsKey = (placements: TimelinePlacement[]) => {
   return placements.map((p) => p.id).join("\0");
 };
@@ -108,8 +116,18 @@ const isEditableTarget = (target: EventTarget | null) => {
   );
 };
 
-const RotationsPage = () => {
-  useDocumentTitle(PAGE_TITLES.rotations);
+const RotationsEditorInner = () => {
+  useDocumentTitle(`Rotation Editor · False Moon's Reckoning`);
+  const navigate = useNavigate();
+  const { rotationId } = useParams();
+  const { getToken, isSignedIn } = useAuth();
+  const { user } = useUser();
+  const authorName =
+    user?.fullName ||
+    user?.username ||
+    user?.primaryEmailAddress?.emailAddress ||
+    "Traveler";
+
   const {
     value: doc,
     setValue: setDoc,
@@ -123,6 +141,39 @@ const RotationsPage = () => {
     defaultRotationDoc(),
     { load: loadRotationDoc, forceHistory: forceRotationHistory },
   );
+
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(rotationId ?? null);
+  const loadedRemoteRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!rotationId || loadedRemoteRef.current === rotationId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const item = await getCommunityRotation(
+          rotationId,
+          clerkConfigured ? () => getToken() : undefined,
+        );
+        if (cancelled) return;
+        loadedRemoteRef.current = rotationId;
+        setEditingId(item.id);
+        setTitle(item.title);
+        setDescription(item.description || "");
+        skipNextHistory();
+        setDoc(item.doc as RotationDoc);
+      } catch {
+        if (!cancelled) setSaveError("Could not load that rotation.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [getToken, rotationId, setDoc, skipNextHistory]);
 
   const { placements, switchBuffer, timingMode, humanLag } = doc;
 
@@ -256,12 +307,52 @@ const RotationsPage = () => {
     }));
   };
 
+  const openSave = () => {
+    if (!clerkConfigured || !isSignedIn) {
+      navigate("/sign-in");
+      return;
+    }
+    setSaveError(null);
+    setSaveOpen(true);
+  };
+
+  const onSave = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!clerkConfigured || !isSignedIn) {
+      navigate("/sign-in");
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const payload = {
+        title,
+        description,
+        doc,
+        authorName,
+      };
+      const item = editingId
+        ? await updateCommunityRotation(editingId, payload, () => getToken())
+        : await createCommunityRotation(payload, () => getToken());
+      setEditingId(item.id);
+      setSaveOpen(false);
+      navigate(`/rotations/${item.id}`, { replace: true });
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <>
       <header className="hero">
         <div className="hero-top">
-          <h1>Rotations</h1>
+          <h1>Rotation editor</h1>
           <div className="hero-actions">
+            <Link to="/rotations" className="chip compact">
+              All rotations
+            </Link>
             <RotationSettingsMenu
               switchBuffer={switchBuffer}
               onSwitchBufferChange={updateSwitchBuffer}
@@ -275,14 +366,62 @@ const RotationsPage = () => {
               }
             />
             <ClearPageButton prefix="gc:rotations:" />
+            <button type="button" className="chip filled" onClick={openSave}>
+              {isSignedIn ? "Save" : "Sign in to save"}
+            </button>
           </div>
         </div>
         <p className="lede">
           Sketch field time and see team buffs, artifact sets, and cooldowns as
-          timeline overlays — then reorder and tune durations to spot gaps and
-          maximize uptime.
+          timeline overlays — then save to publish when you&apos;re signed in.
         </p>
       </header>
+
+      {saveOpen ? (
+        <div className="rotation-save-panel">
+          <form className="auth-form" onSubmit={onSave}>
+            <h2 className="rotation-section-title">Save rotation</h2>
+            <label className="field">
+              <span className="label">Title</span>
+              <input
+                type="text"
+                required
+                maxLength={120}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Hyperbloom Neuvillette"
+              />
+            </label>
+            <label className="field">
+              <span className="label">Description</span>
+              <textarea
+                rows={2}
+                maxLength={500}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Optional notes for the community"
+              />
+            </label>
+            {saveError ? <p className="auth-error">{saveError}</p> : null}
+            <div className="chip-row">
+              <button
+                type="button"
+                className="chip compact"
+                onClick={() => setSaveOpen(false)}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="chip filled" disabled={saving}>
+                {saving
+                  ? "Saving…"
+                  : editingId
+                    ? "Update published"
+                    : "Publish"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       <div className="rotation-workspace">
         <RotationTimeline
@@ -332,4 +471,22 @@ const RotationsPage = () => {
   );
 };
 
-export default RotationsPage;
+export default function RotationsPage() {
+  if (!clerkConfigured) {
+    return (
+      <>
+        <header className="hero">
+          <h1>Rotation editor</h1>
+          <p className="lede">
+            Auth is not configured, so publishing is unavailable. You can still
+            sketch locally once Clerk keys are set.
+          </p>
+        </header>
+        <Link to="/rotations" className="chip">
+          Back
+        </Link>
+      </>
+    );
+  }
+  return <RotationsEditorInner />;
+}

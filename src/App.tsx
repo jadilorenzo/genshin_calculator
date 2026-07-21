@@ -13,16 +13,37 @@ import PullPacePage from './pages/pulls/PullPacePage.tsx'
 import PullingDayPage from './pages/pulls/PullingDayPage.tsx'
 import BannerCountdownPage from './pages/pulls/BannerCountdownPage.tsx'
 import AuthPage from './pages/auth/AuthPage.tsx'
+import ProfilePage from './pages/auth/ProfilePage.tsx'
 import SSOCallbackPage from './pages/auth/SSOCallbackPage.tsx'
 import './styles/main.scss'
 
-const RotationsPage = lazy(() => import('./pages/RotationsPage.tsx'))
+const RotationsHubPage = lazy(() => import('./pages/rotations/RotationsHubPage.tsx'))
+const RotationEditorPage = lazy(() => import('./pages/RotationsPage.tsx'))
+const RotationDetailPage = lazy(
+  () => import('./pages/rotations/RotationDetailPage.tsx'),
+)
 const CharactersPage = lazy(() => import('./pages/characters/CharactersPage.tsx'))
 
-function RotationsRoute() {
+function RotationsHubRoute() {
   return (
     <Suspense fallback={<p className="field-note">Loading rotations…</p>}>
-      <RotationsPage />
+      <RotationsHubPage />
+    </Suspense>
+  )
+}
+
+function RotationEditorRoute() {
+  return (
+    <Suspense fallback={<p className="field-note">Loading editor…</p>}>
+      <RotationEditorPage />
+    </Suspense>
+  )
+}
+
+function RotationDetailRoute() {
+  return (
+    <Suspense fallback={<p className="field-note">Loading rotation…</p>}>
+      <RotationDetailPage />
     </Suspense>
   )
 }
@@ -44,8 +65,18 @@ export default function App() {
         <Route path="sso-callback" element={<SSOCallbackPage />} />
 
         <Route element={<AppLayout />}>
+          <Route path="profile" element={<ProfilePage />} />
           <Route index element={<Navigate to="/rotations" replace />} />
-          <Route path="rotations" element={<RotationsRoute />} />
+          <Route path="rotations" element={<RotationsHubRoute />} />
+          <Route path="rotations/editor" element={<RotationEditorRoute />} />
+          <Route
+            path="rotations/editor/:rotationId"
+            element={<RotationEditorRoute />}
+          />
+          <Route
+            path="rotations/:rotationId"
+            element={<RotationDetailRoute />}
+          />
           <Route path="characters/:characterId?" element={<CharactersRoute />} />
 
           <Route path="artifacts" element={<ArtifactsHubLayout />}>

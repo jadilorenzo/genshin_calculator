@@ -105,6 +105,8 @@ interface RotationTimelineProps {
   humanLag: number;
   onHistoryGestureStart?: () => void;
   onHistoryGestureEnd?: () => void;
+  /** View-only preview (no drag / remove / drop). */
+  readOnly?: boolean;
 }
 
 const majorTickStep = (pxPerSec: number) => {
@@ -198,6 +200,7 @@ export const RotationTimeline = ({
   humanLag,
   onHistoryGestureStart,
   onHistoryGestureEnd,
+  readOnly = false,
 }: RotationTimelineProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -586,6 +589,7 @@ export const RotationTimeline = ({
       <TimelineToolbar
         hasSelection={selectedId != null}
         hasPlacements={placements.length > 0}
+        readOnly={readOnly}
         onZoomOut={zoomOut}
         onZoomIn={zoomIn}
         onFit={fitToFirstRotation}
@@ -602,13 +606,17 @@ export const RotationTimeline = ({
             minHeight: `${trackMinHeight}rem`,
             backgroundSize: `${pxPerSec}px 100%`,
           }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "copy";
-            setDragOver(true);
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
+          onDragOver={
+            readOnly
+              ? undefined
+              : (e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "copy";
+                  setDragOver(true);
+                }
+          }
+          onDragLeave={readOnly ? undefined : () => setDragOver(false)}
+          onDrop={readOnly ? undefined : handleDrop}
           onClick={() => onSelectPlacement(null)}
         >
           <TimelineTicks
@@ -668,6 +676,7 @@ export const RotationTimeline = ({
 const TimelineToolbar = ({
   hasSelection,
   hasPlacements,
+  readOnly,
   onZoomOut,
   onZoomIn,
   onFit,
@@ -676,6 +685,7 @@ const TimelineToolbar = ({
 }: {
   hasSelection: boolean;
   hasPlacements: boolean;
+  readOnly?: boolean;
   onZoomOut: () => void;
   onZoomIn: () => void;
   onFit: () => void;
@@ -700,22 +710,26 @@ const TimelineToolbar = ({
         <button type="button" className="chip compact" onClick={onZoomIn}>
           +
         </button>
-        <button
-          type="button"
-          className="chip compact"
-          disabled={!hasSelection}
-          onClick={onRemove}
-        >
-          Remove
-        </button>
-        <button
-          type="button"
-          className="chip compact"
-          disabled={!hasPlacements}
-          onClick={onClear}
-        >
-          Clear
-        </button>
+        {readOnly ? null : (
+          <>
+            <button
+              type="button"
+              className="chip compact"
+              disabled={!hasSelection}
+              onClick={onRemove}
+            >
+              Remove
+            </button>
+            <button
+              type="button"
+              className="chip compact"
+              disabled={!hasPlacements}
+              onClick={onClear}
+            >
+              Clear
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

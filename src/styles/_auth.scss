@@ -1,19 +1,25 @@
 .auth-controls {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
-.auth-controls-status,
-.auth-controls-email {
+.auth-controls-status {
   margin: 0;
-  font-size: 0.78rem;
-  color: var(--muted);
-  max-width: 12rem;
+  flex: 0 1 auto;
+  max-width: 6.5rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 0.72rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.auth-controls-status.is-error {
+  color: color-mix(in srgb, #e07070 80%, var(--mist));
 }
 
 .auth-action {
@@ -21,16 +27,17 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  height: 2.15rem;
   margin: 0;
-  border: 1px solid color-mix(in srgb, var(--line) 70%, var(--mist));
+  border: 1px solid var(--line);
   border-radius: 2px;
-  background: color-mix(in srgb, var(--chip-surface) 70%, var(--panel));
+  background: var(--chip-surface);
   color: var(--mist);
-  padding: 0.45rem 0.85rem;
+  padding: 0 0.75rem;
   font: inherit;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1;
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
@@ -38,7 +45,7 @@
 }
 
 .auth-action:hover {
-  border-color: var(--gold-hover);
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
   color: var(--gold-bright);
   text-decoration: none;
 }
@@ -62,13 +69,15 @@
 
 .site-masthead-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.4rem;
+  flex: 0 0 auto;
 }
 
 .site-settings {
   position: relative;
+  flex: 0 0 auto;
 }
 
 .site-settings-toggle {
@@ -301,6 +310,25 @@
   margin: 0;
   color: color-mix(in srgb, #e07070 85%, var(--text));
   font-size: 0.86rem;
+}
+
+.auth-success {
+  margin: 0;
+  color: color-mix(in srgb, #6fbf8a 85%, var(--text));
+  font-size: 0.86rem;
+}
+
+.auth-profile-email {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0 0 1rem;
+  font-size: 0.92rem;
+  color: var(--mist);
+}
+
+.auth-profile-email .label {
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 
 .auth-switch {

@@ -27,29 +27,35 @@ const AuthControlsInner = () => {
     )
   }
 
-  const syncLabel =
-    userData?.syncStatus === 'saving'
-      ? 'Saving…'
-      : userData?.syncStatus === 'loading'
-        ? 'Syncing…'
-        : userData?.syncStatus === 'error'
-          ? 'Sync error'
-          : 'Synced'
+  const syncBusy =
+    userData?.syncStatus === 'saving' || userData?.syncStatus === 'loading'
+  const syncFailed = userData?.syncStatus === 'error'
+  const profileLabel =
+    user?.firstName?.trim() ||
+    user?.fullName?.trim() ||
+    'Profile'
 
   return (
     <div className="auth-controls">
-      <span
-        className="auth-controls-status"
-        title={userData?.syncError ?? undefined}
+      {syncBusy || syncFailed ? (
+        <span
+          className={
+            syncFailed
+              ? 'auth-controls-status is-error'
+              : 'auth-controls-status'
+          }
+          title={userData?.syncError ?? undefined}
+        >
+          {syncFailed ? 'Sync error' : syncBusy ? 'Syncing…' : null}
+        </span>
+      ) : null}
+      <Link
+        to="/profile"
+        className="auth-action"
+        title={user?.primaryEmailAddress?.emailAddress ?? 'Edit profile'}
       >
-        {syncLabel}
-      </span>
-      <span
-        className="auth-controls-email"
-        title={user?.primaryEmailAddress?.emailAddress}
-      >
-        {user?.primaryEmailAddress?.emailAddress ?? 'Signed in'}
-      </span>
+        {profileLabel}
+      </Link>
       <button
         type="button"
         className="auth-action"
