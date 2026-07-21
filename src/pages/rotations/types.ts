@@ -89,6 +89,11 @@ export type ComboStep = {
   stateId?: string
   /** Idle seconds after this step (spacing) */
   gapAfter?: number
+  /**
+   * Optional override for this step's animation lock (seconds).
+   * When set, replaces the timing from characterAnimationTimings.
+   */
+  durationSeconds?: number
 }
 
 /** A character placement on the rotation timeline. */

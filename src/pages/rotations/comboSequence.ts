@@ -26,6 +26,8 @@ export type PackedComboSegment = {
   kind: string
   start: number
   duration: number
+  /** True when durationSeconds override is active on the step */
+  durationOverridden: boolean
   incomplete: boolean
   gapAfter: number
 }
@@ -70,7 +72,15 @@ export function sanitizeComboSteps(raw: unknown): ComboStep[] {
       Number.isFinite(gapRaw) && gapRaw > 0
         ? Math.min(10, Math.round(gapRaw * 100) / 100)
         : undefined
-    out.push({ id, actionId, stateId, gapAfter })
+    const durRaw =
+      typeof e.durationSeconds === 'number'
+        ? e.durationSeconds
+        : Number(e.durationSeconds)
+    const durationSeconds =
+      Number.isFinite(durRaw) && durRaw > 0
+        ? Math.min(30, Math.round(durRaw * 1000) / 1000)
+        : undefined
+    out.push({ id, actionId, stateId, gapAfter, durationSeconds })
   }
   return out
 }
@@ -102,10 +112,14 @@ export function shortActionLabel(label: string, kindOrId: string): string {
   }
   if (fam === 'skill') {
     if (/expected on-field|full/i.test(label)) return 'Field'
+    if (id.includes('spearstorm')) return 'E·S'
     if (id.includes('hold') || /hold|charge/i.test(label)) return 'E+'
     return 'E'
   }
-  if (fam === 'burst') return 'Q'
+  if (fam === 'burst') {
+    if (id.includes('mini') || /symphony|mini/i.test(label)) return 'sQ'
+    return 'Q'
+  }
   if (fam === 'dash') return 'D'
   if (label.length <= 5) return label
   return label.slice(0, 4)
@@ -227,7 +241,11 @@ export function packComboSteps(
         )
       : null
     const { seconds, incomplete } = resolveStepDuration(action, nextAction)
-    const duration = round(Math.max(0.05, seconds))
+    const overridden =
+      typeof step.durationSeconds === 'number' && step.durationSeconds > 0
+    const duration = round(
+      Math.max(0.05, overridden ? step.durationSeconds! : seconds),
+    )
     segments.push({
       stepId: step.id,
       actionId: step.actionId,
@@ -236,7 +254,8 @@ export function packComboSteps(
       kind: action?.kind ?? comboActionFamily(step.actionId),
       start: cursor,
       duration,
-      incomplete,
+      durationOverridden: overridden,
+      incomplete: overridden ? false : incomplete,
       gapAfter: 0,
     })
     cursor = round(cursor + duration)

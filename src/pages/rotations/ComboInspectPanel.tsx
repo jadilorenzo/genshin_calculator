@@ -144,6 +144,22 @@ export function ComboInspectPanel({
     )
   }
 
+  const setStepDuration = (id: string, seconds: number | null) => {
+    updateSteps(
+      steps.map((s) => {
+        if (s.id !== id) return s
+        if (seconds == null || !(seconds > 0)) {
+          const { durationSeconds: _drop, ...rest } = s
+          return rest
+        }
+        return {
+          ...s,
+          durationSeconds: Math.min(30, Math.round(seconds * 1000) / 1000),
+        }
+      }),
+    )
+  }
+
   const clearSteps = () => updateSteps([])
 
   const seedFromCasts = () => {
@@ -396,12 +412,45 @@ export function ComboInspectPanel({
                       dragKindRef.current = null
                       setDropIndex(null)
                     }}
-                    title={`${seg.label} · ${seg.duration.toFixed(2)}s`}
+                    title={`${seg.label} · ${seg.duration.toFixed(2)}s${
+                      seg.durationOverridden ? ' (custom)' : ''
+                    }`}
                   >
                     <span className="combo-inspect-step-label">{seg.label}</span>
-                    <span className="combo-inspect-step-time">
-                      {seg.duration.toFixed(2)}s
-                    </span>
+                    <label
+                      className={joinClassNames(
+                        'combo-inspect-step-time',
+                        seg.durationOverridden && 'overridden',
+                      )}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="visually-hidden">
+                        Duration for {seg.label}
+                      </span>
+                      <input
+                        type="number"
+                        min={0.05}
+                        max={30}
+                        step={0.05}
+                        value={seg.duration}
+                        title={
+                          seg.durationOverridden
+                            ? 'Custom duration (seconds) — double-click to reset'
+                            : 'Action duration (seconds)'
+                        }
+                        onChange={(e) => {
+                          const raw = Number(e.target.value)
+                          if (!Number.isFinite(raw)) return
+                          setStepDuration(seg.stepId, Math.max(0.05, raw))
+                        }}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation()
+                          setStepDuration(seg.stepId, null)
+                        }}
+                      />
+                      <span aria-hidden>s</span>
+                    </label>
                     <button
                       type="button"
                       className="combo-inspect-step-remove"

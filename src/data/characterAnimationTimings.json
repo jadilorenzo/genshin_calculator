@@ -1,6 +1,6 @@
 {
   "source": "gcsim internal/characters (+ open PRs) + characterKits roster + fieldTimings",
-  "extractedAt": "2026-07-21T20:30:06.998Z",
+  "extractedAt": "2026-07-21T21:09:38.384Z",
   "fps": 60,
   "notes": [
     "Frames are at 60 FPS. seconds = frames / 60.",
@@ -504,8 +504,8 @@
               "id": "skill",
               "label": "Elemental Skill",
               "kind": "skill",
-              "frames": 420,
-              "seconds": 7,
+              "frames": 660,
+              "seconds": 11,
               "hitmarks": [],
               "cancels": {},
               "source": "estimated",
@@ -526,8 +526,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 12,
-        "actionsTotal": 14
+        "actionsWithFrames": 11,
+        "actionsTotal": 13
       },
       "incomplete": true,
       "states": [
@@ -669,17 +669,6 @@
               "notes": "Mirrored from aim_charged"
             },
             {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 540,
-              "seconds": 9,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
               "id": "plunge_low",
               "label": "Low Plunge",
               "kind": "plunge_low",
@@ -714,8 +703,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 13,
-        "actionsTotal": 15
+        "actionsWithFrames": 12,
+        "actionsTotal": 14
       },
       "incomplete": true,
       "states": [
@@ -867,17 +856,6 @@
               "notes": "Mirrored from aim_charged"
             },
             {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 420,
-              "seconds": 7,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
               "id": "plunge_low",
               "label": "Low Plunge",
               "kind": "plunge_low",
@@ -912,8 +890,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 11,
-        "actionsTotal": 15
+        "actionsWithFrames": 10,
+        "actionsTotal": 14
       },
       "incomplete": true,
       "states": [
@@ -1085,17 +1063,6 @@
               "cancels": {},
               "source": "gcsim",
               "notes": "Primary CA mirrored from ca_finalslash"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 720,
-              "seconds": 12,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -1112,8 +1079,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 13,
-        "actionsTotal": 13
+        "actionsWithFrames": 12,
+        "actionsTotal": 12
       },
       "incomplete": false,
       "states": [
@@ -1292,17 +1259,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_LADY",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -2468,8 +2424,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 18,
-        "actionsTotal": 19
+        "actionsWithFrames": 17,
+        "actionsTotal": 18
       },
       "incomplete": true,
       "states": [
@@ -2677,17 +2633,6 @@
               "cancels": {},
               "source": "gcsim",
               "notes": "Mirrored from aim_charged"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "burst",
@@ -3092,8 +3037,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 10,
-        "actionsTotal": 11
+        "actionsWithFrames": 9,
+        "actionsTotal": 10
       },
       "incomplete": true,
       "states": [
@@ -3224,17 +3169,6 @@
               "hitmarks": [],
               "cancels": {},
               "source": null
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 540,
-              "seconds": 9,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -3393,8 +3327,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 16,
-        "actionsTotal": 18
+        "actionsWithFrames": 15,
+        "actionsTotal": 17
       },
       "incomplete": true,
       "states": [
@@ -3553,17 +3487,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_LADY",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 450,
-              "seconds": 7.5,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -4005,8 +3928,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 18,
-        "actionsTotal": 18
+        "actionsWithFrames": 17,
+        "actionsTotal": 17
       },
       "incomplete": false,
       "states": [
@@ -4167,17 +4090,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_BOY",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 630,
-              "seconds": 10.5,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         },
@@ -4464,8 +4376,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 11,
-        "actionsTotal": 12
+        "actionsWithFrames": 10,
+        "actionsTotal": 11
       },
       "incomplete": true,
       "states": [
@@ -4596,17 +4508,6 @@
               "source": null
             },
             {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 540,
-              "seconds": 9,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
               "id": "burst",
               "label": "Elemental Burst",
               "kind": "burst",
@@ -4632,8 +4533,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 15,
-        "actionsTotal": 16
+        "actionsWithFrames": 14,
+        "actionsTotal": 15
       },
       "incomplete": true,
       "states": [
@@ -4817,17 +4718,6 @@
               "hitmarks": [],
               "cancels": {},
               "source": null
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -5201,8 +5091,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 11,
-        "actionsTotal": 13
+        "actionsWithFrames": 10,
+        "actionsTotal": 12
       },
       "incomplete": true,
       "states": [
@@ -5346,17 +5236,6 @@
               "gcsimVar": "template.DashLength"
             },
             {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 660,
-              "seconds": 11,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
               "id": "plunge_low",
               "label": "Low Plunge",
               "kind": "plunge_low",
@@ -5391,8 +5270,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 11,
-        "actionsTotal": 11
+        "actionsWithFrames": 10,
+        "actionsTotal": 10
       },
       "incomplete": false,
       "states": [
@@ -5538,17 +5417,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_GIRL",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 420,
-              "seconds": 7,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -5875,8 +5743,8 @@
               "id": "skill",
               "label": "Elemental Skill",
               "kind": "skill",
-              "frames": 360,
-              "seconds": 6,
+              "frames": 600,
+              "seconds": 10,
               "hitmarks": [],
               "cancels": {},
               "source": "estimated",
@@ -6301,8 +6169,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 10,
-        "actionsTotal": 12
+        "actionsWithFrames": 11,
+        "actionsTotal": 13
       },
       "incomplete": true,
       "states": [
@@ -6429,6 +6297,47 @@
               "gcsimVar": "burstFrames"
             },
             {
+              "id": "burst_mini",
+              "label": "Thunderous Symphony (Mini Burst)",
+              "kind": "burst",
+              "frames": 81,
+              "seconds": 1.35,
+              "hitmarks": [
+                44,
+                62
+              ],
+              "cancels": {
+                "attack": 53,
+                "skill": 53,
+                "dash": 51,
+                "jump": 50,
+                "walk": 58
+              },
+              "source": "gcsim",
+              "notes": "Flins mini-burst while Manifest Flame is active (sQ)",
+              "gcsimVar": "symphonyFrames"
+            },
+            {
+              "id": "skill_spearstorm",
+              "label": "Northland Spearstorm",
+              "kind": "skill",
+              "frames": 42,
+              "seconds": 0.7,
+              "hitmarks": [
+                23
+              ],
+              "cancels": {
+                "attack": 28,
+                "burst": 28,
+                "dash": 26,
+                "jump": 26,
+                "walk": 32
+              },
+              "source": "gcsim",
+              "notes": "Special E during Manifest Flame / skill-state",
+              "gcsimVar": "spearStormFrames"
+            },
+            {
               "id": "dash",
               "label": "Dash",
               "kind": "dash",
@@ -6439,17 +6348,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_MALE",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 630,
-              "seconds": 10.5,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -6486,8 +6384,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 14,
-        "actionsTotal": 15
+        "actionsWithFrames": 13,
+        "actionsTotal": 14
       },
       "incomplete": true,
       "states": [
@@ -6670,17 +6568,6 @@
               "hitmarks": [],
               "cancels": {},
               "source": null
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -6879,8 +6766,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 11,
-        "actionsTotal": 12
+        "actionsWithFrames": 10,
+        "actionsTotal": 11
       },
       "incomplete": true,
       "states": [
@@ -7028,17 +6915,6 @@
               "hitmarks": [],
               "cancels": {},
               "source": null
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 540,
-              "seconds": 9,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -7055,8 +6931,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 16,
-        "actionsTotal": 18
+        "actionsWithFrames": 15,
+        "actionsTotal": 17
       },
       "incomplete": true,
       "states": [
@@ -7241,17 +7117,6 @@
               "cancels": {},
               "source": "gcsim",
               "notes": "Mirrored from aim_fully_charged"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 720,
-              "seconds": 12,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -7465,8 +7330,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 20,
-        "actionsTotal": 20
+        "actionsWithFrames": 19,
+        "actionsTotal": 19
       },
       "incomplete": false,
       "states": [
@@ -7647,17 +7512,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_GIRL",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 540,
-              "seconds": 9,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         },
@@ -7921,8 +7775,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 14,
-        "actionsTotal": 15
+        "actionsWithFrames": 13,
+        "actionsTotal": 14
       },
       "incomplete": true,
       "states": [
@@ -8087,17 +7941,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for unknown body",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 540,
-              "seconds": 9,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "burst",
@@ -9162,8 +9005,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 12,
-        "actionsTotal": 12
+        "actionsWithFrames": 11,
+        "actionsTotal": 11
       },
       "incomplete": false,
       "states": [
@@ -9318,17 +9161,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_MALE",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 420,
-              "seconds": 7,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -9345,8 +9177,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 12,
-        "actionsTotal": 12
+        "actionsWithFrames": 11,
+        "actionsTotal": 11
       },
       "incomplete": false,
       "states": [
@@ -9504,17 +9336,6 @@
               "cancels": {},
               "source": "gcsim",
               "gcsimVar": "dashFrames"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 540,
-              "seconds": 9,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -9531,8 +9352,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 12,
-        "actionsTotal": 12
+        "actionsWithFrames": 11,
+        "actionsTotal": 11
       },
       "incomplete": false,
       "states": [
@@ -9684,17 +9505,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_MALE",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 390,
-              "seconds": 6.5,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -9711,8 +9521,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 10,
-        "actionsTotal": 11
+        "actionsWithFrames": 9,
+        "actionsTotal": 10
       },
       "incomplete": true,
       "states": [
@@ -9851,17 +9661,6 @@
               "hitmarks": [],
               "cancels": {},
               "source": null
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -9878,8 +9677,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 13,
-        "actionsTotal": 13
+        "actionsWithFrames": 12,
+        "actionsTotal": 12
       },
       "incomplete": false,
       "states": [
@@ -10046,17 +9845,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_GIRL",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 540,
-              "seconds": 9,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -10073,8 +9861,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 10,
-        "actionsTotal": 12
+        "actionsWithFrames": 9,
+        "actionsTotal": 11
       },
       "incomplete": true,
       "states": [
@@ -10178,17 +9966,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_BOY",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 660,
-              "seconds": 11,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -10453,8 +10230,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 10,
-        "actionsTotal": 10
+        "actionsWithFrames": 9,
+        "actionsTotal": 9
       },
       "incomplete": false,
       "states": [
@@ -10592,17 +10369,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_LOLI",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 720,
-              "seconds": 12,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -11470,8 +11236,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 12,
-        "actionsTotal": 14
+        "actionsWithFrames": 11,
+        "actionsTotal": 13
       },
       "incomplete": true,
       "states": [
@@ -11610,17 +11376,6 @@
               "cancels": {},
               "source": "gcsim",
               "notes": "Mirrored from aim_charged"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -11835,8 +11590,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 3,
-        "actionsTotal": 12
+        "actionsWithFrames": 2,
+        "actionsTotal": 11
       },
       "incomplete": true,
       "states": [
@@ -11908,17 +11663,6 @@
               "id": "skill",
               "label": "Elemental Skill",
               "kind": "skill",
-              "frames": 420,
-              "seconds": 7,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
               "frames": 720,
               "seconds": 12,
               "hitmarks": [],
@@ -12165,8 +11909,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 14,
-        "actionsTotal": 16
+        "actionsWithFrames": 13,
+        "actionsTotal": 15
       },
       "incomplete": true,
       "states": [
@@ -12333,17 +12077,6 @@
               "cancels": {},
               "source": "gcsim",
               "notes": "Mirrored from aim_charged"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -13361,8 +13094,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 11,
-        "actionsTotal": 17
+        "actionsWithFrames": 10,
+        "actionsTotal": 16
       },
       "incomplete": true,
       "states": [
@@ -13519,17 +13252,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_GIRL",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -13824,8 +13546,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 10,
-        "actionsTotal": 11
+        "actionsWithFrames": 9,
+        "actionsTotal": 10
       },
       "incomplete": true,
       "states": [
@@ -13952,17 +13674,6 @@
               "id": "skill",
               "label": "Elemental Skill",
               "kind": "skill",
-              "frames": 300,
-              "seconds": 5,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
               "frames": 480,
               "seconds": 8,
               "hitmarks": [],
@@ -13989,8 +13700,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 10,
-        "actionsTotal": 12
+        "actionsWithFrames": 9,
+        "actionsTotal": 11
       },
       "incomplete": true,
       "states": [
@@ -14096,7 +13807,7 @@
                 "charge": 85
               },
               "source": "gcsim",
-              "notes": "Sacred Vow / Phantasm Performance special CA (Verdant Dew)",
+              "notes": "Phantasm Performance special CA (Verdant Dew)",
               "gcsimVar": "phantasmAnimationLength"
             },
             {
@@ -14123,17 +13834,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for unknown body",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 570,
-              "seconds": 9.5,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "burst",
@@ -14181,8 +13881,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 8,
-        "actionsTotal": 10
+        "actionsWithFrames": 7,
+        "actionsTotal": 9
       },
       "incomplete": true,
       "states": [
@@ -14284,17 +13984,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_MALE",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 750,
-              "seconds": 12.5,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -14473,8 +14162,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 8,
-        "actionsTotal": 10
+        "actionsWithFrames": 7,
+        "actionsTotal": 9
       },
       "incomplete": true,
       "states": [
@@ -14577,17 +14266,6 @@
               "gcsimVar": "template.DashLength"
             },
             {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 420,
-              "seconds": 7,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
               "id": "plunge_low",
               "label": "Low Plunge",
               "kind": "plunge_low",
@@ -14622,8 +14300,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 8,
-        "actionsTotal": 11
+        "actionsWithFrames": 7,
+        "actionsTotal": 10
       },
       "incomplete": true,
       "states": [
@@ -14723,17 +14401,6 @@
               "notes": "Primary CA mirrored from ca_attacktypeleft"
             },
             {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 540,
-              "seconds": 9,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
               "id": "plunge_low",
               "label": "Low Plunge",
               "kind": "plunge_low",
@@ -14768,8 +14435,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 11,
-        "actionsTotal": 11
+        "actionsWithFrames": 10,
+        "actionsTotal": 10
       },
       "incomplete": false,
       "states": [
@@ -14911,17 +14578,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_GIRL",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 720,
-              "seconds": 12,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -15392,8 +15048,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 17,
-        "actionsTotal": 17
+        "actionsWithFrames": 16,
+        "actionsTotal": 16
       },
       "incomplete": false,
       "states": [
@@ -15549,17 +15205,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_LADY",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 480,
-              "seconds": 8,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         },
@@ -16020,8 +15665,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 3,
-        "actionsTotal": 10
+        "actionsWithFrames": 2,
+        "actionsTotal": 9
       },
       "incomplete": true,
       "states": [
@@ -16073,17 +15718,6 @@
               "id": "skill",
               "label": "Elemental Skill",
               "kind": "skill",
-              "frames": 360,
-              "seconds": 6,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
               "frames": 660,
               "seconds": 11,
               "hitmarks": [],
@@ -16455,8 +16089,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 13,
-        "actionsTotal": 15
+        "actionsWithFrames": 12,
+        "actionsTotal": 14
       },
       "incomplete": true,
       "states": [
@@ -16611,17 +16245,6 @@
               "cancels": {},
               "source": "gcsim",
               "notes": "Mirrored from aim_fully_charged"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 510,
-              "seconds": 8.5,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -16851,8 +16474,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 13,
-        "actionsTotal": 13
+        "actionsWithFrames": 12,
+        "actionsTotal": 12
       },
       "incomplete": false,
       "states": [
@@ -17021,17 +16644,6 @@
               "id": "skill",
               "label": "Elemental Skill",
               "kind": "skill",
-              "frames": 240,
-              "seconds": 4,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
               "frames": 420,
               "seconds": 7,
               "hitmarks": [],
@@ -17587,7 +17199,8 @@
       "gcsimPackage": "sucrose",
       "gcsimPr": null,
       "sources": [
-        "gcsim"
+        "gcsim",
+        "fieldTimings"
       ],
       "completeness": {
         "actionsWithFrames": 10,
@@ -17750,8 +17363,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 30,
-        "actionsTotal": 32
+        "actionsWithFrames": 29,
+        "actionsTotal": 31
       },
       "incomplete": true,
       "states": [
@@ -18012,17 +17625,6 @@
               "id": "skill",
               "label": "Elemental Skill",
               "kind": "skill",
-              "frames": 360,
-              "seconds": 6,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
               "frames": 600,
               "seconds": 10,
               "hitmarks": [],
@@ -18334,8 +17936,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 13,
-        "actionsTotal": 15
+        "actionsWithFrames": 12,
+        "actionsTotal": 14
       },
       "incomplete": true,
       "states": [
@@ -18486,17 +18088,6 @@
               "cancels": {},
               "source": "gcsim",
               "notes": "Mirrored from aim_charged"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 450,
-              "seconds": 7.5,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -18888,8 +18479,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 24,
-        "actionsTotal": 26
+        "actionsWithFrames": 23,
+        "actionsTotal": 25
       },
       "incomplete": true,
       "states": [
@@ -19117,17 +18708,6 @@
               "gcsimVar": "template.DashLength"
             },
             {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 480,
-              "seconds": 8,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
               "id": "plunge_low",
               "label": "Low Plunge",
               "kind": "plunge_low",
@@ -19243,8 +18823,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 24,
-        "actionsTotal": 26
+        "actionsWithFrames": 23,
+        "actionsTotal": 25
       },
       "incomplete": true,
       "states": [
@@ -19476,17 +19056,6 @@
               "gcsimVar": "template.DashLength"
             },
             {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 420,
-              "seconds": 7,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
               "id": "plunge_low",
               "label": "Low Plunge",
               "kind": "plunge_low",
@@ -19602,8 +19171,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 24,
-        "actionsTotal": 26
+        "actionsWithFrames": 23,
+        "actionsTotal": 25
       },
       "incomplete": true,
       "states": [
@@ -19835,17 +19404,6 @@
               "gcsimVar": "template.DashLength"
             },
             {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 480,
-              "seconds": 8,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
               "id": "plunge_low",
               "label": "Low Plunge",
               "kind": "plunge_low",
@@ -19961,8 +19519,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 21,
-        "actionsTotal": 23
+        "actionsWithFrames": 20,
+        "actionsTotal": 22
       },
       "incomplete": true,
       "states": [
@@ -20151,17 +19709,6 @@
               "id": "skill",
               "label": "Elemental Skill",
               "kind": "skill",
-              "frames": 300,
-              "seconds": 5,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
               "frames": 480,
               "seconds": 8,
               "hitmarks": [],
@@ -21025,8 +20572,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 15,
-        "actionsTotal": 15
+        "actionsWithFrames": 14,
+        "actionsTotal": 14
       },
       "incomplete": false,
       "states": [
@@ -21176,17 +20723,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_GIRL",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         },
@@ -21400,6 +20936,24 @@
               "gcsimVar": "burstFrames"
             },
             {
+              "id": "skill_spearstorm",
+              "label": "Northland Spearstorm",
+              "kind": "skill",
+              "frames": 42,
+              "seconds": 0.7,
+              "hitmarks": [],
+              "cancels": {
+                "attack": 28,
+                "burst": 28,
+                "dash": 26,
+                "jump": 26,
+                "walk": 32
+              },
+              "source": "gcsim",
+              "notes": "Special E during Manifest Flame / skill-state",
+              "gcsimVar": "spearStormFrames"
+            },
+            {
               "id": "dash",
               "label": "Dash",
               "kind": "dash",
@@ -21410,17 +20964,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for unknown body",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 720,
-              "seconds": 12,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -21773,8 +21316,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 13,
-        "actionsTotal": 17
+        "actionsWithFrames": 12,
+        "actionsTotal": 16
       },
       "incomplete": true,
       "states": [
@@ -21944,17 +21487,6 @@
               "id": "skill",
               "label": "Elemental Skill",
               "kind": "skill",
-              "frames": 360,
-              "seconds": 6,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
               "frames": 540,
               "seconds": 9,
               "hitmarks": [],
@@ -21998,8 +21530,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 12,
-        "actionsTotal": 12
+        "actionsWithFrames": 11,
+        "actionsTotal": 11
       },
       "incomplete": false,
       "states": [
@@ -22160,17 +21692,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_MALE",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -22572,8 +22093,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 14,
-        "actionsTotal": 14
+        "actionsWithFrames": 13,
+        "actionsTotal": 13
       },
       "incomplete": false,
       "states": [
@@ -22756,17 +22277,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_BOY",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 720,
-              "seconds": 12,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -23174,8 +22684,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 10,
-        "actionsTotal": 11
+        "actionsWithFrames": 9,
+        "actionsTotal": 10
       },
       "incomplete": true,
       "states": [
@@ -23306,17 +22816,6 @@
               "hitmarks": [],
               "cancels": {},
               "source": null
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 480,
-              "seconds": 8,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -23333,8 +22832,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 10,
-        "actionsTotal": 10
+        "actionsWithFrames": 9,
+        "actionsTotal": 9
       },
       "incomplete": false,
       "states": [
@@ -23459,17 +22958,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_LADY",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 390,
-              "seconds": 6.5,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -23486,8 +22974,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 10,
-        "actionsTotal": 10
+        "actionsWithFrames": 9,
+        "actionsTotal": 9
       },
       "incomplete": false,
       "states": [
@@ -23614,17 +23102,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_GIRL",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -24001,8 +23478,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 17,
-        "actionsTotal": 19
+        "actionsWithFrames": 16,
+        "actionsTotal": 18
       },
       "incomplete": true,
       "states": [
@@ -24202,17 +23679,6 @@
               "notes": "Mirrored from aim_fully_charged"
             },
             {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 600,
-              "seconds": 10,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
               "id": "plunge_low",
               "label": "Low Plunge",
               "kind": "plunge_low",
@@ -24247,8 +23713,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 8,
-        "actionsTotal": 10
+        "actionsWithFrames": 7,
+        "actionsTotal": 9
       },
       "incomplete": true,
       "states": [
@@ -24368,17 +23834,6 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_GIRL",
               "gcsimVar": "template.DashLength"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
-              "frames": 480,
-              "seconds": 8,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
             },
             {
               "id": "plunge_low",
@@ -24852,8 +24307,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 3,
-        "actionsTotal": 11
+        "actionsWithFrames": 2,
+        "actionsTotal": 10
       },
       "incomplete": true,
       "states": [
@@ -24915,17 +24370,6 @@
               "id": "skill",
               "label": "Elemental Skill",
               "kind": "skill",
-              "frames": 420,
-              "seconds": 7,
-              "hitmarks": [],
-              "cancels": {},
-              "source": "estimated",
-              "notes": "From fieldTimings.ts coarse cast lock"
-            },
-            {
-              "id": "skill_hold",
-              "label": "Elemental Skill (Hold / long)",
-              "kind": "skill_hold",
               "frames": 720,
               "seconds": 12,
               "hitmarks": [],

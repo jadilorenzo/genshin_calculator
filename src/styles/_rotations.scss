@@ -1187,9 +1187,42 @@
 }
 
 .combo-inspect-step-time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.1rem;
   font-size: 0.65rem;
   font-variant-numeric: tabular-nums;
   color: var(--fog);
+  cursor: text;
+
+  input {
+    width: 2.6rem;
+    min-width: 2.6rem;
+    padding: 0.05rem 0.15rem;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  input:hover,
+  input:focus {
+    border-color: var(--line);
+    background: color-mix(in srgb, var(--panel) 80%, transparent);
+    color: var(--text);
+    outline: none;
+  }
+
+  &.overridden {
+    color: var(--gold-bright);
+
+    input {
+      color: var(--gold-bright);
+    }
+  }
 }
 
 .combo-inspect-step-remove {

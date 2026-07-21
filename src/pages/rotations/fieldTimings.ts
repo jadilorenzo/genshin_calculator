@@ -1227,7 +1227,15 @@ function sanitizeComboStepsLocal(raw: unknown): import('./types').ComboStep[] {
       Number.isFinite(gapRaw) && gapRaw > 0
         ? Math.min(10, Math.round(gapRaw * 100) / 100)
         : undefined
-    out.push({ id, actionId, stateId, gapAfter })
+    const durRaw =
+      typeof e.durationSeconds === 'number'
+        ? e.durationSeconds
+        : Number(e.durationSeconds)
+    const durationSeconds =
+      Number.isFinite(durRaw) && durRaw > 0
+        ? Math.min(30, Math.round(durRaw * 1000) / 1000)
+        : undefined
+    out.push({ id, actionId, stateId, gapAfter, durationSeconds })
   }
   return out
 }

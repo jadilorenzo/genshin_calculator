@@ -499,6 +499,84 @@ function parseSpecialChargedAttacks(src) {
   return actions
 }
 
+/**
+ * Alternate burst / skill routes with their own *Frames vars
+ * (e.g. Flins Thunderous Symphony mini-burst, Northland Spearstorm).
+ */
+function parseSpecialNamedFrameVars(src) {
+  if (!src) return []
+  const known = {
+    symphonyFrames: {
+      id: 'burst_mini',
+      label: 'Thunderous Symphony (Mini Burst)',
+      kind: 'burst',
+      notes: 'Flins mini-burst while Manifest Flame is active (sQ)',
+    },
+    spearStormFrames: {
+      id: 'skill_spearstorm',
+      label: 'Northland Spearstorm',
+      kind: 'skill',
+      notes: 'Special E during Manifest Flame / skill-state',
+    },
+  }
+  const actions = []
+  for (const [varName, meta] of Object.entries(known)) {
+    const m = src.match(
+      new RegExp(`${varName}\\s*=\\s*frames\\.InitAbilSlice\\((\\d+)\\)`),
+    )
+    if (!m) continue
+    const frames = Number(m[1])
+    const after = src.slice(m.index + m[0].length, m.index + m[0].length + 800)
+    const cancels = {}
+    for (const cm of after.matchAll(
+      new RegExp(
+        `${varName}\\[action\\.Action(\\w+)\\]\\s*=\\s*(\\d+)`,
+        'g',
+      ),
+    )) {
+      const key = cm[1].toLowerCase()
+      const map = {
+        attack: 'attack',
+        charge: 'charge',
+        skill: 'skill',
+        burst: 'burst',
+        dash: 'dash',
+        jump: 'jump',
+        walk: 'walk',
+        swap: 'swap',
+      }
+      if (map[key]) cancels[map[key]] = Number(cm[2])
+    }
+    const hitmarks = []
+    if (varName === 'symphonyFrames') {
+      const h = src.match(/symphonyHitmark\s*=\s*(\d+)/)
+      const extra = src.match(
+        /symphonyExtraHitmark\s*=\s*(\d+)\s*\+\s*(\d+)/,
+      )
+      if (h) hitmarks.push(Number(h[1]))
+      if (extra) hitmarks.push(Number(extra[1]) + Number(extra[2]))
+    }
+    if (varName === 'spearStormFrames') {
+      const h = src.match(/spearStormHitmark\s*=\s*(\d+)/)
+      if (h) hitmarks.push(Number(h[1]))
+    }
+    actions.push({
+      id: meta.id,
+      label: meta.label,
+      kind: meta.kind,
+      frames,
+      seconds: Math.round((frames / FPS) * 1000) / 1000,
+      hitmarks,
+      cancels,
+      source: 'gcsim',
+      notes: meta.notes,
+      gcsimVar: varName,
+      stateHint: 'default',
+    })
+  }
+  return actions
+}
+
 function parseAbilFile(src, options) {
   const {
     varPrefix,
@@ -835,6 +913,7 @@ function parseGcsimCharacter(folder) {
       kind: 'burst',
     }),
   )
+  mergeActionsIntoStates(statesById, parseSpecialNamedFrameVars(allGo))
 
   const plunge = readGo(folder, 'plunge.go') || allGo
   mergeActionsIntoStates(
