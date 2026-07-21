@@ -183,26 +183,26 @@ export default function ArtifactLayout() {
     <>
       <header className="hero">
         <div className="hero-top">
-          <h1>Artifact farm expectations</h1>
+          <h1>Artifact resin odds</h1>
           <ClearPageButton prefix="gc:artifacts:" />
         </div>
         <p className="lede">
           {isCompare
-            ? 'Expected drop rarity for your piece vs everyday farm targets — model estimates, not live drop rates.'
-            : 'Estimated, likely, and near-guaranteed resin cost for your selected piece — expectations from community rate models.'}
+            ? 'How common your piece is per 5★ drop next to everyday farm targets.'
+            : 'Estimated, likely, and near-guaranteed resin to farm your selected piece.'}
         </p>
         <nav className="sub-tabs" aria-label="Artifact tools">
           <NavLink
             to="compare"
             className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
           >
-            Drop expectations
+            Compare
           </NavLink>
           <NavLink
             to="expectations"
             className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
           >
-            Resin expectations
+            Resin cost
           </NavLink>
         </nav>
       </header>

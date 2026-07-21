@@ -244,19 +244,17 @@ export default function BuildsPage() {
     <>
       <header className="hero">
         <div className="hero-top">
-          <h1>Build farm expectations</h1>
+          <h1>Build lineup</h1>
           <ClearPageButton prefix="gc:builds:" />
         </div>
         <p className="lede">
-          Expected resin to fill a five-piece lineup — estimated, likely, and
-          near-guaranteed confidence bands, not hard guarantees. Parallel farming
-          means early drops can fill any empty slot, so the full set often finishes
-          sooner than farming each piece alone.
+          Plan a five-piece set. Parallel farming fills any empty slot, so the full
+          lineup often finishes sooner than each piece alone.
         </p>
       </header>
 
       <main className="panel">
-        <section className="controls" aria-label="Build farm expectations">
+        <section className="controls" aria-label="Build lineup">
           <div className="field">
             <span className="label" id="build-set-label">
               Set
@@ -406,7 +404,7 @@ export default function BuildsPage() {
           </div>
         </div>
 
-        <section className="results" aria-live="polite" aria-label="Resin expectations">
+        <section className="results" aria-live="polite">
           <div className="stat-block accent">
             <p className="stat-label">Estimated</p>
             <p className="stat-value">{formatCost(estimated, unit)}</p>
