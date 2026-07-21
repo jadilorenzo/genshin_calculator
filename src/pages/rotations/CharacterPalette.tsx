@@ -1,47 +1,50 @@
-import { useMemo, useState, type DragEvent } from 'react'
-import { CHARACTER_KITS, ELEMENTS } from './characters'
-import { CharacterIcon } from './CharacterIcon'
-import {
-  CharacterInfoButton,
-  CharacterInfoPopup,
-} from './CharacterInfoPopup'
-import type { CharacterData } from './types'
+import { useMemo, useState, type DragEvent } from "react";
+import { CHARACTER_KITS, ELEMENTS } from "./characters";
+import { CharacterIcon } from "./CharacterIcon";
+import { CharacterInfoButton, CharacterInfoPopup } from "./CharacterInfoPopup";
+import type { CharacterData } from "./types";
 
-const DRAG_TYPE = 'application/x-fmr-character'
+const DRAG_TYPE = "application/x-fmr-character";
 
-export function readCharacterDrag(e: DragEvent): string | null {
-  const id = e.dataTransfer.getData(DRAG_TYPE) || e.dataTransfer.getData('text/plain')
-  return id || null
-}
+export const readCharacterDrag = (e: DragEvent): string | null => {
+  const id =
+    e.dataTransfer.getData(DRAG_TYPE) || e.dataTransfer.getData("text/plain");
+  return id || null;
+};
 
-export function setCharacterDrag(e: DragEvent, characterId: string) {
-  e.dataTransfer.setData(DRAG_TYPE, characterId)
-  e.dataTransfer.setData('text/plain', characterId)
-  e.dataTransfer.effectAllowed = 'copyMove'
-}
+export const setCharacterDrag = (e: DragEvent, characterId: string) => {
+  e.dataTransfer.setData(DRAG_TYPE, characterId);
+  e.dataTransfer.setData("text/plain", characterId);
+  e.dataTransfer.effectAllowed = "copyMove";
+};
 
 interface CharacterPaletteProps {
-  selectedId: string | null
-  onSelect: (character: CharacterData) => void
+  selectedId: string | null;
+  onSelect: (character: CharacterData) => void;
 }
 
-export function CharacterPalette({ selectedId, onSelect }: CharacterPaletteProps) {
-  const [query, setQuery] = useState('')
-  const [element, setElement] = useState<string>('all')
-  const [infoCharacter, setInfoCharacter] = useState<CharacterData | null>(null)
+export const CharacterPalette = ({
+  selectedId,
+  onSelect,
+}: CharacterPaletteProps) => {
+  const [query, setQuery] = useState("");
+  const [element, setElement] = useState<string>("all");
+  const [infoCharacter, setInfoCharacter] = useState<CharacterData | null>(
+    null,
+  );
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = query.trim().toLowerCase();
     return CHARACTER_KITS.filter((c) => {
-      if (element !== 'all' && c.element !== element) return false
-      if (!q) return true
+      if (element !== "all" && c.element !== element) return false;
+      if (!q) return true;
       return (
         c.name.toLowerCase().includes(q) ||
         c.weapon.toLowerCase().includes(q) ||
         c.element.toLowerCase().includes(q)
-      )
-    })
-  }, [query, element])
+      );
+    });
+  }, [query, element]);
 
   return (
     <aside className="rotation-palette" aria-label="Characters">
@@ -63,8 +66,8 @@ export function CharacterPalette({ selectedId, onSelect }: CharacterPaletteProps
       <div className="chip-row wrap" role="group" aria-label="Element filter">
         <button
           type="button"
-          className={element === 'all' ? 'chip compact active' : 'chip compact'}
-          onClick={() => setElement('all')}
+          className={element === "all" ? "chip compact active" : "chip compact"}
+          onClick={() => setElement("all")}
         >
           All
         </button>
@@ -72,7 +75,7 @@ export function CharacterPalette({ selectedId, onSelect }: CharacterPaletteProps
           <button
             key={el}
             type="button"
-            className={element === el ? 'chip compact active' : 'chip compact'}
+            className={element === el ? "chip compact active" : "chip compact"}
             onClick={() => setElement(el)}
           >
             {el}
@@ -86,8 +89,8 @@ export function CharacterPalette({ selectedId, onSelect }: CharacterPaletteProps
             <div
               className={
                 selectedId === c.id
-                  ? 'rotation-char-card selected'
-                  : 'rotation-char-card'
+                  ? "rotation-char-card selected"
+                  : "rotation-char-card"
               }
             >
               <button
@@ -130,5 +133,5 @@ export function CharacterPalette({ selectedId, onSelect }: CharacterPaletteProps
         />
       ) : null}
     </aside>
-  )
-}
+  );
+};

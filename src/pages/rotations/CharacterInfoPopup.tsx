@@ -1,32 +1,32 @@
-import { useEffect, useId, useRef } from 'react'
-import { InfoIcon } from '../../components/icons'
-import { CharacterKitView } from '../characters/CharacterKitView'
-import type { CharacterData } from './types'
+import { useEffect, useId, useRef } from "react";
+import { InfoIcon } from "../../components/icons";
+import { CharacterKitView } from "../characters/CharacterKitView";
+import type { CharacterData } from "./types";
 
 interface CharacterInfoPopupProps {
-  character: CharacterData
-  onClose: () => void
+  character: CharacterData;
+  onClose: () => void;
 }
 
-export function CharacterInfoPopup({
+export const CharacterInfoPopup = ({
   character,
   onClose,
-}: CharacterInfoPopupProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null)
-  const titleId = useId()
+}: CharacterInfoPopupProps) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog) return
-    if (!dialog.open) dialog.showModal()
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
 
-    function onCancel(e: Event) {
-      e.preventDefault()
-      onClose()
-    }
-    dialog.addEventListener('cancel', onCancel)
-    return () => dialog.removeEventListener('cancel', onCancel)
-  }, [onClose])
+    const onCancel = (e: Event) => {
+      e.preventDefault();
+      onClose();
+    };
+    dialog.addEventListener("cancel", onCancel);
+    return () => dialog.removeEventListener("cancel", onCancel);
+  }, [onClose]);
 
   return (
     <dialog
@@ -34,7 +34,7 @@ export function CharacterInfoPopup({
       className="rotation-char-info-dialog"
       aria-labelledby={titleId}
       onClick={(e) => {
-        if (e.target === dialogRef.current) onClose()
+        if (e.target === dialogRef.current) onClose();
       }}
     >
       <div className="rotation-char-info">
@@ -49,18 +49,18 @@ export function CharacterInfoPopup({
         <CharacterKitView character={character} headingId={titleId} />
       </div>
     </dialog>
-  )
-}
+  );
+};
 
 interface CharacterInfoButtonProps {
-  character: CharacterData
-  onOpen: (character: CharacterData) => void
+  character: CharacterData;
+  onOpen: (character: CharacterData) => void;
 }
 
-export function CharacterInfoButton({
+export const CharacterInfoButton = ({
   character,
   onOpen,
-}: CharacterInfoButtonProps) {
+}: CharacterInfoButtonProps) => {
   return (
     <button
       type="button"
@@ -68,14 +68,14 @@ export function CharacterInfoButton({
       aria-label={`Info for ${character.name}`}
       title={`Kit info · ${character.name}`}
       onClick={(e) => {
-        e.stopPropagation()
-        e.preventDefault()
-        onOpen(character)
+        e.stopPropagation();
+        e.preventDefault();
+        onOpen(character);
       }}
       onPointerDown={(e) => e.stopPropagation()}
       draggable={false}
     >
       <InfoIcon />
     </button>
-  )
-}
+  );
+};
