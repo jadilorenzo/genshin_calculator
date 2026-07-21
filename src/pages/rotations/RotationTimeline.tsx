@@ -10,7 +10,7 @@ import {
 import { getCharacter } from './characters'
 import { readCharacterDrag } from './CharacterPalette'
 import { CharacterIcon } from './CharacterIcon'
-import { effectStartOffset, getDurationOptions, isCooldownOption } from './durationOptions'
+import { effectStartOffset, getDurationOptions, isCooldownOption, resolveOverlaySeconds } from './durationOptions'
 import {
   castTimingOffsets,
   defaultOnFieldDuration,
@@ -203,12 +203,13 @@ export function RotationTimeline({
         const offset = effectStartOffset(opt, timing)
         const start = p.start + offset
         const cooldown = isCooldownOption(opt)
+        const seconds = resolveOverlaySeconds(opt, p.durationOverrides)
         rows.push({
           placementId: p.id,
           optionId: opt.id,
           label: `${char.name} · ${opt.label}`,
           start,
-          seconds: opt.seconds,
+          seconds,
           element: char.element,
           lane,
           loop: false,
@@ -220,7 +221,7 @@ export function RotationTimeline({
             optionId: opt.id,
             label: `${char.name} · ${opt.label}`,
             start: start + cycleLength,
-            seconds: opt.seconds,
+            seconds,
             element: char.element,
             lane,
             loop: true,
@@ -277,6 +278,7 @@ export function RotationTimeline({
       castOrder: 'skill-first',
       skillVariant,
       activeDurations: [],
+      durationOverrides: {},
     }
     const updated = insertOnField(
       placementsRef.current,

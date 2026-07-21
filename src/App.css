@@ -2041,6 +2041,101 @@ input[type='text']:focus,
   outline-offset: 1px;
 }
 
+.rotation-artifact-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.rotation-artifact-row .rotation-artifact-select {
+  flex: 1 1 12rem;
+  max-width: 22rem;
+}
+
+.rotation-overlay-ctrl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.rotation-overlay-secs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.rotation-overlay-secs input {
+  width: 3.5rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--input-surface);
+  color: var(--text);
+  padding: 0.3rem 0.35rem;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.rotation-overlay-secs input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.rotation-overlay-secs.adjusted input {
+  color: var(--text);
+}
+
+.rotation-overlay-warn-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.rotation-overlay-warning {
+  margin: 0;
+  grid-column: 1 / -1;
+  padding: 0.55rem 0.65rem;
+  border-radius: 2px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+[data-theme='dark'] .rotation-overlay-warn-tag {
+  color: #f0c56a;
+}
+
+[data-theme='dark'] .rotation-overlay-warning {
+  border: 1px solid rgba(232, 176, 72, 0.55);
+  background: rgba(232, 176, 72, 0.12);
+  color: #f3e0b0;
+}
+
+[data-theme='dark'] .rotation-overlay-secs.adjusted input {
+  border-color: rgba(232, 176, 72, 0.7);
+  background: rgba(232, 176, 72, 0.14);
+}
+
+[data-theme='light'] .rotation-overlay-warn-tag {
+  color: #8a5a12;
+}
+
+[data-theme='light'] .rotation-overlay-warning {
+  border: 1px solid rgba(180, 120, 40, 0.55);
+  background: rgba(220, 170, 70, 0.22);
+  color: #5c3a0c;
+}
+
+[data-theme='light'] .rotation-overlay-secs.adjusted input {
+  border-color: rgba(180, 120, 40, 0.7);
+  background: rgba(220, 170, 70, 0.28);
+}
+
 .rotation-onfield-adjust {
   display: flex;
   align-items: center;

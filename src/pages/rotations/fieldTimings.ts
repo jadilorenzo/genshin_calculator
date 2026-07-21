@@ -943,6 +943,7 @@ export function sanitizePlacementCasts(
   castOrder: CastOrder
   skillVariant: SkillCastVariant
   activeDurations: string[]
+  durationOverrides: Record<string, number>
   /** True when skillVariant was missing and should refresh on-field duration */
   migratedVariant: boolean
 } {
@@ -954,8 +955,20 @@ export function sanitizePlacementCasts(
     castOrder: parseCastOrder(p.castOrder),
     skillVariant: parseSkillVariant(p.skillVariant, characterId, kitHoldSeconds),
     activeDurations: Array.isArray(p.activeDurations) ? p.activeDurations : [],
+    durationOverrides: sanitizeOverrides(p.durationOverrides),
     migratedVariant: !hadVariant,
   }
+}
+
+function sanitizeOverrides(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out: Record<string, number> = {}
+  for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
+    const n = typeof value === 'number' ? value : Number(value)
+    if (!id || !Number.isFinite(n) || n <= 0) continue
+    out[id] = Math.min(60, Math.max(0.5, n))
+  }
+  return out
 }
 
 interface TimelinePlacementLike {
@@ -965,4 +978,5 @@ interface TimelinePlacementLike {
   castOrder?: CastOrder
   skillVariant?: SkillCastVariant
   activeDurations?: string[]
+  durationOverrides?: Record<string, number>
 }

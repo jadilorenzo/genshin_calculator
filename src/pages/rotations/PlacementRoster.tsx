@@ -4,7 +4,12 @@ import {
 } from './artifactDurationOptions'
 import { CharacterIcon } from './CharacterIcon'
 import { getCharacter } from './characters'
-import { getKitCooldownOptions, getKitEffectOptions } from './durationOptions'
+import {
+  getKitCooldownOptions,
+  getKitEffectOptions,
+  isOverlayDurationAdjusted,
+  resolveOverlaySeconds,
+} from './durationOptions'
 import {
   defaultOnFieldDuration,
   effectiveCastTimes,
@@ -39,6 +44,7 @@ function withCastDefaults(p: TimelinePlacement): TimelinePlacement {
     castOrder: parseCastOrder(p.castOrder),
     skillVariant: parseSkillVariant(p.skillVariant, p.characterId, kitHold),
     activeDurations: p.activeDurations ?? [],
+    durationOverrides: p.durationOverrides ?? {},
   }
 }
 
@@ -174,14 +180,38 @@ export function PlacementRoster({
             onSelect(selected.id)
           }}
           onToggleDurationOverlay={(optionId) => {
-            const active = selected.activeDurations.includes(optionId)
-              ? selected.activeDurations.filter((id) => id !== optionId)
-              : [...selected.activeDurations, optionId]
-            updatePlacement(selected.id, { activeDurations: active })
+            const on = selected.activeDurations.includes(optionId)
+            if (on) {
+              const { [optionId]: _removed, ...rest } =
+                selected.durationOverrides
+              updatePlacement(selected.id, {
+                activeDurations: selected.activeDurations.filter(
+                  (id) => id !== optionId,
+                ),
+                durationOverrides: rest,
+              })
+            } else {
+              updatePlacement(selected.id, {
+                activeDurations: [...selected.activeDurations, optionId],
+              })
+            }
             onSelect(selected.id)
           }}
           onSetActiveDurations={(activeDurations) => {
-            updatePlacement(selected.id, { activeDurations })
+            const keep = new Set(activeDurations)
+            const durationOverrides = Object.fromEntries(
+              Object.entries(selected.durationOverrides).filter(([id]) =>
+                keep.has(id),
+              ),
+            )
+            updatePlacement(selected.id, { activeDurations, durationOverrides })
+            onSelect(selected.id)
+          }}
+          onSetDurationOverride={(optionId, seconds) => {
+            const next = { ...selected.durationOverrides }
+            if (seconds == null) delete next[optionId]
+            else next[optionId] = seconds
+            updatePlacement(selected.id, { durationOverrides: next })
             onSelect(selected.id)
           }}
           onToggleCast={(key, value) => {
@@ -214,6 +244,7 @@ function SelectedPlacementDetail({
   onSetDuration,
   onToggleDurationOverlay,
   onSetActiveDurations,
+  onSetDurationOverride,
   onToggleCast,
   onCastOrder,
   onSkillVariant,
@@ -226,6 +257,7 @@ function SelectedPlacementDetail({
   onSetDuration: (duration: number) => void
   onToggleDurationOverlay: (optionId: string) => void
   onSetActiveDurations: (activeDurations: string[]) => void
+  onSetDurationOverride: (optionId: string, seconds: number | null) => void
   onToggleCast: (key: 'castSkill' | 'castBurst', value: boolean) => void
   onCastOrder: (order: CastOrder) => void
   onSkillVariant: (variant: SkillCastVariant) => void
@@ -253,6 +285,13 @@ function SelectedPlacementDetail({
     placement.activeDurations.find((id) =>
       artifactOptions.some((o) => o.id === id),
     ) ?? ''
+  const adjustableOptions = [
+    ...kitOptions.filter((o) => placement.activeDurations.includes(o.id)),
+    ...artifactOptions.filter((o) => o.id === selectedArtifactId),
+  ]
+  const adjustedOverlays = adjustableOptions.filter((o) =>
+    isOverlayDurationAdjusted(o, placement.durationOverrides),
+  )
   const skill = char.kit.elementalSkill
   const burst = char.kit.elementalBurst
   const defaultDur = defaultOnFieldDuration(
@@ -470,17 +509,69 @@ function SelectedPlacementDetail({
             >
               {kitOptions.map((opt) => {
                 const on = placement.activeDurations.includes(opt.id)
+                const seconds = resolveOverlaySeconds(
+                  opt,
+                  placement.durationOverrides,
+                )
+                const adjusted = isOverlayDurationAdjusted(
+                  opt,
+                  placement.durationOverrides,
+                )
                 return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    className={on ? 'chip compact active' : 'chip compact'}
-                    title={`${opt.skillName} · after ${opt.trigger ?? opt.source}`}
-                    onClick={() => onToggleDurationOverlay(opt.id)}
-                  >
-                    {opt.label}
-                    <span className="rotation-dur-chip-secs">{opt.seconds}s</span>
-                  </button>
+                  <div key={opt.id} className="rotation-overlay-ctrl">
+                    <button
+                      type="button"
+                      className={on ? 'chip compact active' : 'chip compact'}
+                      title={`${opt.skillName} · after ${opt.trigger ?? opt.source}${
+                        adjusted ? ` · kit ${opt.seconds}s` : ''
+                      }`}
+                      onClick={() => onToggleDurationOverlay(opt.id)}
+                    >
+                      {opt.label}
+                      {!on ? (
+                        <span className="rotation-dur-chip-secs">
+                          {opt.seconds}s
+                        </span>
+                      ) : null}
+                    </button>
+                    {on ? (
+                      <label
+                        className={
+                          adjusted
+                            ? 'rotation-overlay-secs adjusted'
+                            : 'rotation-overlay-secs'
+                        }
+                      >
+                        <input
+                          type="number"
+                          min={0.5}
+                          max={60}
+                          step={0.5}
+                          aria-label={`${opt.label} duration`}
+                          value={seconds}
+                          onChange={(e) => {
+                            const raw = Number(e.target.value)
+                            if (!Number.isFinite(raw)) return
+                            onSetDurationOverride(
+                              opt.id,
+                              Math.abs(raw - opt.seconds) < 0.001
+                                ? null
+                                : raw,
+                            )
+                          }}
+                        />
+                        <span>s</span>
+                        {adjusted ? (
+                          <span
+                            className="rotation-overlay-warn-tag"
+                            title={`Kit default ${opt.seconds}s`}
+                          >
+                            kit {opt.seconds}s
+                          </span>
+                        ) : null}
+                      </label>
+                    ) : null}
+                  </div>
                 )
               })}
             </div>
@@ -521,20 +612,87 @@ function SelectedPlacementDetail({
             <span className="label" id={`dur-art-${placement.id}`}>
               Artifact
             </span>
-            <select
-              className="rotation-artifact-select"
-              aria-labelledby={`dur-art-${placement.id}`}
-              value={selectedArtifactId}
-              onChange={(e) => setArtifactOverlay(e.target.value)}
-            >
-              <option value="">None</option>
-              {artifactOptions.map((opt) => (
-                <option key={opt.id} value={opt.id} title={opt.skillName}>
-                  {opt.skillName} · {opt.seconds}s
-                </option>
-              ))}
-            </select>
+            <div className="rotation-artifact-row">
+              <select
+                className="rotation-artifact-select"
+                aria-labelledby={`dur-art-${placement.id}`}
+                value={selectedArtifactId}
+                onChange={(e) => setArtifactOverlay(e.target.value)}
+              >
+                <option value="">None</option>
+                {artifactOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id} title={opt.skillName}>
+                    {opt.skillName} · {opt.seconds}s
+                  </option>
+                ))}
+              </select>
+              {selectedArtifactId
+                ? (() => {
+                    const opt = artifactOptions.find(
+                      (o) => o.id === selectedArtifactId,
+                    )
+                    if (!opt) return null
+                    const seconds = resolveOverlaySeconds(
+                      opt,
+                      placement.durationOverrides,
+                    )
+                    const adjusted = isOverlayDurationAdjusted(
+                      opt,
+                      placement.durationOverrides,
+                    )
+                    return (
+                      <label
+                        className={
+                          adjusted
+                            ? 'rotation-overlay-secs adjusted'
+                            : 'rotation-overlay-secs'
+                        }
+                      >
+                        <input
+                          type="number"
+                          min={0.5}
+                          max={60}
+                          step={0.5}
+                          aria-label={`${opt.skillName} duration`}
+                          value={seconds}
+                          onChange={(e) => {
+                            const raw = Number(e.target.value)
+                            if (!Number.isFinite(raw)) return
+                            onSetDurationOverride(
+                              opt.id,
+                              Math.abs(raw - opt.seconds) < 0.001
+                                ? null
+                                : raw,
+                            )
+                          }}
+                        />
+                        <span>s</span>
+                        {adjusted ? (
+                          <span
+                            className="rotation-overlay-warn-tag"
+                            title={`Set default ${opt.seconds}s`}
+                          >
+                            set {opt.seconds}s
+                          </span>
+                        ) : null}
+                      </label>
+                    )
+                  })()
+                : null}
+            </div>
           </div>
+        ) : null}
+
+        {adjustedOverlays.length > 0 ? (
+          <p className="rotation-overlay-warning" role="status">
+            Custom duration
+            {adjustedOverlays.length > 1 ? 's' : ''} — kit/set lists{' '}
+            {adjustedOverlays
+              .map((o) => `${o.label} at ${o.seconds}s`)
+              .join('; ')}
+            . Only change these when something extends or delays the effect
+            (e.g. holding Mona’s bubble until a normal attack pops it).
+          </p>
         ) : null}
       </div>
     </article>

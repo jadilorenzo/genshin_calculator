@@ -201,6 +201,7 @@ export function insertOnField(
         castOrder: target.castOrder ?? 'skill-first',
         skillVariant: target.skillVariant ?? 'hold',
         activeDurations: [],
+        durationOverrides: {},
       },
       ...sorted.slice(idx + 1),
     ],

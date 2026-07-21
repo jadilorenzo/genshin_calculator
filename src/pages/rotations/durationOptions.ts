@@ -37,6 +37,41 @@ export function isCooldownOption(opt: DurationOption): boolean {
   return opt.kind === 'cooldown'
 }
 
+const MIN_OVERLAY_SECONDS = 0.5
+const MAX_OVERLAY_SECONDS = 60
+
+/** Kit default duration, or a placement override when set. */
+export function resolveOverlaySeconds(
+  opt: DurationOption,
+  overrides?: Record<string, number> | null,
+): number {
+  const raw = overrides?.[opt.id]
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
+    return Math.min(MAX_OVERLAY_SECONDS, Math.max(MIN_OVERLAY_SECONDS, raw))
+  }
+  return opt.seconds
+}
+
+export function isOverlayDurationAdjusted(
+  opt: DurationOption,
+  overrides?: Record<string, number> | null,
+): boolean {
+  return Math.abs(resolveOverlaySeconds(opt, overrides) - opt.seconds) > 0.001
+}
+
+export function sanitizeDurationOverrides(
+  raw: unknown,
+): Record<string, number> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out: Record<string, number> = {}
+  for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
+    const n = typeof value === 'number' ? value : Number(value)
+    if (!id || !Number.isFinite(n) || n <= 0) continue
+    out[id] = Math.min(MAX_OVERLAY_SECONDS, Math.max(MIN_OVERLAY_SECONDS, n))
+  }
+  return out
+}
+
 export interface CastTimingWindow {
   skillStart: number
   skillEnd: number

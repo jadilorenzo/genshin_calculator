@@ -97,5 +97,10 @@ export interface TimelinePlacement {
   skillVariant: 'press' | 'hold'
   /** Selected kit duration overlays (e.g. "skill:Shield Duration") */
   activeDurations: string[]
+  /**
+   * Per-overlay duration overrides (seconds), e.g. holding Mona’s bubble
+   * longer before a normal attack pops it.
+   */
+  durationOverrides: Record<string, number>
 }
 
