@@ -11,6 +11,7 @@ import {
   isNearBannerDate,
   type CountdownParts,
 } from '../../model/bannerSchedule.ts'
+import { SITE_ORIGIN } from '../../siteMeta.ts'
 import { BannerFeaturedRoster } from './BannerFeaturedRoster.tsx'
 
 function CountdownDisplay({ parts }: { parts: CountdownParts }) {
@@ -38,6 +39,7 @@ export default function BannerCountdownPage() {
   const [region, setRegion] = useBannerRegion()
   const { schedule, status, error, refresh } = useBannerSchedule()
   const [now, setNow] = useState(() => Date.now())
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000)
@@ -56,13 +58,29 @@ export default function BannerCountdownPage() {
   }, [schedule, now])
 
   const regionNote = BANNER_REGION_OPTIONS.find((option) => option.id === region)?.note
+  const shareUrl = `${SITE_ORIGIN}/pulls/countdown`
+
+  async function copyShareLink() {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Ignore clipboard failures.
+    }
+  }
 
   return (
     <section className="pace-panel pace-panel-tab banner-countdown" aria-label="Banner countdown">
       <div className="field">
-        <span className="label" id="banner-region-label">
-          Server region
-        </span>
+        <div className="hero-top">
+          <span className="label" id="banner-region-label">
+            Server region
+          </span>
+          <button type="button" className="chip compact" onClick={copyShareLink}>
+            {copied ? 'Link copied' : 'Copy share link'}
+          </button>
+        </div>
         <div className="chip-row wrap" role="group" aria-labelledby="banner-region-label">
           {BANNER_REGION_OPTIONS.map((option) => (
             <button
