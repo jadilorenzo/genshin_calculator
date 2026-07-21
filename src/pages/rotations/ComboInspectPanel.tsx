@@ -1,12 +1,15 @@
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
   type DragEvent,
+  type PointerEvent as ReactPointerEvent,
   type SetStateAction,
 } from 'react'
 import { getCharacter } from './characters'
 import {
+  NORMALS_ACTION_ID,
   comboActionFamily,
   createComboStep,
   listPaletteActions,
@@ -25,6 +28,7 @@ const DRAG_PREFIX = 'fmr-combo:'
 
 const DEFAULT_PX_PER_SEC = 56
 const MIN_BLOCK_PX = 28
+const MIN_GAP_HANDLE_PX = 10
 
 type DragPayload =
   | { type: 'palette'; actionId: string; stateId: string }
@@ -66,6 +70,13 @@ export function ComboInspectPanel({
   const trackRef = useRef<HTMLDivElement | null>(null)
   const dragMovedRef = useRef(false)
   const dragKindRef = useRef<'palette' | 'step' | null>(null)
+  const gapDragRef = useRef<{
+    stepId: string
+    originX: number
+    originGap: number
+    scale: number
+  } | null>(null)
+  const setGapAfterRef = useRef<(id: string, gap: number) => void>(() => {})
 
   const steps = placement.comboSteps ?? []
   const packed = useMemo(
@@ -76,6 +87,12 @@ export function ComboInspectPanel({
   const paletteActions = useMemo(
     () => listPaletteActions(placement.characterId, paletteStateId),
     [placement.characterId, paletteStateId],
+  )
+  const normalsActions = paletteActions.filter(
+    (a) => a.id === NORMALS_ACTION_ID,
+  )
+  const abilityActions = paletteActions.filter(
+    (a) => a.id !== NORMALS_ACTION_ID,
   )
 
   const states = timings?.states ?? []
@@ -132,23 +149,29 @@ export function ComboInspectPanel({
   }
 
   const setGapAfter = (id: string, gapAfter: number) => {
+    const rounded =
+      gapAfter > 0.02 ? Math.min(10, Math.round(gapAfter * 100) / 100) : 0
     updateSteps(
       steps.map((s) =>
         s.id === id
           ? {
               ...s,
-              gapAfter: gapAfter > 0 ? Math.min(10, gapAfter) : undefined,
+              gapAfter: rounded > 0 ? rounded : undefined,
             }
           : s,
       ),
     )
   }
+  setGapAfterRef.current = setGapAfter
 
   const setStepDuration = (id: string, seconds: number | null) => {
     updateSteps(
       steps.map((s) => {
         if (s.id !== id) return s
         if (seconds == null || !(seconds > 0)) {
+          if (s.actionId === NORMALS_ACTION_ID) {
+            return { ...s, durationSeconds: undefined }
+          }
           const { durationSeconds: _drop, ...rest } = s
           return rest
         }
@@ -160,6 +183,25 @@ export function ComboInspectPanel({
     )
   }
 
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const drag = gapDragRef.current
+      if (!drag) return
+      const dx = e.clientX - drag.originX
+      const nextGap = Math.max(0, drag.originGap + dx / drag.scale)
+      setGapAfterRef.current(drag.stepId, nextGap)
+    }
+    const onUp = () => {
+      gapDragRef.current = null
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [])
+
   const clearSteps = () => updateSteps([])
 
   const seedFromCasts = () => {
@@ -167,28 +209,14 @@ export function ComboInspectPanel({
       character?.kit.elementalSkill ?? null,
     )
     const seeded = seedComboStepsFromCasts(placement.characterId, {
-      skill: placement.castSkill ?? true,
-      burst: placement.castBurst ?? true,
+      skill: placement.castSkill,
+      burst: placement.castBurst,
       castOrder: placement.castOrder,
       skillVariant: placement.skillVariant,
       skillCasts: placement.skillCasts,
       kitHoldSeconds: kitHold,
     })
     updateSteps(seeded)
-  }
-
-  /** Insert index from pointer X across the track (0..steps.length). */
-  const indexFromClientX = (clientX: number): number => {
-    const track = trackRef.current
-    if (!track || steps.length === 0) return steps.length
-    const wraps = track.querySelectorAll<HTMLElement>('[data-step-index]')
-    for (const el of wraps) {
-      const rect = el.getBoundingClientRect()
-      const mid = rect.left + rect.width / 2
-      const index = Number(el.dataset.stepIndex)
-      if (clientX < mid) return index
-    }
-    return steps.length
   }
 
   const onPaletteDragStart = (e: DragEvent, actionId: string) => {
@@ -227,6 +255,19 @@ export function ComboInspectPanel({
     insertActionAt(index, payload.actionId, payload.stateId || paletteStateId)
   }
 
+  const indexFromClientX = (clientX: number) => {
+    const track = trackRef.current
+    if (!track || packed.segments.length === 0) return steps.length
+    const wraps = track.querySelectorAll<HTMLElement>('[data-step-index]')
+    for (const el of wraps) {
+      const rect = el.getBoundingClientRect()
+      const mid = rect.left + rect.width / 2
+      const index = Number(el.dataset.stepIndex)
+      if (clientX < mid) return index
+    }
+    return steps.length
+  }
+
   const onTrackDragOver = (e: DragEvent) => {
     e.preventDefault()
     e.dataTransfer.dropEffect =
@@ -244,6 +285,22 @@ export function ComboInspectPanel({
     setDropIndex(null)
   }
 
+  const beginGapDrag = (
+    e: ReactPointerEvent,
+    stepId: string,
+    originGap: number,
+    scale: number,
+  ) => {
+    e.preventDefault()
+    e.stopPropagation()
+    gapDragRef.current = {
+      stepId,
+      originX: e.clientX,
+      originGap,
+      scale,
+    }
+  }
+
   if (!character) return null
 
   const scale =
@@ -254,6 +311,58 @@ export function ComboInspectPanel({
         )
       : DEFAULT_PX_PER_SEC
 
+  const renderPaletteChip = (
+    action: (typeof paletteActions)[number],
+    opts?: { emphasize?: boolean },
+  ) => {
+    const family = comboActionFamily(action.kind || action.id)
+    const secs =
+      action.seconds ??
+      (action.frames != null ? action.frames / 60 : null)
+    return (
+      <button
+        key={`${paletteStateId}-${action.id}`}
+        type="button"
+        className={joinClassNames(
+          'combo-inspect-chip',
+          `kind-${family}`,
+          opts?.emphasize && 'emphasize',
+        )}
+        draggable
+        onDragStart={(e) => onPaletteDragStart(e, action.id)}
+        onDragEnd={() => {
+          dragKindRef.current = null
+          window.setTimeout(() => {
+            dragMovedRef.current = false
+          }, 0)
+        }}
+        onClick={() => {
+          if (dragMovedRef.current) {
+            dragMovedRef.current = false
+            return
+          }
+          appendAction(action.id)
+        }}
+        title={
+          action.id === NORMALS_ACTION_ID
+            ? 'General normal-attack filler — edit duration in the sequence'
+            : secs != null
+              ? `${action.label} · ${secs.toFixed(2)}s — click or drag`
+              : `${action.label} · untimed — click or drag`
+        }
+      >
+        <span>{action.label}</span>
+        <span className="combo-inspect-chip-secs">
+          {action.id === NORMALS_ACTION_ID
+            ? 'edit'
+            : secs != null
+              ? `${secs.toFixed(2)}s`
+              : '—'}
+        </span>
+      </button>
+    )
+  }
+
   return (
     <section
       className="combo-inspect"
@@ -263,8 +372,8 @@ export function ComboInspectPanel({
         <div className="combo-inspect-titles">
           <h2 className="rotation-section-title">Inspect · {character.name}</h2>
           <p className="field-note">
-            Click or drag actions into the sequence. Drop anywhere on the lane
-            to append or insert.
+            Drag actions into the sequence. Drag the gap handles between steps
+            to space them. Normals are a filler block — edit their duration.
           </p>
         </div>
         <div className="combo-inspect-meta">
@@ -314,50 +423,31 @@ export function ComboInspectPanel({
         </div>
       ) : null}
 
-      <div className="combo-inspect-palette" aria-label="Available actions">
-        {paletteActions.length === 0 ? (
-          <p className="field-note">No timed actions for this state yet.</p>
-        ) : (
-          paletteActions.map((action) => {
-            const family = comboActionFamily(action.kind || action.id)
-            const secs =
-              action.seconds ??
-              (action.frames != null ? action.frames / 60 : null)
-            return (
-              <button
-                key={`${paletteStateId}-${action.id}`}
-                type="button"
-                className={`combo-inspect-chip kind-${family}`}
-                draggable
-                onDragStart={(e) => onPaletteDragStart(e, action.id)}
-                onDragEnd={() => {
-                  dragKindRef.current = null
-                  // Allow the next click; suppress only the ghost click after drag.
-                  window.setTimeout(() => {
-                    dragMovedRef.current = false
-                  }, 0)
-                }}
-                onClick={() => {
-                  if (dragMovedRef.current) {
-                    dragMovedRef.current = false
-                    return
-                  }
-                  appendAction(action.id)
-                }}
-                title={
-                  secs != null
-                    ? `${action.label} · ${secs.toFixed(2)}s — click or drag`
-                    : `${action.label} · untimed — click or drag`
-                }
-              >
-                <span>{action.label}</span>
-                <span className="combo-inspect-chip-secs">
-                  {secs != null ? `${secs.toFixed(2)}s` : '—'}
-                </span>
-              </button>
-            )
-          })
-        )}
+      <div className="combo-inspect-palette-stack">
+        <div
+          className="combo-inspect-palette-section"
+          aria-label="Normals filler"
+        >
+          <span className="combo-inspect-palette-label">Normals</span>
+          <div className="combo-inspect-palette">
+            {normalsActions.map((action) =>
+              renderPaletteChip(action, { emphasize: true }),
+            )}
+          </div>
+        </div>
+        <div
+          className="combo-inspect-palette-section"
+          aria-label="Abilities"
+        >
+          <span className="combo-inspect-palette-label">Abilities</span>
+          <div className="combo-inspect-palette">
+            {abilityActions.length === 0 ? (
+              <p className="field-note">No timed abilities for this state yet.</p>
+            ) : (
+              abilityActions.map((action) => renderPaletteChip(action))
+            )}
+          </div>
+        </div>
       </div>
 
       <div
@@ -380,10 +470,13 @@ export function ComboInspectPanel({
           <div className="combo-inspect-track" ref={trackRef}>
             {packed.segments.map((seg, index) => {
               const width = Math.max(seg.duration * scale, MIN_BLOCK_PX)
-              const gapWidth =
-                seg.gapAfter > 0 ? Math.max(seg.gapAfter * scale, 12) : 0
+              const gapPx = Math.max(
+                MIN_GAP_HANDLE_PX,
+                (seg.gapAfter || 0) * scale,
+              )
               const family = comboActionFamily(seg.kind)
               const showInsertBefore = dropIndex === index
+              const isNormals = seg.actionId === NORMALS_ACTION_ID
               return (
                 <div
                   key={seg.stepId}
@@ -402,6 +495,7 @@ export function ComboInspectPanel({
                       'combo-inspect-step',
                       `kind-${family}`,
                       seg.incomplete && 'incomplete',
+                      isNormals && 'normals',
                     )}
                     style={{ width }}
                     draggable
@@ -420,7 +514,7 @@ export function ComboInspectPanel({
                     <label
                       className={joinClassNames(
                         'combo-inspect-step-time',
-                        seg.durationOverridden && 'overridden',
+                        (seg.durationOverridden || isNormals) && 'overridden',
                       )}
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
@@ -435,9 +529,11 @@ export function ComboInspectPanel({
                         step={0.05}
                         value={seg.duration}
                         title={
-                          seg.durationOverridden
-                            ? 'Custom duration (seconds) — double-click to reset'
-                            : 'Action duration (seconds)'
+                          isNormals
+                            ? 'Normals filler duration (seconds)'
+                            : seg.durationOverridden
+                              ? 'Custom duration — double-click to reset'
+                              : 'Action duration (seconds)'
                         }
                         onChange={(e) => {
                           const raw = Number(e.target.value)
@@ -446,7 +542,7 @@ export function ComboInspectPanel({
                         }}
                         onDoubleClick={(e) => {
                           e.stopPropagation()
-                          setStepDuration(seg.stepId, null)
+                          if (!isNormals) setStepDuration(seg.stepId, null)
                         }}
                       />
                       <span aria-hidden>s</span>
@@ -463,27 +559,33 @@ export function ComboInspectPanel({
                       ×
                     </button>
                   </div>
-                  <label className="combo-inspect-gap">
-                    <span className="visually-hidden">
-                      Gap after {seg.label}
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={10}
-                      step={0.05}
-                      value={seg.gapAfter || 0}
-                      title="Idle gap after this action (seconds)"
-                      style={
-                        gapWidth > 0
-                          ? { width: Math.max(gapWidth, 48) }
-                          : undefined
-                      }
-                      onChange={(e) =>
-                        setGapAfter(seg.stepId, Number(e.target.value) || 0)
-                      }
-                    />
-                  </label>
+                  <button
+                    type="button"
+                    className={joinClassNames(
+                      'combo-inspect-gap-handle',
+                      (seg.gapAfter || 0) > 0.02 && 'active',
+                    )}
+                    style={{ width: gapPx }}
+                    title={
+                      (seg.gapAfter || 0) > 0.02
+                        ? `Gap ${seg.gapAfter.toFixed(2)}s — drag to resize`
+                        : 'Drag to add idle gap'
+                    }
+                    aria-label={`Idle gap after ${seg.label}`}
+                    onPointerDown={(e) =>
+                      beginGapDrag(e, seg.stepId, seg.gapAfter || 0, scale)
+                    }
+                    onDoubleClick={(e) => {
+                      e.stopPropagation()
+                      setGapAfter(seg.stepId, 0)
+                    }}
+                  >
+                    {(seg.gapAfter || 0) > 0.15 ? (
+                      <span className="combo-inspect-gap-label">
+                        {seg.gapAfter.toFixed(2)}s
+                      </span>
+                    ) : null}
+                  </button>
                 </div>
               )
             })}

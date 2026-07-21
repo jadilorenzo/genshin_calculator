@@ -17,6 +17,9 @@ import type { CastOrder, ComboStep, TimelinePlacement } from './types'
 
 const FALLBACK_SECONDS = 0.5
 const FPS = 60
+/** Synthetic filler block for general NA time (duration meant to be edited). */
+export const NORMALS_ACTION_ID = 'normals'
+export const NORMALS_DEFAULT_SECONDS = 1.5
 
 export type PackedComboSegment = {
   stepId: string
@@ -43,12 +46,21 @@ export function createComboStep(
   actionId: string,
   stateId = 'default',
   gapAfter = 0,
+  durationSeconds?: number,
 ): ComboStep {
+  const isNormals = actionId === NORMALS_ACTION_ID
+  const duration =
+    durationSeconds != null && durationSeconds > 0
+      ? durationSeconds
+      : isNormals
+        ? NORMALS_DEFAULT_SECONDS
+        : undefined
   return {
     id: createStepId(),
     actionId,
     stateId,
     gapAfter: gapAfter > 0 ? gapAfter : undefined,
+    durationSeconds: duration,
   }
 }
 
@@ -88,7 +100,14 @@ export function sanitizeComboSteps(raw: unknown): ComboStep[] {
 /** Palette / strip family for coloring. */
 export function comboActionFamily(kindOrId: string): string {
   const x = kindOrId.toLowerCase()
-  if (/^na\d/.test(x) || x.startsWith('na_') || x === 'attack') return 'na'
+  if (
+    x === NORMALS_ACTION_ID ||
+    /^na\d/.test(x) ||
+    x.startsWith('na_') ||
+    x === 'attack'
+  ) {
+    return 'na'
+  }
   if (x === 'ca' || x.startsWith('ca_') || x.startsWith('aim') || x === 'charge')
     return 'ca'
   if (x === 'skill' || x.startsWith('skill')) return 'skill'
@@ -101,6 +120,7 @@ export function comboActionFamily(kindOrId: string): string {
 export function shortActionLabel(label: string, kindOrId: string): string {
   const id = kindOrId.toLowerCase()
   const fam = comboActionFamily(kindOrId)
+  if (id === NORMALS_ACTION_ID || /normals/i.test(label)) return 'NA'
   if (fam === 'ca') {
     if (id.includes('phantasm')) return 'CA·P'
     if (id.includes('aim')) return 'Aim'
@@ -125,6 +145,11 @@ export function shortActionLabel(label: string, kindOrId: string): string {
   return label.slice(0, 4)
 }
 
+function isIndividualNormal(action: AnimationAction): boolean {
+  const id = action.id.toLowerCase()
+  return /^na\d/.test(id) || id.startsWith('na_')
+}
+
 function isPaletteAction(action: AnimationAction): boolean {
   const id = action.id.toLowerCase()
   const kind = action.kind.toLowerCase()
@@ -143,9 +168,9 @@ function isPaletteAction(action: AnimationAction): boolean {
   ) {
     return false
   }
+  // Individual NAs are replaced by the synthetic Normals block in the palette.
+  if (isIndividualNormal(action)) return false
   return (
-    /^na\d/.test(id) ||
-    id.startsWith('na_') ||
     id === 'ca' ||
     id.startsWith('ca_') ||
     id.startsWith('aim') ||
@@ -158,30 +183,46 @@ function isPaletteAction(action: AnimationAction): boolean {
   )
 }
 
-/** Actions available in the inspect palette for a state. */
+/** Synthetic Normals filler for the inspect palette. */
+export function normalsPaletteAction(): AnimationAction {
+  return {
+    id: NORMALS_ACTION_ID,
+    label: 'Normals',
+    kind: 'na',
+    frames: Math.round(NORMALS_DEFAULT_SECONDS * FPS),
+    seconds: NORMALS_DEFAULT_SECONDS,
+    hitmarks: [],
+    cancels: {},
+    source: 'estimated',
+    notes: 'General normal-attack filler — edit duration in the sequence',
+  }
+}
+
+/** Actions available in the inspect palette for a state (excludes individual NAs). */
 export function listPaletteActions(
   characterId: string,
   stateId = 'default',
 ): AnimationAction[] {
   const character = getCharacterAnimationTimings(characterId)
-  if (!character) return []
+  if (!character) return [normalsPaletteAction()]
   const state =
     character.states.find((s) => s.id === stateId) ?? character.states[0]
-  if (!state) return []
-  return state.actions.filter(isPaletteAction).sort((a, b) => {
+  if (!state) return [normalsPaletteAction()]
+  const actions = state.actions.filter(isPaletteAction).sort((a, b) => {
     const fa = comboActionFamily(a.kind || a.id)
     const fb = comboActionFamily(b.kind || b.id)
-    const order = ['na', 'ca', 'skill', 'burst', 'dash', 'other']
+    const order = ['ca', 'skill', 'burst', 'dash', 'other']
     const d = order.indexOf(fa) - order.indexOf(fb)
     if (d !== 0) return d
     return a.label.localeCompare(b.label)
   })
+  return [normalsPaletteAction(), ...actions]
 }
 
 function cancelKeyForNext(next: AnimationAction | null): keyof AnimationCancelMap | null {
   if (!next) return null
   const fam = comboActionFamily(next.kind || next.id)
-  if (fam === 'na') return 'attack'
+  if (fam === 'na' || next.id === NORMALS_ACTION_ID) return 'attack'
   if (fam === 'ca') return 'charge'
   if (fam === 'skill') return 'skill'
   if (fam === 'burst') return 'burst'
@@ -231,31 +272,48 @@ export function packComboSteps(
   for (let i = 0; i < steps.length; i += 1) {
     const step = steps[i]
     const stateId = step.stateId || 'default'
-    const action = getAnimationAction(characterId, step.actionId, stateId)
+    const action =
+      step.actionId === NORMALS_ACTION_ID
+        ? null
+        : getAnimationAction(characterId, step.actionId, stateId)
     const nextStep = steps[i + 1]
-    const nextAction = nextStep
-      ? getAnimationAction(
-          characterId,
-          nextStep.actionId,
-          nextStep.stateId || 'default',
-        )
-      : null
-    const { seconds, incomplete } = resolveStepDuration(action, nextAction)
+    const nextAction =
+      nextStep && nextStep.actionId !== NORMALS_ACTION_ID
+        ? getAnimationAction(
+            characterId,
+            nextStep.actionId,
+            nextStep.stateId || 'default',
+          )
+        : null
+    const isNormals = step.actionId === NORMALS_ACTION_ID
+    const { seconds, incomplete } = isNormals
+      ? {
+          seconds: step.durationSeconds ?? NORMALS_DEFAULT_SECONDS,
+          incomplete: false,
+        }
+      : resolveStepDuration(action, nextAction)
     const overridden =
       typeof step.durationSeconds === 'number' && step.durationSeconds > 0
     const duration = round(
-      Math.max(0.05, overridden ? step.durationSeconds! : seconds),
+      Math.max(
+        0.05,
+        overridden ? step.durationSeconds! : seconds,
+      ),
     )
     segments.push({
       stepId: step.id,
       actionId: step.actionId,
       stateId,
-      label: action?.label ?? step.actionId,
-      kind: action?.kind ?? comboActionFamily(step.actionId),
+      label: isNormals
+        ? 'Normals'
+        : (action?.label ?? step.actionId),
+      kind: isNormals
+        ? 'na'
+        : (action?.kind ?? comboActionFamily(step.actionId)),
       start: cursor,
       duration,
-      durationOverridden: overridden,
-      incomplete: overridden ? false : incomplete,
+      durationOverridden: overridden || isNormals,
+      incomplete: overridden || isNormals ? false : incomplete,
       gapAfter: 0,
     })
     cursor = round(cursor + duration)

@@ -1019,6 +1019,24 @@
   margin: 0;
 }
 
+.combo-inspect-palette-stack {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.combo-inspect-palette-section {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.combo-inspect-palette-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .combo-inspect-palette {
   display: flex;
   flex-wrap: wrap;
@@ -1038,6 +1056,11 @@
   font-weight: 600;
   cursor: grab;
   touch-action: none;
+
+  &.emphasize {
+    border-color: color-mix(in srgb, var(--gold) 45%, var(--line));
+    background: color-mix(in srgb, var(--gold-soft) 55%, var(--chip-surface));
+  }
 }
 
 .combo-inspect-chip:active {
@@ -1225,6 +1248,10 @@
   }
 }
 
+.combo-inspect-step.normals {
+  border-style: dashed;
+}
+
 .combo-inspect-step-remove {
   position: absolute;
   top: 0.1rem;
@@ -1246,31 +1273,40 @@
   background: color-mix(in srgb, var(--panel) 70%, transparent);
 }
 
-.combo-inspect-gap {
-  display: flex;
-  align-items: center;
-  margin: 0 0.1rem;
-}
-
-.combo-inspect-gap input {
-  width: 2.75rem;
-  min-width: 2.75rem;
-  padding: 0.2rem 0.25rem;
-  border: 1px solid transparent;
+.combo-inspect-gap-handle {
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  min-width: 0.55rem;
+  margin: 0 0.05rem;
+  padding: 0;
+  border: none;
   border-radius: 2px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.65rem;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
+  background: color-mix(in srgb, var(--line) 55%, transparent);
+  cursor: ew-resize;
+  touch-action: none;
+  transition: background-color 120ms ease;
+
+  &:hover,
+  &.active {
+    background: color-mix(in srgb, var(--gold) 45%, var(--line));
+  }
+
+  &.active {
+    background: color-mix(in srgb, var(--gold-soft) 70%, var(--row-surface));
+    border: 1px dashed color-mix(in srgb, var(--gold) 50%, transparent);
+  }
 }
 
-.combo-inspect-gap input:hover,
-.combo-inspect-gap input:focus {
-  border-color: var(--line);
-  background: var(--chip-surface);
-  color: var(--mist);
-  outline: none;
+.combo-inspect-gap-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.58rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fog);
+  pointer-events: none;
 }
 
 .rotation-roster {
