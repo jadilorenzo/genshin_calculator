@@ -1,6 +1,10 @@
 import { useMemo, useState, type DragEvent } from 'react'
 import { CHARACTER_KITS, ELEMENTS } from './characters'
 import { CharacterIcon } from './CharacterIcon'
+import {
+  CharacterInfoButton,
+  CharacterInfoPopup,
+} from './CharacterInfoPopup'
 import type { CharacterData } from './types'
 
 const DRAG_TYPE = 'application/x-fmr-character'
@@ -24,6 +28,7 @@ interface CharacterPaletteProps {
 export function CharacterPalette({ selectedId, onSelect }: CharacterPaletteProps) {
   const [query, setQuery] = useState('')
   const [element, setElement] = useState<string>('all')
+  const [infoCharacter, setInfoCharacter] = useState<CharacterData | null>(null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -78,37 +83,52 @@ export function CharacterPalette({ selectedId, onSelect }: CharacterPaletteProps
       <ul className="rotation-char-list">
         {filtered.map((c) => (
           <li key={c.id}>
-            <button
-              type="button"
+            <div
               className={
                 selectedId === c.id
                   ? 'rotation-char-card selected'
                   : 'rotation-char-card'
               }
-              draggable
-              onDragStart={(e) => setCharacterDrag(e, c.id)}
-              onClick={() => onSelect(c)}
             >
-              {c.icon || c.iconFile ? (
-                <CharacterIcon character={c} className="rotation-char-icon" />
-              ) : (
-                <span className="rotation-char-icon fallback" aria-hidden>
-                  {c.name.slice(0, 1)}
+              <button
+                type="button"
+                className="rotation-char-card-main"
+                draggable
+                onDragStart={(e) => setCharacterDrag(e, c.id)}
+                onClick={() => onSelect(c)}
+              >
+                {c.icon || c.iconFile ? (
+                  <CharacterIcon character={c} className="rotation-char-icon" />
+                ) : (
+                  <span className="rotation-char-icon fallback" aria-hidden>
+                    {c.name.slice(0, 1)}
+                  </span>
+                )}
+                <span className="rotation-char-meta">
+                  <span className="rotation-char-name">{c.name}</span>
+                  <span className="rotation-char-sub">
+                    {c.element} · {c.weapon}
+                  </span>
                 </span>
-              )}
-              <span className="rotation-char-meta">
-                <span className="rotation-char-name">{c.name}</span>
-                <span className="rotation-char-sub">
-                  {c.element} · {c.weapon}
+                <span
+                  className={`rotation-rarity r${c.rarity}`}
+                  aria-label={`${c.rarity} star`}
+                >
+                  {c.rarity}★
                 </span>
-              </span>
-              <span className={`rotation-rarity r${c.rarity}`} aria-label={`${c.rarity} star`}>
-                {c.rarity}★
-              </span>
-            </button>
+              </button>
+              <CharacterInfoButton character={c} onOpen={setInfoCharacter} />
+            </div>
           </li>
         ))}
       </ul>
+
+      {infoCharacter ? (
+        <CharacterInfoPopup
+          character={infoCharacter}
+          onClose={() => setInfoCharacter(null)}
+        />
+      ) : null}
     </aside>
   )
 }

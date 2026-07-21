@@ -51,6 +51,16 @@ export function SettingsIcon(props: IconProps) {
   )
 }
 
+export function InfoIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 10.5v6" />
+      <circle cx="12" cy="7.5" r="0.75" fill="currentColor" stroke="none" />
+    </Icon>
+  )
+}
+
 /** Filled crescent for brand/logo — angled ~45°, smaller cutout */
 export function BrandMoonLogo({ className, title, ...props }: IconProps) {
   return (

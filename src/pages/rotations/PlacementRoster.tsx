@@ -26,6 +26,7 @@ import {
 } from './fieldTimings'
 import {
   MIN_ON_FIELD,
+  reorderOnField,
   setOnFieldDuration,
   snapTime,
 } from './timelineContinuous'
@@ -129,6 +130,16 @@ export function PlacementRoster({
     onChange(setOnFieldDuration(placements, p.id, duration, switchBuffer))
   }
 
+  function movePlacement(fromId: string, toId: string) {
+    if (fromId === toId) return
+    const order = sorted.map((p) => p.id)
+    const from = order.indexOf(fromId)
+    const to = order.indexOf(toId)
+    if (from === -1 || to === -1) return
+    onChange(reorderOnField(placements, fromId, to, switchBuffer))
+    onSelect(fromId)
+  }
+
   return (
     <section className="rotation-roster" aria-label="Placed characters">
       <h2 className="rotation-section-title">On timeline</h2>
@@ -147,6 +158,21 @@ export function PlacementRoster({
                     : 'rotation-roster-pill'
                 }
                 data-element={char.element}
+                draggable
+                title="Drag to reorder"
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/placement-id', p.id)
+                  e.dataTransfer.effectAllowed = 'move'
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  const fromId = e.dataTransfer.getData('text/placement-id')
+                  if (fromId) movePlacement(fromId, p.id)
+                }}
                 onClick={() => onSelect(p.id)}
               >
                 <CharacterIcon character={char} className="rotation-roster-pill-icon" />

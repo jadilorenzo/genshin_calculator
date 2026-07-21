@@ -297,6 +297,76 @@ export function removeAndCloseGaps(
   )
 }
 
+/**
+ * Re-lay out placements in the given id order (start times rewritten).
+ * Missing ids are appended; unknown ids are ignored.
+ */
+export function reorderByIds(
+  placements: TimelinePlacement[],
+  orderedIds: string[],
+  switchBuffer = DEFAULT_SWITCH_BUFFER,
+): TimelinePlacement[] {
+  const byId = new Map(placements.map((p) => [p.id, p]))
+  const ordered: TimelinePlacement[] = []
+  const seen = new Set<string>()
+  for (const id of orderedIds) {
+    const p = byId.get(id)
+    if (!p || seen.has(id)) continue
+    ordered.push(p)
+    seen.add(id)
+  }
+  for (const p of placements) {
+    if (!seen.has(p.id)) ordered.push(p)
+  }
+  return normalizeOnField(
+    ordered.map((p, i) => ({ ...p, start: i })),
+    switchBuffer,
+  )
+}
+
+/** Move `id` to `toIndex` (0 = first) and re-normalize switch buffers. */
+export function reorderOnField(
+  placements: TimelinePlacement[],
+  id: string,
+  toIndex: number,
+  switchBuffer = DEFAULT_SWITCH_BUFFER,
+): TimelinePlacement[] {
+  const sorted = normalizeOnField(placements, switchBuffer)
+  const from = sorted.findIndex((p) => p.id === id)
+  if (from === -1) return sorted
+  const without = sorted.filter((p) => p.id !== id)
+  const insertAt = clamp(toIndex, 0, without.length)
+  const ids = without.map((p) => p.id)
+  ids.splice(insertAt, 0, id)
+  return reorderByIds(placements, ids, switchBuffer)
+}
+
+/**
+ * Stable insert index while dragging `id`: midpoints from a layout with
+ * that placement removed (avoids oscillation during live reorder).
+ */
+export function reorderSlotMids(
+  placements: TimelinePlacement[],
+  draggingId: string,
+  switchBuffer = DEFAULT_SWITCH_BUFFER,
+): { orderWithout: string[]; mids: number[] } {
+  const without = normalizeOnField(
+    placements.filter((p) => p.id !== draggingId),
+    switchBuffer,
+  )
+  return {
+    orderWithout: without.map((p) => p.id),
+    mids: without.map((p) => p.start + p.duration / 2),
+  }
+}
+
+export function insertIndexFromMids(mids: number[], atTime: number): number {
+  for (let i = 0; i < mids.length; i++) {
+    if (atTime < mids[i]) return i
+  }
+  return mids.length
+}
+
 export function setOnFieldDuration(
   placements: TimelinePlacement[],
   id: string,

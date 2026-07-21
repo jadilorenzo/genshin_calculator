@@ -12,11 +12,20 @@ import PullingDayPage from './pages/pulls/PullingDayPage.tsx'
 import './App.css'
 
 const RotationsPage = lazy(() => import('./pages/RotationsPage.tsx'))
+const CharactersPage = lazy(() => import('./pages/characters/CharactersPage.tsx'))
 
 function RotationsRoute() {
   return (
     <Suspense fallback={<p className="field-note">Loading rotations…</p>}>
       <RotationsPage />
+    </Suspense>
+  )
+}
+
+function CharactersRoute() {
+  return (
+    <Suspense fallback={<p className="field-note">Loading characters…</p>}>
+      <CharactersPage />
     </Suspense>
   )
 }
@@ -28,6 +37,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/rotations" replace />} />
           <Route path="rotations" element={<RotationsRoute />} />
+          <Route path="characters" element={<CharactersRoute />} />
           <Route path="builds" element={<BuildsPage />} />
           <Route path="artifacts" element={<ArtifactLayout />}>
             <Route index element={<Navigate to="compare" replace />} />

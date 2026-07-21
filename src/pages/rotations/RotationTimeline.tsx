@@ -23,8 +23,11 @@ import {
   MIN_ON_FIELD,
   adjustHandoffAfter,
   adjustHandoffBefore,
+  insertIndexFromMids,
   insertOnField,
   removeAndCloseGaps,
+  reorderByIds,
+  reorderSlotMids,
   rotationCycleLength,
   snapToNearestBoundary,
   switchGaps,
@@ -72,13 +75,19 @@ export function RotationTimeline({
   const pxPerSecRef = useRef(DEFAULT_PX_PER_SEC)
   const [pxPerSec, setPxPerSec] = useState(DEFAULT_PX_PER_SEC)
   const [dragOver, setDragOver] = useState(false)
+  const [movingId, setMovingId] = useState<string | null>(null)
   const dragRef = useRef<{
     id: string
-    mode: 'resize-right' | 'resize-left'
+    mode: 'resize-right' | 'resize-left' | 'move'
     originX: number
     originStart: number
     originDuration: number
+    moved: boolean
+    lastIndex: number
+    orderWithout: string[]
+    mids: number[]
   } | null>(null)
+  const suppressClickRef = useRef(false)
 
   useEffect(() => {
     placementsRef.current = placements
@@ -295,6 +304,20 @@ export function RotationTimeline({
     if (!drag) return
     const dx = (e.clientX - drag.originX) / pxPerSecRef.current
 
+    if (drag.mode === 'move') {
+      if (Math.abs(e.clientX - drag.originX) > 4) drag.moved = true
+      const t = timeFromClientX(e.clientX)
+      const insertAt = insertIndexFromMids(drag.mids, t)
+      if (insertAt === drag.lastIndex) return
+      drag.lastIndex = insertAt
+      const ids = [...drag.orderWithout]
+      ids.splice(insertAt, 0, drag.id)
+      onChange(reorderByIds(placementsRef.current, ids, switchBufferRef.current))
+      return
+    }
+
+    if (Math.abs(dx) > 0.02) drag.moved = true
+
     if (drag.mode === 'resize-right') {
       onChange(
         adjustHandoffAfter(
@@ -318,7 +341,10 @@ export function RotationTimeline({
   }
 
   function onPointerUp() {
+    const drag = dragRef.current
+    if (drag?.moved) suppressClickRef.current = true
     dragRef.current = null
+    setMovingId(null)
     window.removeEventListener('pointermove', onPointerMove)
     window.removeEventListener('pointerup', onPointerUp)
   }
@@ -339,7 +365,41 @@ export function RotationTimeline({
       originX: e.clientX,
       originStart: placement.start,
       originDuration: placement.duration,
+      moved: false,
+      lastIndex: -1,
+      orderWithout: [],
+      mids: [],
     }
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+  }
+
+  function beginMove(e: ReactPointerEvent, id: string) {
+    if (e.button !== 0) return
+    e.preventDefault()
+    e.stopPropagation()
+    const placement = placementsRef.current.find((p) => p.id === id)
+    if (!placement) return
+    onSelectPlacement(id)
+    const slots = reorderSlotMids(
+      placementsRef.current,
+      id,
+      switchBufferRef.current,
+    )
+    const sorted = [...placementsRef.current].sort((a, b) => a.start - b.start)
+    const from = sorted.findIndex((p) => p.id === id)
+    dragRef.current = {
+      id,
+      mode: 'move',
+      originX: e.clientX,
+      originStart: placement.start,
+      originDuration: placement.duration,
+      moved: false,
+      lastIndex: from,
+      orderWithout: slots.orderWithout,
+      mids: slots.mids,
+    }
+    setMovingId(id)
     window.addEventListener('pointermove', onPointerMove)
     window.addEventListener('pointerup', onPointerUp)
   }
@@ -396,9 +456,13 @@ export function RotationTimeline({
           className={
             loop
               ? 'rotation-block loop'
-              : selectedId === p.id
-                ? 'rotation-block selected'
-                : 'rotation-block'
+              : [
+                  'rotation-block',
+                  selectedId === p.id ? 'selected' : '',
+                  movingId === p.id ? 'moving' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')
           }
           data-element={char.element}
           aria-hidden={loop || undefined}
@@ -408,6 +472,10 @@ export function RotationTimeline({
               ? undefined
               : (e) => {
                   e.stopPropagation()
+                  if (suppressClickRef.current) {
+                    suppressClickRef.current = false
+                    return
+                  }
                   onSelectPlacement(p.id)
                 }
           }
@@ -420,7 +488,13 @@ export function RotationTimeline({
               onPointerDown={(e) => beginResize(e, p.id, 'resize-left')}
             />
           ) : null}
-          <div className="rotation-block-body">
+          <div
+            className="rotation-block-body"
+            onPointerDown={
+              loop ? undefined : (e) => beginMove(e, p.id)
+            }
+            title={loop ? undefined : 'Drag to reorder'}
+          >
             {char.icon || char.iconFile ? (
               <CharacterIcon character={char} className="rotation-block-icon" />
             ) : (

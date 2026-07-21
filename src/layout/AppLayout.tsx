@@ -7,6 +7,7 @@ const links = [
   { to: '/rotations', label: 'Rotations' },
   { to: '/builds', label: 'Builds' },
   { to: '/artifacts', label: 'Artifacts' },
+  { to: '/characters', label: 'Characters' },
   { to: '/pulls', label: 'Pulls' },
 ]
 
