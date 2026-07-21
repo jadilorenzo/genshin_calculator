@@ -242,18 +242,11 @@ export default function BuildsPage() {
 
   return (
     <>
-      <header className="hero">
+      <main className="panel">
         <div className="hero-top">
-          <h1>Build lineup</h1>
+          <h2 className="panel-section-title">Build lineup</h2>
           <ClearPageButton prefix="gc:builds:" />
         </div>
-        <p className="lede">
-          Plan a five-piece set. Parallel farming fills any empty slot, so the full
-          lineup often finishes sooner than each piece alone.
-        </p>
-      </header>
-
-      <main className="panel">
         <section className="controls" aria-label="Build lineup">
           <div className="field">
             <span className="label" id="build-set-label">

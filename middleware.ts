@@ -4,7 +4,7 @@ const BOT_UA =
   /bot|crawl|slurp|spider|facebookexternalhit|facebot|twitterbot|discordbot|slackbot|linkedinbot|whatsapp|telegram|embedly|quora|pinterest|redditbot|vkshare|w3c_validator/i
 
 export const config = {
-  matcher: '/pulls/countdown',
+  matcher: ['/banners/countdown', '/pulls/countdown'],
 }
 
 /** Serve live Open Graph HTML to link scrapers; humans get the SPA. */

@@ -133,7 +133,7 @@ export default function PullLayout() {
     <>
       <header className="hero">
         <div className="hero-top">
-          <h1>Wish planner</h1>
+          <h1>Banners</h1>
           <ClearPageButton prefix="gc:pulls:" />
         </div>
         <p className="lede">
@@ -145,18 +145,18 @@ export default function PullLayout() {
                 ? 'Pulling right now? Log each wish here to watch your pity move on the curve and see featured odds update live — without touching the saved numbers above.'
                 : 'Check your featured 5★ odds from pity and saved fates.'}
         </p>
-        <nav className="sub-tabs" aria-label="Pull tools">
+        <nav className="sub-tabs" aria-label="Banner tools">
+          <NavLink
+            to="odds"
+            className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
+          >
+            5★ Odds
+          </NavLink>
           <NavLink
             to="day"
             className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
           >
             Pulling day
-          </NavLink>
-          <NavLink
-            to="odds"
-            className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
-          >
-            Odds
           </NavLink>
           <NavLink
             to="pace"

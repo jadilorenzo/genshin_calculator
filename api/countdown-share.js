@@ -42,7 +42,7 @@ export async function GET(request) {
     // Keep defaults.
   }
 
-  const canonical = `${SITE_ORIGIN}/pulls/countdown`
+  const canonical = `${SITE_ORIGIN}/banners/countdown`
   const html = `<!doctype html>
 <html lang="en">
 <head>

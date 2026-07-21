@@ -300,6 +300,18 @@
   margin-top: 1rem;
 }
 
+.artifact-inner-tabs {
+  margin-top: 0;
+  margin-bottom: 0.85rem;
+}
+
+.panel-section-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--text);
+}
+
 .sub-tab {
   border: 1px solid var(--line);
   border-radius: 2px;

@@ -226,8 +226,17 @@ export function countdownToTimestamp(
   }
 }
 
+export function getLocalTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
+  }
+}
+
+/** Format a banner instant in the viewer's local timezone. */
 export function formatBannerDateTime(unixSeconds: number): string {
-  return new Date(unixSeconds * 1000).toLocaleString(undefined, {
+  return new Intl.DateTimeFormat(undefined, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -235,7 +244,18 @@ export function formatBannerDateTime(unixSeconds: number): string {
     hour: 'numeric',
     minute: '2-digit',
     timeZoneName: 'short',
-  })
+    timeZone: getLocalTimeZone(),
+  }).format(new Date(unixSeconds * 1000))
+}
+
+/** Clock time only, in the viewer's local timezone. */
+export function formatBannerLocalTime(unixSeconds: number): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+    timeZone: getLocalTimeZone(),
+  }).format(new Date(unixSeconds * 1000))
 }
 
 function phaseCharacters(banners: CalendarBanner[]): BannerFeaturedCharacter[] {

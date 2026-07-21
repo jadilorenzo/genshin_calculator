@@ -181,34 +181,31 @@ export default function ArtifactLayout() {
 
   return (
     <>
-      <header className="hero">
-        <div className="hero-top">
-          <h1>Artifact resin odds</h1>
-          <ClearPageButton prefix="gc:artifacts:" />
-        </div>
-        <p className="lede">
-          {isCompare
-            ? 'How common your piece is per 5★ drop next to everyday farm targets.'
-            : 'Estimated, likely, and near-guaranteed resin to farm your selected piece.'}
-        </p>
-        <nav className="sub-tabs" aria-label="Artifact tools">
-          <NavLink
-            to="compare"
-            className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
-          >
-            Compare
-          </NavLink>
-          <NavLink
-            to="expectations"
-            className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
-          >
-            Resin cost
-          </NavLink>
-        </nav>
-      </header>
+      <nav className="sub-tabs artifact-inner-tabs" aria-label="Single artifact tools">
+        <NavLink
+          to="expectations"
+          className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
+        >
+          Resin cost
+        </NavLink>
+        <NavLink
+          to="compare"
+          className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
+        >
+          Compare
+        </NavLink>
+      </nav>
 
       <main className="panel">
         <ArtifactTargetProvider>
+          <div className="hero-top">
+            <p className="field-note">
+              {isCompare
+                ? 'How common your piece is per 5★ drop next to everyday farm targets.'
+                : 'Estimated, likely, and near-guaranteed resin to farm your selected piece.'}
+            </p>
+            <ClearPageButton prefix="gc:artifacts:" />
+          </div>
           <ArtifactControls />
           <Outlet />
         </ArtifactTargetProvider>

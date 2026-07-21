@@ -6,11 +6,10 @@ import { useTheme } from '../hooks/useTheme.ts'
 import { THEME_LABEL } from '../theme'
 
 const links = [
+  { to: '/banners', label: 'Banners' },
   { to: '/rotations', label: 'Rotations' },
-  { to: '/builds', label: 'Builds' },
   { to: '/artifacts', label: 'Artifacts' },
   { to: '/characters', label: 'Characters' },
-  { to: '/pulls', label: 'Pulls' },
 ]
 
 const GITHUB_URL = 'https://github.com/jadilorenzo/genshin_calculator'

@@ -6,7 +6,8 @@ export function BannerPullingDayNotice() {
   const location = useLocation()
   const { schedule, status } = useBannerSchedule()
 
-  if (location.pathname.includes('/pulls/day')) return null
+  if (location.pathname.includes('/banners/day') || location.pathname.includes('/pulls/day'))
+    return null
   if (status !== 'ready' || !schedule) return null
 
   const kind = pullingDayNoticeKind(schedule)
@@ -35,7 +36,7 @@ export function BannerPullingDayNotice() {
   return (
     <aside className="banner-pulling-day-notice" aria-label="Banner reminder">
       <p>{copy}</p>
-      <NavLink to="/pulls/day" className="chip compact">
+      <NavLink to="/banners/day" className="chip compact">
         Pulling day →
       </NavLink>
     </aside>

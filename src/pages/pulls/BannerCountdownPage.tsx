@@ -8,6 +8,7 @@ import {
   BANNER_REGION_OPTIONS,
   countdownToTimestamp,
   formatBannerDateTime,
+  formatBannerLocalTime,
   isNearBannerDate,
   type CountdownParts,
 } from '../../model/bannerSchedule.ts'
@@ -58,7 +59,9 @@ export default function BannerCountdownPage() {
   }, [schedule, now])
 
   const regionNote = BANNER_REGION_OPTIONS.find((option) => option.id === region)?.note
-  const shareUrl = `${SITE_ORIGIN}/pulls/countdown`
+  const localReset =
+    schedule != null ? formatBannerLocalTime(schedule.nextChangeAt) : null
+  const shareUrl = `${SITE_ORIGIN}/banners/countdown`
 
   async function copyShareLink() {
     try {
@@ -94,7 +97,12 @@ export default function BannerCountdownPage() {
             </button>
           ))}
         </div>
-        {regionNote ? <p className="field-note">{regionNote}</p> : null}
+        {regionNote ? (
+          <p className="field-note">
+            Server reset {regionNote}
+            {localReset ? ` · ${localReset}` : null}
+          </p>
+        ) : null}
       </div>
 
       {status === 'loading' ? (
@@ -146,7 +154,7 @@ export default function BannerCountdownPage() {
 
           {isNearBannerDate(schedule, now) ? (
             <p className="banner-countdown-near">
-              <NavLink to="/pulls/day">Track pulls on Pulling day →</NavLink>
+              <NavLink to="/banners/day">Track pulls on Pulling day →</NavLink>
             </p>
           ) : null}
         </>
