@@ -3,26 +3,22 @@ import {
   formatCountdownShort,
   loadBannerSchedule,
   shareDescription,
-} from './bannerShare'
+} from './_bannerShare.js'
 
 const SITE_ORIGIN = 'https://falsemoon.vercel.app'
 const SITE_NAME = "False Moon's Reckoning"
 
-function escapeHtml(value: string): string {
-  return value
+function escapeHtml(value) {
+  return String(value)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
 }
 
-export const config = {
-  runtime: 'edge',
-}
-
 /** HTML shell with fresh Open Graph tags so Discord/Twitter scrapers see live countdown copy. */
-export default async function handler(request: Request) {
-  const url = new URL(request.url)
+export async function GET(request) {
+  const url = new URL(request.url, SITE_ORIGIN)
   const regionParam = url.searchParams.get('region')
   const region =
     regionParam === 'asia' || regionParam === 'europe' || regionParam === 'america'
