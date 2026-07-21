@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { lazy, Suspense } from 'react'
 import { AppLayout } from './layout/AppLayout.tsx'
@@ -12,6 +12,8 @@ import PullOddsPage from './pages/pulls/PullOddsPage.tsx'
 import PullPacePage from './pages/pulls/PullPacePage.tsx'
 import PullingDayPage from './pages/pulls/PullingDayPage.tsx'
 import BannerCountdownPage from './pages/pulls/BannerCountdownPage.tsx'
+import AuthPage from './pages/auth/AuthPage.tsx'
+import SSOCallbackPage from './pages/auth/SSOCallbackPage.tsx'
 import './styles/main.scss'
 
 const RotationsPage = lazy(() => import('./pages/RotationsPage.tsx'))
@@ -35,8 +37,12 @@ function CharactersRoute() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <>
       <Routes>
+        <Route path="sign-in" element={<AuthPage />} />
+        <Route path="sign-up" element={<AuthPage />} />
+        <Route path="sso-callback" element={<SSOCallbackPage />} />
+
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/rotations" replace />} />
           <Route path="rotations" element={<RotationsRoute />} />
@@ -83,6 +89,6 @@ export default function App() {
         </Route>
       </Routes>
       <Analytics />
-    </BrowserRouter>
+    </>
   )
 }

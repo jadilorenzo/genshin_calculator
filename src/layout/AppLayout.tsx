@@ -1,9 +1,9 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { AuthControls } from '../components/AuthControls.tsx'
 import { BannerPullingDayNotice } from '../components/BannerPullingDayNotice.tsx'
-import { BrandMoonLogo, MoonIcon, SunIcon } from '../components/icons.tsx'
+import { BrandMoonLogo } from '../components/icons.tsx'
+import { SiteSettingsMenu } from '../components/SiteSettingsMenu.tsx'
 import { BannerRegionProvider } from '../hooks/useBannerRegion.tsx'
-import { useTheme } from '../hooks/useTheme.ts'
-import { THEME_LABEL } from '../theme'
 
 const links = [
   { to: '/banners', label: 'Banners' },
@@ -15,9 +15,6 @@ const links = [
 const GITHUB_URL = 'https://github.com/jadilorenzo/genshin_calculator'
 
 export function AppLayout() {
-  const { toggleTheme, nextTheme } = useTheme()
-  const ThemeIcon = nextTheme === 'light' ? SunIcon : MoonIcon
-
   return (
     <div className="app">
       <header className="site-header">
@@ -36,16 +33,10 @@ export function AppLayout() {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              className="theme-toggle"
-              onClick={toggleTheme}
-              aria-label={`Switch to ${THEME_LABEL[nextTheme].toLowerCase()} mode`}
-              title={`Switch to ${THEME_LABEL[nextTheme].toLowerCase()} mode`}
-            >
-              <ThemeIcon />
-              <span>{THEME_LABEL[nextTheme]}</span>
-            </button>
+            <div className="site-masthead-actions">
+              <AuthControls />
+              <SiteSettingsMenu />
+            </div>
           </div>
 
           <nav className="tabs" aria-label="Primary">

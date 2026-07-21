@@ -1,29 +1,68 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react'
+import { useOptionalUserData } from '../sync/UserDataProvider.tsx'
+import { readLocalJson, writeLocalJson } from '../sync/localAppData.ts'
 
-function readStorage<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key)
-    if (raw === null) return fallback
-    return JSON.parse(raw) as T
-  } catch {
-    return fallback
-  }
-}
-
-/** Persist React state in localStorage under `key`. */
+/**
+ * Persist React state under `key`.
+ * Signed out → localStorage only.
+ * Signed in → cloud blob (mirrored to localStorage as a cache).
+ */
 export function useLocalStorage<T>(
   key: string,
   initialValue: T,
 ): [T, Dispatch<SetStateAction<T>>] {
-  const [value, setValue] = useState<T>(() => readStorage(key, initialValue))
+  const userData = useOptionalUserData()
+  const cloudReady = Boolean(
+    userData?.isSignedIn &&
+      (userData.syncStatus === 'ready' ||
+        userData.syncStatus === 'saving' ||
+        userData.syncStatus === 'error') &&
+      userData.cloudData,
+  )
 
+  const [localValue, setLocalValue] = useState<T>(() =>
+    readLocalJson(key, initialValue),
+  )
+  const hydratedCloudRef = useRef(false)
+
+  // Pull from cloud once when the signed-in blob becomes ready.
   useEffect(() => {
-    try {
-      localStorage.setItem(key, JSON.stringify(value))
-    } catch {
-      // Ignore quota / private-mode failures.
+    if (!cloudReady || !userData) {
+      hydratedCloudRef.current = false
+      return
     }
-  }, [key, value])
+    if (hydratedCloudRef.current) return
+    hydratedCloudRef.current = true
+    setLocalValue(userData.getCloudValue(key, initialValue))
+  }, [cloudReady, userData, key, initialValue])
 
-  return [value, setValue]
+  // Always keep a localStorage copy (signed-out source of truth; signed-in cache).
+  useEffect(() => {
+    writeLocalJson(key, localValue)
+  }, [key, localValue])
+
+  const setValue = useCallback<Dispatch<SetStateAction<T>>>(
+    (update) => {
+      setLocalValue((prev) => {
+        const next =
+          typeof update === 'function'
+            ? (update as (prevState: T) => T)(prev)
+            : update
+        if (cloudReady && userData) {
+          userData.setCloudValue(key, next)
+        }
+        return next
+      })
+    },
+    [cloudReady, key, userData],
+  )
+
+  return [localValue, setValue]
 }
