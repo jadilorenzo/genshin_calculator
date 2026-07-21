@@ -115,6 +115,10 @@ export default function RotationsPage() {
             <ClearPageButton prefix="gc:rotations:" />
           </div>
         </div>
+        <p className="lede">
+          Sketch field time and see team buffs, artifact sets, and cooldowns as timeline
+          overlays — then reorder and tune durations to spot gaps and maximize uptime.
+        </p>
       </header>
 
       <div className="rotation-workspace">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
@@ -10,18 +10,20 @@ export default function CharactersPage() {
   useDocumentTitle(PAGE_TITLES.characters)
   const navigate = useNavigate()
   const { characterId } = useParams()
+  const listRef = useRef<HTMLUListElement>(null)
+  const linkedCharacter = characterId ? getCharacter(characterId) : undefined
   const [query, setQuery] = useState('')
   const [element, setElement] = useState<string>('all')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => linkedCharacter?.id ?? null,
+  )
 
   useEffect(() => {
-    if (!characterId) return
-    const character = getCharacter(characterId)
-    if (!character) return
+    if (!linkedCharacter) return
     setQuery('')
     setElement('all')
-    setSelectedId(character.id)
-  }, [characterId])
+    setSelectedId(linkedCharacter.id)
+  }, [linkedCharacter])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -38,12 +40,24 @@ export default function CharactersPage() {
   }, [query, element])
 
   useEffect(() => {
+    if (linkedCharacter) return
     if (!selectedId || !filtered.some((c) => c.id === selectedId)) {
       setSelectedId(filtered[0]?.id ?? null)
     }
-  }, [filtered, selectedId])
+  }, [filtered, selectedId, linkedCharacter])
 
-  const selected = filtered.find((c) => c.id === selectedId) ?? null
+  useEffect(() => {
+    if (!selectedId || !listRef.current) return
+    const item = listRef.current.querySelector(
+      `[data-character-id="${selectedId}"]`,
+    )
+    item?.scrollIntoView({ block: 'nearest' })
+  }, [selectedId, filtered])
+
+  const selected =
+    filtered.find((c) => c.id === selectedId) ??
+    (selectedId ? getCharacter(selectedId) : null) ??
+    null
 
   const openCharacter = (id: string) => {
     setSelectedId(id)
@@ -97,13 +111,14 @@ export default function CharactersPage() {
             {filtered.length} shown
           </p>
 
-          <ul className="characters-list">
+          <ul className="characters-list" ref={listRef}>
             {filtered.map((c) => {
               const active = selected?.id === c.id
               return (
                 <li key={c.id}>
                   <button
                     type="button"
+                    data-character-id={c.id}
                     className={
                       active
                         ? 'characters-list-item selected'
