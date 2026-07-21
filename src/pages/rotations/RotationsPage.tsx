@@ -120,7 +120,7 @@ const RotationsEditorInner = () => {
   useDocumentTitle(`Rotation Editor · False Moon's Reckoning`);
   const navigate = useNavigate();
   const { rotationId } = useParams();
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isSignedIn, userId } = useAuth();
   const { user } = useUser();
   const authorName =
     user?.fullName ||
@@ -148,7 +148,16 @@ const RotationsEditorInner = () => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(rotationId ?? null);
+  const [sourceAuthorId, setSourceAuthorId] = useState<string | null>(null);
+  const [sourceTitle, setSourceTitle] = useState("");
   const loadedRemoteRef = useRef<string | null>(null);
+
+  const isOwnRotation = Boolean(
+    editingId && sourceAuthorId && userId && sourceAuthorId === userId,
+  );
+  const isForking = Boolean(
+    editingId && sourceAuthorId && userId && sourceAuthorId !== userId,
+  );
 
   useEffect(() => {
     if (!rotationId || loadedRemoteRef.current === rotationId) return;
@@ -162,6 +171,8 @@ const RotationsEditorInner = () => {
         if (cancelled) return;
         loadedRemoteRef.current = rotationId;
         setEditingId(item.id);
+        setSourceAuthorId(item.authorId);
+        setSourceTitle(item.title);
         setTitle(item.title);
         setDescription(item.description || "");
         skipNextHistory();
@@ -313,6 +324,14 @@ const RotationsEditorInner = () => {
       return;
     }
     setSaveError(null);
+    if (
+      isForking &&
+      sourceTitle &&
+      title.trim() === sourceTitle.trim() &&
+      !/\(copy\)$/i.test(title.trim())
+    ) {
+      setTitle(`${sourceTitle.trim()} (copy)`);
+    }
     setSaveOpen(true);
   };
 
@@ -320,6 +339,10 @@ const RotationsEditorInner = () => {
     event.preventDefault();
     if (!clerkConfigured || !isSignedIn) {
       navigate("/sign-in");
+      return;
+    }
+    if (sourceAuthorId && !userId) {
+      setSaveError("Still signing in… try again in a moment.");
       return;
     }
     setSaving(true);
@@ -331,10 +354,13 @@ const RotationsEditorInner = () => {
         doc,
         authorName,
       };
-      const item = editingId
-        ? await updateCommunityRotation(editingId, payload, () => getToken())
+      // Own posts update in place; anyone else's becomes a new published copy.
+      const item = isOwnRotation
+        ? await updateCommunityRotation(editingId!, payload, () => getToken())
         : await createCommunityRotation(payload, () => getToken());
       setEditingId(item.id);
+      setSourceAuthorId(item.authorId);
+      setSourceTitle(item.title);
       setSaveOpen(false);
       navigate(`/rotations/${item.id}`, { replace: true });
     } catch (err) {
@@ -367,20 +393,39 @@ const RotationsEditorInner = () => {
             />
             <ClearPageButton prefix="gc:rotations:" />
             <button type="button" className="chip filled" onClick={openSave}>
-              {isSignedIn ? "Save" : "Sign in to save"}
+              {!isSignedIn
+                ? "Sign in to save"
+                : isForking
+                  ? "Save as copy"
+                  : "Save"}
             </button>
           </div>
         </div>
         <p className="lede">
           Sketch field time and see team buffs, artifact sets, and cooldowns as
           timeline overlays — then save to publish when you&apos;re signed in.
+          {isForking
+            ? " This rotation belongs to someone else; saving publishes your own copy."
+            : null}
         </p>
       </header>
 
       {saveOpen ? (
         <div className="rotation-save-panel">
           <form className="auth-form" onSubmit={onSave}>
-            <h2 className="rotation-section-title">Save rotation</h2>
+            <h2 className="rotation-section-title">
+              {isOwnRotation
+                ? "Update rotation"
+                : isForking
+                  ? "Publish your copy"
+                  : "Save rotation"}
+            </h2>
+            {isForking ? (
+              <p className="field-note">
+                Creates a new community post under your account. The original is
+                left unchanged.
+              </p>
+            ) : null}
             <label className="field">
               <span className="label">Title</span>
               <input
@@ -414,9 +459,11 @@ const RotationsEditorInner = () => {
               <button type="submit" className="chip filled" disabled={saving}>
                 {saving
                   ? "Saving…"
-                  : editingId
+                  : isOwnRotation
                     ? "Update published"
-                    : "Publish"}
+                    : isForking
+                      ? "Publish copy"
+                      : "Publish"}
               </button>
             </div>
           </form>

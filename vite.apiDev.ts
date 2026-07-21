@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import { pathToFileURL } from 'node:url'
-import type { Connect, Plugin, ViteDevServer } from 'vite'
+import type { Plugin, ViteDevServer } from 'vite'
 import { loadEnv } from 'vite'
 
 type ApiModule = {
@@ -52,23 +53,15 @@ function resolveApiFile(apiRoot: string, pathname: string): string | null {
     // Nested: [id]/comments.js for /api/rotations/:id/comments
     if (rest.length === 2) {
       const param = dynamic.slice(1, -4) // strip [ and ].js
-      const nested = entries.find(
-        (name) => name === `[${param}]/${rest[1]}.js` || name === `[${param}].${rest[1]}.js`,
-      )
-      // Also support file form: [id]/comments.js
       const flat = path.join(dir, `[${param}].${rest[1]}.js`)
       if (fs.existsSync(flat)) return flat
-      if (nested) {
-        const file = path.join(dir, nested)
-        if (fs.existsSync(file)) return file
-      }
     }
   }
 
   return null
 }
 
-async function readBody(req: Connect.IncomingMessage): Promise<Buffer | undefined> {
+async function readBody(req: IncomingMessage): Promise<Buffer | undefined> {
   const method = (req.method || 'GET').toUpperCase()
   if (method === 'GET' || method === 'HEAD') return undefined
   const chunks: Buffer[] = []
@@ -79,7 +72,7 @@ async function readBody(req: Connect.IncomingMessage): Promise<Buffer | undefine
 }
 
 async function writeResponse(
-  res: Connect.ServerResponse,
+  res: ServerResponse,
   response: Response,
 ): Promise<void> {
   res.statusCode = response.status
@@ -159,13 +152,12 @@ export function vercelApiDev(apiRoot = path.resolve('api')): Plugin {
             else headers.set(key, value)
           }
 
-          const request = new Request(url, {
+          const init: RequestInit = {
             method,
             headers,
-            body: body && body.length > 0 ? body : undefined,
-            // @ts-expect-error Node undici duplex requirement for request bodies
-            duplex: body && body.length > 0 ? 'half' : undefined,
-          })
+            body: body && body.length > 0 ? new Uint8Array(body) : undefined,
+          }
+          const request = new Request(url, init)
 
           const response = await handler(request)
           await writeResponse(res, response)

@@ -20,10 +20,12 @@ function DetailInner({
   getToken,
   isSignedIn,
   authorName,
+  userId,
 }: {
   getToken: () => Promise<string | null>
   isSignedIn: boolean
   authorName: string
+  userId: string | null | undefined
 }) {
   const { rotationId = '' } = useParams()
   const [item, setItem] = useState<CommunityRotation | null>(null)
@@ -118,6 +120,7 @@ function DetailInner({
 
   const doc = item.doc as RotationDoc
   const placements = Array.isArray(doc?.placements) ? doc.placements : []
+  const isOwn = Boolean(userId && item.authorId === userId)
 
   return (
     <>
@@ -132,7 +135,7 @@ function DetailInner({
               to={`/rotations/editor/${item.id}`}
               className="chip filled"
             >
-              Open in editor
+              {isOwn ? 'Edit in editor' : 'Remix in editor'}
             </Link>
           </div>
         </div>
@@ -220,7 +223,7 @@ function DetailInner({
 }
 
 function DetailWithClerk() {
-  const { getToken, isSignedIn } = useAuth()
+  const { getToken, isSignedIn, userId } = useAuth()
   const { user } = useUser()
   const authorName =
     user?.fullName ||
@@ -232,6 +235,7 @@ function DetailWithClerk() {
       getToken={() => getToken()}
       isSignedIn={Boolean(isSignedIn)}
       authorName={authorName}
+      userId={userId}
     />
   )
 }
@@ -243,6 +247,7 @@ export default function RotationDetailPage() {
         getToken={async () => null}
         isSignedIn={false}
         authorName="Traveler"
+        userId={null}
       />
     )
   }
