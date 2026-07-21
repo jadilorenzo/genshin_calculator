@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   TYPICAL_BANNER_PHASE_DAYS,
   daysUntilTimestamp,
+  isNearBannerDate,
   phaseLengthDays,
+  pullingDayNoticeKind,
   scheduleFromCalendar,
 } from './bannerSchedule.ts'
 
@@ -49,6 +51,7 @@ describe('scheduleFromCalendar', () => {
     const schedule = scheduleFromCalendar(sample, from)
     expect(schedule).not.toBeNull()
     expect(schedule?.nextChangeAt).toBe(1_000 + 21 * DAY)
+    expect(schedule?.currentPhaseStartAt).toBe(1_000)
     expect(schedule?.featuredFiveStars).toEqual(['Sandrone', 'Citlali'])
     expect(schedule?.version).toBe('6.7')
     expect(schedule?.phaseLengthDays).toBe(21)
@@ -76,5 +79,42 @@ describe('daysUntilTimestamp', () => {
     const end = 1_000
     const from = (end - 10.2 * 24 * 60 * 60) * 1000
     expect(daysUntilTimestamp(end, from)).toBe(11)
+  })
+})
+
+describe('pullingDayNoticeKind', () => {
+  const schedule = scheduleFromCalendar(sample, (1_000 + 10 * DAY) * 1000)!
+
+  it('is before within seven days of phase end', () => {
+    const from = (1_000 + 15 * DAY) * 1000
+    expect(pullingDayNoticeKind(schedule, from)).toBe('before')
+    expect(isNearBannerDate(schedule, from)).toBe(true)
+  })
+
+  it('is null mid-phase', () => {
+    const from = (1_000 + 5 * DAY) * 1000
+    expect(pullingDayNoticeKind(schedule, from)).toBeNull()
+  })
+
+  it('is after on the first day of a new phase', () => {
+    const newPhase = {
+      ...schedule,
+      currentPhaseStartAt: 1_000 + 21 * DAY,
+      nextChangeAt: 1_000 + 42 * DAY,
+      daysUntilNext: 21,
+    }
+    const from = (1_000 + 21 * DAY + 12 * 60 * 60) * 1000
+    expect(pullingDayNoticeKind(newPhase, from)).toBe('after')
+  })
+
+  it('is null more than one day after phase start', () => {
+    const newPhase = {
+      ...schedule,
+      currentPhaseStartAt: 1_000 + 21 * DAY,
+      nextChangeAt: 1_000 + 42 * DAY,
+      daysUntilNext: 21,
+    }
+    const later = (1_000 + 21 * DAY + 2 * DAY) * 1000
+    expect(pullingDayNoticeKind(newPhase, later)).toBeNull()
   })
 })

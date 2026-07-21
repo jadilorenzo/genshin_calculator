@@ -37,13 +37,17 @@ export {
 } from './wishes'
 export {
   BANNER_CALENDAR_URL,
+  PULLING_DAY_NOTICE_DAYS_AFTER,
+  PULLING_DAY_NOTICE_DAYS_BEFORE,
   TYPICAL_BANNER_PHASE_DAYS,
   daysUntilTimestamp,
   fetchBannerSchedule,
+  isNearBannerDate,
   phaseLengthDays,
+  pullingDayNoticeKind,
   scheduleFromCalendar,
 } from './bannerSchedule'
-export type { BannerSchedule } from './bannerSchedule'
+export type { BannerSchedule, PullingDayNoticeKind } from './bannerSchedule'
 export {
   ESTIMATED_CONFIDENCE,
   GUARANTEED_CONFIDENCE,

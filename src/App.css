@@ -620,6 +620,32 @@ input[type='text']:focus,
   margin-top: 0.2rem;
 }
 
+.banner-pulling-day-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line));
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--gold-soft) 55%, var(--panel));
+  box-shadow: var(--panel-shadow);
+}
+
+.banner-pulling-day-notice p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--mist);
+}
+
+.banner-pulling-day-notice .chip.compact {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .pace-result {
   align-content: start;
 }

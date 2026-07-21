@@ -22,6 +22,8 @@ export interface CalendarBanner {
 export interface BannerSchedule {
   /** Unix seconds when the current character phase ends / next phase begins. */
   nextChangeAt: number
+  /** Unix seconds when the current character phase began. */
+  currentPhaseStartAt: number
   /** Whole days remaining (ceil), at least 1 while the banner is still up. */
   daysUntilNext: number
   /**
@@ -61,6 +63,44 @@ export function phaseLengthDays(startUnixSeconds: number, endUnixSeconds: number
 /**
  * Pick the soonest-ending active character event wish as the next phase change.
  */
+/** Show Pulling day banner within 7 days before a phase ends or the day after it starts. */
+export const PULLING_DAY_NOTICE_DAYS_BEFORE = 7
+export const PULLING_DAY_NOTICE_DAYS_AFTER = 1
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+export function isNearBannerDate(
+  schedule: BannerSchedule,
+  fromMs = Date.now(),
+): boolean {
+  return pullingDayNoticeKind(schedule, fromMs) !== null
+}
+
+export type PullingDayNoticeKind = 'before' | 'after'
+
+/** Which side of a banner change we're near, or null if outside the window. */
+export function pullingDayNoticeKind(
+  schedule: BannerSchedule,
+  fromMs = Date.now(),
+): PullingDayNoticeKind | null {
+  const endMs = schedule.nextChangeAt * 1000
+  const msUntilEnd = endMs - fromMs
+  if (msUntilEnd > 0 && msUntilEnd <= PULLING_DAY_NOTICE_DAYS_BEFORE * MS_PER_DAY) {
+    return 'before'
+  }
+
+  const startMs = schedule.currentPhaseStartAt * 1000
+  const msSinceStart = fromMs - startMs
+  if (
+    msSinceStart >= 0 &&
+    msSinceStart <= PULLING_DAY_NOTICE_DAYS_AFTER * MS_PER_DAY
+  ) {
+    return 'after'
+  }
+
+  return null
+}
+
 export function scheduleFromCalendar(
   data: CalendarResponse,
   fromMs = Date.now(),
@@ -84,6 +124,7 @@ export function scheduleFromCalendar(
 
   return {
     nextChangeAt: endTime,
+    currentPhaseStartAt: startTime,
     daysUntilNext,
     daysUntilAfterNext: daysUntilNext + phaseDays,
     phaseLengthDays: phaseDays,

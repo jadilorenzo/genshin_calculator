@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { BannerPullingDayNotice } from '../components/BannerPullingDayNotice.tsx'
 import { BrandMoonLogo, MoonIcon, SunIcon } from '../components/icons.tsx'
 import { useTheme } from '../hooks/useTheme.ts'
 import { THEME_LABEL } from '../theme'
@@ -62,6 +63,7 @@ export function AppLayout() {
       </header>
 
       <div className="app-body">
+        <BannerPullingDayNotice />
         <Outlet />
         <footer className="site-footnote">
           <p>
