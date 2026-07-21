@@ -4,14 +4,16 @@
  *
  * When a longer skill option exists (hold / charge / skill-state), defaults prefer
  * that longer option; UI can switch to the short cancel/press.
- * Human mode pads each enabled cast with humanLag (unless a human override exists).
+ * Main DPS (`skillPairStyle: 'combo'`) use a single expected on-field duration
+ * (not Short/Full). Human mode pads each enabled cast with humanLag
+ * (unless a human override exists).
  */
 import type { CastOrder } from './types'
 
 export type TimingMode = 'frame' | 'human'
 export type SkillCastVariant = 'press' | 'hold'
 /** How to label the short vs long skill option in the UI. */
-export type SkillPairStyle = 'hold' | 'charge' | 'state' | 'combo'
+export type SkillPairStyle = 'hold' | 'charge' | 'state' | 'combo' | 'skill-full'
 export type { CastOrder }
 
 export const DEFAULT_TIMING_MODE: TimingMode = 'human'
@@ -20,9 +22,12 @@ export const MIN_HUMAN_LAG = 0
 export const MAX_HUMAN_LAG = 0.75
 
 export interface FieldCastTimings {
-  /** Short skill option (press / cancel / early exit / short combo) */
+  /**
+   * Primary skill / field duration.
+   * For supports: press/cancel cast. For main DPS (`combo`): expected on-field time.
+   */
   skillCast: number
-  /** Longer skill option (hold / full charge / full skill-state / full DPS combo) */
+  /** Longer skill option (hold / full charge / full skill-state). Unused for combo. */
   skillHoldCast?: number
   /** Elemental Burst animation lock (standalone; skipped when comboIncludesBurst) */
   burstCast: number
@@ -32,10 +37,18 @@ export interface FieldCastTimings {
   /** UI labels for short/long skill (default hold → Press/Hold) */
   skillPairStyle?: SkillPairStyle
   /**
-   * Long/short “skill” times are full on-field combos that already weave burst(s).
-   * When true, burstCast is not added while Skill is enabled.
+   * Expected on-field time (or Full for skill-full dual-role) already weaves burst(s).
+   * When true, burstCast is not added while Skill is enabled — for dual-option kits
+   * only on the long option, so short support casts still pair with standalone Burst.
    */
   comboIncludesBurst?: boolean
+  /**
+   * Max Elemental Skill charges (e.g. Sucrose 2). Discrete multi-cast only —
+   * ignored for combo-style expected on-field windows.
+   */
+  skillCharges?: number
+  /** Prefer Short/Press when a long option exists (support-primary dual-role). */
+  preferPressDefault?: boolean
   note?: string
 }
 
@@ -161,6 +174,15 @@ const TIMINGS_BY_ID: Record<string, FieldCastTimings> = {
     skillCast: round(67 / 60),
     burstCast: round(40 / 60),
   },
+  // Two-charge support E — default uses both (EE)
+  sucrose: {
+    skillCast: round(68 / 60),
+    burstCast: round(65 / 60),
+    humanSkillCast: 1.3,
+    humanBurstCast: 1.25,
+    skillCharges: 2,
+    note: '2 skill charges · default EE then Q',
+  },
   furina: {
     skillCast: round(54 / 60),
     burstCast: round(121 / 60),
@@ -198,146 +220,127 @@ const TIMINGS_BY_ID: Record<string, FieldCastTimings> = {
     skillPairStyle: 'state',
   },
 
-  // —— Main DPS on-field combos (Short / Full) ——
-  // Durations are typical C0 field windows; Full is the default.
+  // —— Main DPS expected on-field windows ——
+  // Durations are typical C0 expected field time (woven burst included when flagged).
   flins: {
     // KQM: special E + sQ twice in Manifest Flame (~10–11s), NAs fill the 6s Spearstorm CD.
-    skillCast: 5.5, // one special cycle
-    skillHoldCast: 10.5,
+    skillCast: 10.5,
     burstCast: 2.0, // full 80-cost burst if used instead
-    humanSkillCast: 5.8,
-    humanSkillHoldCast: 11,
+    humanSkillCast: 11,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
-    note: 'Full ≈ E → E sQ → NAs → E sQ inside Manifest Flame',
+    note: 'Expected ≈ E → E sQ → NAs → E sQ inside Manifest Flame',
   },
   neuvillette: {
     // User/KQM-style stretch: E → CA → Q → 2CA (CA ≈ 3.2s each).
-    skillCast: 8.0, // C E C Q-ish (~2 CA)
-    skillHoldCast: 12.5, // E CA Q 2CA
+    skillCast: 12.5, // E CA Q 2CA
     burstCast: 1.6,
-    humanSkillCast: 8.3,
-    humanSkillHoldCast: 13,
+    humanSkillCast: 13,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
-    note: 'Full ≈ E → Charged Attack → Q → 2 Charged Attacks',
+    note: 'Expected ≈ E → Charged Attack → Q → 2 Charged Attacks',
   },
   'hu-tao': {
-    skillCast: 6.0,
-    skillHoldCast: 9.0, // Paramita Papilio duration
+    skillCast: 9.0, // Paramita Papilio duration
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
-    note: 'Full ≈ skill-state NAs / CAs for Paramita duration',
+    note: 'Expected ≈ skill-state NAs / CAs for Paramita duration',
   },
   arlecchino: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0,
+    skillCast: 10.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   clorinde: {
-    skillCast: 5.0,
-    skillHoldCast: 7.5, // Night Vigil
+    skillCast: 7.5, // Night Vigil
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'raiden-shogun': {
-    skillCast: 5.0,
-    skillHoldCast: 8.0, // Musou Isshin window + resolve
+    skillCast: 8.0, // Musou Isshin window + resolve
     burstCast: round(110 / 60),
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   xiao: {
-    skillCast: 8.0,
-    skillHoldCast: 12.0, // plunge spam of burst window
+    skillCast: 12.0, // plunge spam of burst window
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
+    skillCharges: 2,
   },
   wanderer: {
-    skillCast: 6.0,
-    skillHoldCast: 9.0,
+    skillCast: 9.0,
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   mualani: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0,
+    skillCast: 10.0,
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   mavuika: {
-    skillCast: 5.0,
-    skillHoldCast: 8.0, // Crucible ~7s + setup
+    skillCast: 8.0, // Crucible ~7s + setup
     burstCast: 1.6,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   alhaitham: {
-    skillCast: 7.0,
-    skillHoldCast: 11.0,
+    skillCast: 11.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'kamisato-ayaka': {
-    skillCast: 6.0,
-    skillHoldCast: 9.0,
+    skillCast: 9.0,
     burstCast: 1.8,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   skirk: {
-    skillCast: 7.0,
-    skillHoldCast: 12.5, // Seven-Phase Flash Mode
+    skillCast: 12.5, // Seven-Phase Flash Mode
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   varesa: {
-    skillCast: 5.5,
-    skillHoldCast: 10.0, // similar mini-burst cycles
+    skillCast: 10.0, // similar mini-burst cycles
     burstCast: 1.6,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
+    skillCharges: 2,
   },
   chasca: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0,
+    skillCast: 10.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   kinich: {
-    skillCast: 7.0,
-    skillHoldCast: 11.0,
+    skillCast: 11.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   gaming: {
-    skillCast: 5.0,
-    skillHoldCast: 9.0,
+    skillCast: 9.0,
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   wriothesley: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0, // skill-state duration
+    skillCast: 10.0, // skill-state duration
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   navia: {
-    skillCast: 5.0,
-    skillHoldCast: 8.0,
+    skillCast: 8.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
@@ -345,184 +348,159 @@ const TIMINGS_BY_ID: Record<string, FieldCastTimings> = {
 
   // Classic / legacy on-field DPS
   diluc: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0, // Q infusion window ~8s + NAs
+    skillCast: 10.0, // Q infusion window ~8s + NAs
     burstCast: 1.6,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   keqing: {
-    skillCast: 5.0,
-    skillHoldCast: 9.0,
+    skillCast: 9.0,
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   klee: {
-    skillCast: 7.0,
-    skillHoldCast: 12.0, // Q duration 10s field
+    skillCast: 12.0, // Q duration 10s field
     burstCast: 1.8,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
+    skillCharges: 2,
   },
   ganyu: {
-    skillCast: 8.0, // 2 charged shots
-    skillHoldCast: 12.0, // frostflake CA spam stretch
+    skillCast: 12.0, // frostflake CA spam stretch
     burstCast: 1.8,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   yoimiya: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0, // skill duration
+    skillCast: 10.0, // skill duration
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   eula: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0, // hold E stacks + Q + NAs
+    skillCast: 10.0, // hold E stacks + Q + NAs
     burstCast: 2.2,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'arataki-itto': {
-    skillCast: 7.0,
-    skillHoldCast: 12.0, // Ushi + burst CA window ~11s
+    skillCast: 12.0, // Ushi + burst CA window ~11s
     burstCast: 1.8,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'kamisato-ayato': {
-    skillCast: 4.0,
-    skillHoldCast: 6.5, // Takimeguri Kanka 6s + swap buffer
+    skillCast: 6.5, // Takimeguri Kanka 6s + swap buffer
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   tartaglia: {
-    skillCast: 6.0, // short melee
-    skillHoldCast: 10.0, // typical melee stance field
+    skillCast: 10.0, // typical melee stance field
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
-    note: 'Full ≈ melee stance combo (stance max 30s)',
+    note: 'Expected ≈ melee stance combo (stance max 30s)',
   },
   cyno: {
-    skillCast: 6.0,
-    skillHoldCast: 10.5, // Pactsworn / burst duration ~10s
+    skillCast: 10.5, // Pactsworn / burst duration ~10s
     burstCast: 1.6,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   tighnari: {
-    skillCast: 4.5,
-    skillHoldCast: 7.5, // E field + 3 CAs
+    skillCast: 7.5, // E field + 3 CAs
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   lyney: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0, // charged shot stacks + Q
+    skillCast: 10.0, // charged shot stacks + Q
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   dehya: {
-    skillCast: 5.0,
-    skillHoldCast: 9.0, // on-field punch / Q window
+    skillCast: 9.0, // on-field punch / Q window
     burstCast: 1.6,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   noelle: {
-    skillCast: 7.0,
-    skillHoldCast: 12.0, // burst geo infusion ~15s, typical ~12
+    skillCast: 12.0, // burst geo infusion ~15s, typical ~12
     burstCast: 1.8,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   ningguang: {
-    skillCast: 5.0,
-    skillHoldCast: 9.0,
+    skillCast: 9.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   yanfei: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0,
+    skillCast: 10.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   razor: {
-    skillCast: 7.0,
-    skillHoldCast: 12.0, // burst duration 15s, typical field
+    skillCast: 12.0, // burst duration 15s, typical field
     burstCast: 1.6,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'shikanoin-heizou': {
-    skillCast: 4.0,
-    skillHoldCast: 7.0,
+    skillCast: 7.0,
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   freminet: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0, // Pers Timer / burst window
+    skillCast: 10.0, // Pers Timer / burst window
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   kaveh: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0, // bloom driver burst window
+    skillCast: 10.0, // bloom driver burst window
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   sethos: {
-    skillCast: 5.0,
-    skillHoldCast: 8.5, // Twilight Meditation 8s
+    skillCast: 8.5, // Twilight Meditation 8s
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   aloy: {
-    skillCast: 5.0,
-    skillHoldCast: 9.0, // Rushing Ice ~10s
+    skillCast: 9.0, // Rushing Ice ~10s
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   amber: {
-    skillCast: 4.0,
-    skillHoldCast: 7.0,
+    skillCast: 7.0,
     burstCast: 1.3,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   kaeya: {
-    skillCast: 4.0,
-    skillHoldCast: 7.0, // burst duration 8s
+    skillCast: 7.0, // burst duration 8s
     burstCast: 1.3,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   chongyun: {
-    skillCast: 5.0,
-    skillHoldCast: 9.0, // field duration 10s driver
+    skillCast: 9.0, // field duration 10s driver
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   xinyan: {
-    skillCast: 5.0,
-    skillHoldCast: 8.0,
+    skillCast: 8.0,
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
@@ -530,57 +508,56 @@ const TIMINGS_BY_ID: Record<string, FieldCastTimings> = {
 
   // Newer / Nod-Krai & regional on-field DPS
   sandrone: {
-    skillCast: 6.0,
-    skillHoldCast: 11.0,
+    skillCast: 11.0,
     burstCast: 1.6,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   zibai: {
-    skillCast: 7.0,
-    skillHoldCast: 12.0, // Lunar Phase Shift 15s
+    skillCast: 12.0, // Lunar Phase Shift 15s
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   nefer: {
-    skillCast: 5.5,
-    skillHoldCast: 9.5, // Shadow Dance 9s
+    skillCast: 9.5, // Shadow Dance 9s
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   varka: {
-    skillCast: 7.0,
-    skillHoldCast: 12.0, // Sturm und Drang 12s
+    skillCast: 12.0, // Sturm und Drang 12s
     burstCast: 1.6,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   durin: {
-    skillCast: 6.0,
-    skillHoldCast: 11.0,
+    skillCast: 11.0,
     burstCast: 1.6,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   columbina: {
-    skillCast: 6.0,
+    // Support-primary (E/Q then swap) with optional on-field Lunar-Bloom DPS stretch.
+    skillCast: round(41 / 60),
     skillHoldCast: 11.0,
-    burstCast: 1.6,
-    skillPairStyle: 'combo',
+    burstCast: round(131 / 60),
+    humanSkillCast: 0.85,
+    humanSkillHoldCast: 11.3,
+    humanBurstCast: 2.4,
+    skillPairStyle: 'skill-full',
     comboIncludesBurst: true,
+    preferPressDefault: true,
+    note: 'Skill ≈ Eternal Tides cast · Full ≈ on-field DPS window',
   },
   lohen: {
-    skillCast: 7.0,
-    skillHoldCast: 12.0, // Masterstroke 13s
+    skillCast: 12.0, // Masterstroke 13s
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   linnea: {
-    skillCast: 6.0,
-    skillHoldCast: 10.0,
+    skillCast: 10.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
@@ -588,81 +565,70 @@ const TIMINGS_BY_ID: Record<string, FieldCastTimings> = {
 
   // Flex on-field drivers / situational main DPS
   'yumemizuki-mizuki': {
-    skillCast: 5.0, // one Dreamdrifter
-    skillHoldCast: 8.0, // Dreamdrifter + burst weave
+    skillCast: 8.0, // Dreamdrifter + burst weave
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   ifa: {
-    skillCast: 5.0,
-    skillHoldCast: 9.0, // on-field hover DPS stretch
+    skillCast: 9.0, // on-field hover DPS stretch
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   nilou: {
     // Rarely hypercarry; short dance field when on-field
-    skillCast: 4.0,
-    skillHoldCast: 7.0, // Pirouette / Lunar Prayer
+    skillCast: 7.0, // Pirouette / Lunar Prayer
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   emilie: {
     // Usually off-field; on-field poke window
-    skillCast: 4.0,
-    skillHoldCast: 7.0,
+    skillCast: 7.0,
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'yae-miko': {
     // Usually off-field; on-field turret setup
-    skillCast: 4.0,
-    skillHoldCast: 6.5, // 3E setup
+    skillCast: 6.5, // 3E setup
     burstCast: 1.8,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'traveler-pyro': {
-    skillCast: 5.0,
-    skillHoldCast: 9.0,
+    skillCast: 9.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'traveler-electro': {
-    skillCast: 5.0,
-    skillHoldCast: 8.0,
+    skillCast: 8.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'traveler-geo': {
-    skillCast: 5.0,
-    skillHoldCast: 8.0,
+    skillCast: 8.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'traveler-dendro': {
-    skillCast: 4.0,
-    skillHoldCast: 7.0,
+    skillCast: 7.0,
     burstCast: 1.4,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'traveler-cryo': {
-    skillCast: 5.0,
-    skillHoldCast: 8.0,
+    skillCast: 8.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
   },
   'traveler-hydro': {
-    skillCast: 5.0,
-    skillHoldCast: 8.0,
+    skillCast: 8.0,
     burstCast: 1.5,
     skillPairStyle: 'combo',
     comboIncludesBurst: true,
@@ -676,7 +642,12 @@ export function skillVariantLabels(style: SkillPairStyle = 'hold'): {
 } {
   if (style === 'charge') return { press: 'Cancel', hold: 'Charge' }
   if (style === 'state') return { press: 'Short', hold: 'Full' }
-  if (style === 'combo') return { press: 'Short', hold: 'Full' }
+  // Combo kits no longer expose a pair — label kept for strip fallbacks only.
+  if (style === 'combo') {
+    return { press: 'Expected on-field', hold: 'Expected on-field' }
+  }
+  // Support cast vs on-field DPS window (e.g. Columbina)
+  if (style === 'skill-full') return { press: 'Skill', hold: 'Full' }
   return { press: 'Press', hold: 'Hold' }
 }
 
@@ -726,6 +697,8 @@ export function getFieldCastTimings(
 ): FieldCastTimings {
   const base = TIMINGS_BY_ID[characterId] ?? DEFAULT_TIMINGS
   if (base.skillHoldCast != null) return base
+  // Main DPS expected windows are a single duration — don't invent Press/Hold from kit.
+  if (base.skillPairStyle === 'combo') return base
   if (kitHoldSeconds != null && kitHoldSeconds > 0) {
     return {
       ...base,
@@ -743,15 +716,86 @@ export function hasSkillHold(
   return getFieldCastTimings(characterId, kitHoldSeconds).skillHoldCast != null
 }
 
+/** Max Elemental Skill charges (1 when unspecified). */
+export function getSkillCharges(
+  characterId: string,
+  kitHoldSeconds: number | null = null,
+): number {
+  const n = getFieldCastTimings(characterId, kitHoldSeconds).skillCharges ?? 1
+  if (!Number.isFinite(n)) return 1
+  return Math.min(4, Math.max(1, Math.round(n)))
+}
+
+/**
+ * Whether multi-charge casting multiplies on-field time.
+ * Expected on-field windows already include charge usage — don't double them.
+ */
+export function usesDiscreteSkillCharges(
+  characterId: string,
+  kitHoldSeconds: number | null = null,
+  _skillVariant?: SkillCastVariant,
+): boolean {
+  if (getSkillCharges(characterId, kitHoldSeconds) <= 1) return false
+  const t = getFieldCastTimings(characterId, kitHoldSeconds)
+  if (t.skillPairStyle === 'combo') return false
+  return true
+}
+
+export function defaultSkillCasts(
+  characterId: string,
+  kitHoldSeconds: number | null = null,
+): number {
+  if (!usesDiscreteSkillCharges(characterId, kitHoldSeconds)) return 1
+  return getSkillCharges(characterId, kitHoldSeconds)
+}
+
+export function clampSkillCasts(
+  raw: unknown,
+  characterId: string,
+  kitHoldSeconds: number | null = null,
+): number {
+  const max = getSkillCharges(characterId, kitHoldSeconds)
+  const n =
+    typeof raw === 'number' && Number.isFinite(raw)
+      ? Math.round(raw)
+      : defaultSkillCasts(characterId, kitHoldSeconds)
+  return Math.min(max, Math.max(1, n))
+}
+
+/**
+ * How many discrete skill animations to pack for this placement.
+ * Returns 1 when skill is off or charges aren't discrete.
+ */
+export function resolveSkillCasts(
+  characterId: string,
+  opts: {
+    skill: boolean
+    skillCasts?: number
+    skillVariant?: SkillCastVariant
+    kitHoldSeconds?: number | null
+  },
+): number {
+  if (!opts.skill) return 0
+  const kitHold = opts.kitHoldSeconds ?? null
+  if (!usesDiscreteSkillCharges(characterId, kitHold, opts.skillVariant)) {
+    return 1
+  }
+  return clampSkillCasts(opts.skillCasts, characterId, kitHold)
+}
+
 export function defaultSkillVariant(
   characterId: string,
   kitHoldSeconds: number | null = null,
 ): SkillCastVariant {
-  // Prefer Full / Charge / Hold whenever a long option exists
-  return hasSkillHold(characterId, kitHoldSeconds) ? 'hold' : 'press'
+  const t = getFieldCastTimings(characterId, kitHoldSeconds)
+  if (!hasSkillHold(characterId, kitHoldSeconds)) return 'press'
+  // Support-primary dual-role chars default to the short skill cast.
+  if (t.preferPressDefault) return 'press'
+  // Prefer Charge / Hold / Full whenever a long option exists
+  return 'hold'
 }
 
-/** New placements include Burst; combo windows still don’t double-count it. */
+/** New placements include Burst; woven on-field windows still don’t double-count it. */
 export function defaultCastBurst(
   _characterId?: string,
   _kitHoldSeconds?: number | null,
@@ -764,7 +808,7 @@ export function skillToggleLabel(
   kitHoldSeconds: number | null = null,
 ): string {
   const t = getFieldCastTimings(characterId, kitHoldSeconds)
-  return t.skillPairStyle === 'combo' ? 'Combo' : 'Skill'
+  return t.skillPairStyle === 'combo' ? 'Expected on-field' : 'Skill'
 }
 
 export function parseSkillVariant(
@@ -801,13 +845,16 @@ export function effectiveCastTimes(
     return {
       skillCast: frameSkill,
       burstCast: t.burstCast,
-      comboIncludesBurst: !!t.comboIncludesBurst,
+      // Woven burst on single expected windows, or on the long option of dual kits.
+      comboIncludesBurst:
+        !!t.comboIncludesBurst && (t.skillHoldCast == null || useHold),
     }
   }
   return {
     skillCast: humanSkill,
     burstCast: t.humanBurstCast ?? round(t.burstCast + lag),
-    comboIncludesBurst: !!t.comboIncludesBurst,
+    comboIncludesBurst:
+      !!t.comboIncludesBurst && (t.skillHoldCast == null || useHold),
   }
 }
 
@@ -819,6 +866,7 @@ export function defaultOnFieldDuration(
     mode?: TimingMode
     humanLag?: number
     skillVariant?: SkillCastVariant
+    skillCasts?: number
     kitHoldSeconds?: number | null
   },
 ): number {
@@ -833,9 +881,15 @@ export function defaultOnFieldDuration(
     variant,
     opts.kitHoldSeconds ?? null,
   )
+  const skillCasts = resolveSkillCasts(characterId, {
+    skill: opts.skill,
+    skillCasts: opts.skillCasts,
+    skillVariant: variant,
+    kitHoldSeconds: opts.kitHoldSeconds ?? null,
+  })
   let total = 0
-  if (opts.skill) total += t.skillCast
-  // Combo windows already include woven mini/full bursts
+  if (opts.skill && skillCasts > 0) total += t.skillCast * skillCasts
+  // Expected on-field windows already include woven mini/full bursts
   if (opts.burst && !(opts.skill && t.comboIncludesBurst)) total += t.burstCast
   return Math.max(0.5, round(total))
 }
@@ -857,6 +911,7 @@ export function castTimingOffsets(
     mode?: TimingMode
     humanLag?: number
     skillVariant?: SkillCastVariant
+    skillCasts?: number
     kitHoldSeconds?: number | null
   },
 ): {
@@ -876,7 +931,14 @@ export function castTimingOffsets(
     variant,
     opts.kitHoldSeconds ?? null,
   )
-  const skill = opts.skill
+  const skillCasts = resolveSkillCasts(characterId, {
+    skill: opts.skill,
+    skillCasts: opts.skillCasts,
+    skillVariant: variant,
+    kitHoldSeconds: opts.kitHoldSeconds ?? null,
+  })
+  const skill = opts.skill && skillCasts > 0
+  const skillSpan = skill ? round(t.skillCast * skillCasts) : 0
   const wovenBurst = skill && !!t.comboIncludesBurst
   const burstStandalone = opts.burst && !wovenBurst
   const order = opts.castOrder ?? 'skill-first'
@@ -889,7 +951,7 @@ export function castTimingOffsets(
         burstStart,
         burstEnd,
         skillStart: skill ? burstEnd : 0,
-        skillEnd: skill ? round(burstEnd + t.skillCast) : 0,
+        skillEnd: skill ? round(burstEnd + skillSpan) : 0,
       }
     }
     if (wovenBurst) {
@@ -900,13 +962,13 @@ export function castTimingOffsets(
       burstStart: 0,
       burstEnd: 0,
       skillStart: skill ? 0 : 0,
-      skillEnd: skill ? t.skillCast : 0,
+      skillEnd: skill ? skillSpan : 0,
     }
   }
 
   // skill-first (default)
   const skillStart = skill ? 0 : 0
-  const skillEnd = skill ? t.skillCast : 0
+  const skillEnd = skill ? skillSpan : 0
   if (burstStandalone) {
     return {
       skillStart,
@@ -933,6 +995,175 @@ export function castEndOffsets(
   return { skillEnd: t.skillEnd, burstEnd: t.burstEnd }
 }
 
+export type FieldActionKind = 'skill' | 'burst'
+
+export type FieldActionSegment = {
+  id: string
+  kind: FieldActionKind
+  label: string
+  /** Seconds from on-field start */
+  start: number
+  duration: number
+}
+
+/**
+ * Non-overlapping action segments under an on-field window.
+ * Mirrors roster skill/burst presets (separate bars).
+ * For woven DPS windows, burst is carved out of the expected on-field length by cast order.
+ * Time outside these presets is left empty (no filler segment).
+ */
+export function fieldActionSegments(
+  characterId: string,
+  fieldDuration: number,
+  opts: Parameters<typeof castTimingOffsets>[1],
+): FieldActionSegment[] {
+  const field = Math.max(0, fieldDuration)
+  if (field <= 0) return []
+
+  const base = getFieldCastTimings(
+    characterId,
+    opts.kitHoldSeconds ?? null,
+  )
+  const t = effectiveCastTimes(
+    characterId,
+    opts.mode ?? DEFAULT_TIMING_MODE,
+    opts.humanLag,
+    opts.skillVariant ??
+      defaultSkillVariant(characterId, opts.kitHoldSeconds ?? null),
+    opts.kitHoldSeconds ?? null,
+  )
+  const skillOn = !!opts.skill
+  const burstOn = !!opts.burst
+  const woven = skillOn && !!t.comboIncludesBurst
+  const order = opts.castOrder ?? 'skill-first'
+  const variant =
+    opts.skillVariant ??
+    defaultSkillVariant(characterId, opts.kitHoldSeconds ?? null)
+  const pair = skillVariantLabels(base.skillPairStyle ?? 'hold')
+  const skillLabel =
+    base.skillPairStyle === 'combo'
+      ? 'Expected on-field'
+      : base.skillHoldCast != null
+        ? variant === 'hold'
+          ? pair.hold
+          : pair.press
+        : 'Skill'
+
+  type Raw = { kind: FieldActionKind; label: string; start: number; end: number }
+  const raw: Raw[] = []
+
+  if (woven) {
+    // Expected on-field window from skill timing; burst preset is a separate slice.
+    const windowEnd = t.skillCast
+    if (burstOn && t.burstCast > 0) {
+      const burstLen = Math.min(t.burstCast, windowEnd)
+      if (order === 'burst-first') {
+        raw.push({
+          kind: 'burst',
+          label: 'Burst',
+          start: 0,
+          end: burstLen,
+        })
+        if (windowEnd > burstLen) {
+          raw.push({
+            kind: 'skill',
+            label: skillLabel,
+            start: burstLen,
+            end: windowEnd,
+          })
+        }
+      } else {
+        const skillEnd = Math.max(0, windowEnd - burstLen)
+        if (skillEnd > 0) {
+          raw.push({
+            kind: 'skill',
+            label: skillLabel,
+            start: 0,
+            end: skillEnd,
+          })
+        }
+        raw.push({
+          kind: 'burst',
+          label: 'Burst',
+          start: skillEnd,
+          end: windowEnd,
+        })
+      }
+    } else if (skillOn) {
+      raw.push({
+        kind: 'skill',
+        label: skillLabel,
+        start: 0,
+        end: windowEnd,
+      })
+    }
+  } else {
+    const skillCasts = resolveSkillCasts(characterId, {
+      skill: skillOn,
+      skillCasts: opts.skillCasts,
+      skillVariant: variant,
+      kitHoldSeconds: opts.kitHoldSeconds ?? null,
+    })
+    const multi = skillCasts > 1
+    const burstSeg =
+      burstOn && t.burstCast > 0
+        ? {
+            kind: 'burst' as const,
+            label: 'Burst',
+            len: t.burstCast,
+          }
+        : null
+
+    type Step = { kind: FieldActionKind; label: string; len: number }
+    const steps: Step[] = []
+    const pushSkills = () => {
+      for (let i = 0; i < skillCasts; i += 1) {
+        steps.push({
+          kind: 'skill',
+          label: multi ? `Skill ${i + 1}` : skillLabel,
+          len: t.skillCast,
+        })
+      }
+    }
+    const pushBurst = () => {
+      if (burstSeg) steps.push({ kind: 'burst', label: burstSeg.label, len: burstSeg.len })
+    }
+
+    if (order === 'burst-first') {
+      pushBurst()
+      pushSkills()
+    } else {
+      pushSkills()
+      pushBurst()
+    }
+
+    let cursor = 0
+    for (const step of steps) {
+      if (step.len <= 0) continue
+      const start = cursor
+      const end = round(cursor + step.len)
+      raw.push({ kind: step.kind, label: step.label, start, end })
+      cursor = end
+    }
+  }
+
+  const segments: FieldActionSegment[] = []
+  for (const seg of raw) {
+    const start = Math.max(0, Math.min(field, seg.start))
+    const end = Math.max(start, Math.min(field, seg.end))
+    if (end <= start) continue
+    segments.push({
+      id: `${seg.kind}-${segments.length}`,
+      kind: seg.kind,
+      label: seg.label,
+      start,
+      duration: round(end - start),
+    })
+  }
+
+  return segments
+}
+
 /** Normalize persisted placements that predate cast toggles / skill variant. */
 export function sanitizePlacementCasts(
   p: TimelinePlacementLike,
@@ -942,6 +1173,8 @@ export function sanitizePlacementCasts(
   castBurst: boolean
   castOrder: CastOrder
   skillVariant: SkillCastVariant
+  skillCasts: number
+  comboSteps: import('./types').ComboStep[]
   activeDurations: string[]
   durationOverrides: Record<string, number>
   /** True when skillVariant was missing and should refresh on-field duration */
@@ -949,15 +1182,54 @@ export function sanitizePlacementCasts(
 } {
   const characterId = p.characterId ?? ''
   const hadVariant = p.skillVariant === 'press' || p.skillVariant === 'hold'
+  const hadSkillCasts = typeof p.skillCasts === 'number' && Number.isFinite(p.skillCasts)
+  const skillVariant = parseSkillVariant(
+    p.skillVariant,
+    characterId,
+    kitHoldSeconds,
+  )
+  const skillCasts = clampSkillCasts(p.skillCasts, characterId, kitHoldSeconds)
+  const needsChargeBackfill =
+    !hadSkillCasts &&
+    usesDiscreteSkillCharges(characterId, kitHoldSeconds, skillVariant)
   return {
     castSkill: p.castSkill ?? true,
     castBurst: p.castBurst ?? defaultCastBurst(characterId, kitHoldSeconds),
     castOrder: parseCastOrder(p.castOrder),
-    skillVariant: parseSkillVariant(p.skillVariant, characterId, kitHoldSeconds),
+    skillVariant,
+    skillCasts,
+    comboSteps: sanitizeComboStepsLocal(p.comboSteps),
     activeDurations: Array.isArray(p.activeDurations) ? p.activeDurations : [],
     durationOverrides: sanitizeOverrides(p.durationOverrides),
-    migratedVariant: !hadVariant,
+    migratedVariant: !hadVariant || needsChargeBackfill,
   }
+}
+
+function sanitizeComboStepsLocal(raw: unknown): import('./types').ComboStep[] {
+  if (!Array.isArray(raw)) return []
+  const out: import('./types').ComboStep[] = []
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue
+    const e = entry as Record<string, unknown>
+    const actionId = typeof e.actionId === 'string' ? e.actionId.trim() : ''
+    if (!actionId) continue
+    const stateId =
+      typeof e.stateId === 'string' && e.stateId.trim()
+        ? e.stateId.trim()
+        : 'default'
+    const id =
+      typeof e.id === 'string' && e.id.trim()
+        ? e.id.trim()
+        : `cs-${Math.random().toString(36).slice(2, 10)}`
+    const gapRaw =
+      typeof e.gapAfter === 'number' ? e.gapAfter : Number(e.gapAfter)
+    const gapAfter =
+      Number.isFinite(gapRaw) && gapRaw > 0
+        ? Math.min(10, Math.round(gapRaw * 100) / 100)
+        : undefined
+    out.push({ id, actionId, stateId, gapAfter })
+  }
+  return out
 }
 
 function sanitizeOverrides(raw: unknown): Record<string, number> {
@@ -977,6 +1249,8 @@ interface TimelinePlacementLike {
   castBurst?: boolean
   castOrder?: CastOrder
   skillVariant?: SkillCastVariant
+  skillCasts?: number
+  comboSteps?: unknown
   activeDurations?: string[]
   durationOverrides?: Record<string, number>
 }

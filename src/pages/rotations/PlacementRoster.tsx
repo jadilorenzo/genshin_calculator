@@ -2,6 +2,7 @@ import {
   getArtifactDurationOptions,
   isArtifactDurationId,
 } from "./artifactDurationOptions";
+import { setCastDrag } from "./CharacterPalette";
 import { CharacterIcon } from "./CharacterIcon";
 import { getCharacter } from "./characters";
 import {
@@ -19,6 +20,9 @@ import {
   kitHoldChannelSeconds,
   parseCastOrder,
   parseSkillVariant,
+  clampSkillCasts,
+  getSkillCharges,
+  usesDiscreteSkillCharges,
   skillToggleLabel,
   skillVariantLabels,
   type CastOrder,
@@ -32,7 +36,8 @@ import {
   snapTime,
 } from "./timelineContinuous";
 import type { CharacterData, KitSkill, TimelinePlacement } from "./types";
-import type { SetStateAction } from "react";
+import type { DragEvent, SetStateAction } from "react";
+import { useRef } from "react";
 
 const joinClassNames = (
   ...parts: Array<string | false | null | undefined>
@@ -54,6 +59,8 @@ const withCastDefaults = (p: TimelinePlacement): TimelinePlacement => {
     castBurst: p.castBurst ?? true,
     castOrder: parseCastOrder(p.castOrder),
     skillVariant: parseSkillVariant(p.skillVariant, p.characterId, kitHold),
+    skillCasts: clampSkillCasts(p.skillCasts, p.characterId, kitHold),
+    comboSteps: Array.isArray(p.comboSteps) ? p.comboSteps : [],
     activeDurations: p.activeDurations ?? [],
     durationOverrides: p.durationOverrides ?? {},
   };
@@ -70,6 +77,7 @@ const durationOpts = (
     mode: timingMode,
     humanLag,
     skillVariant: p.skillVariant,
+    skillCasts: p.skillCasts,
     kitHoldSeconds: kitHoldFor(p.characterId),
   };
 };
@@ -231,6 +239,14 @@ export const PlacementRoster = ({
     });
   };
 
+  const handleSkillCasts = (skillCasts: number) => {
+    if (!selected) return;
+    applyCastPatch(selected.id, {
+      skillCasts,
+      castSkill: true,
+    });
+  };
+
   return (
     <section className="rotation-roster" aria-label="Placed characters">
       <h2 className="rotation-section-title">On timeline</h2>
@@ -265,6 +281,7 @@ export const PlacementRoster = ({
           onToggleCast={handleToggleCast}
           onCastOrder={handleCastOrder}
           onSkillVariant={handleSkillVariant}
+          onSkillCasts={handleSkillCasts}
         />
       ) : (
         <p className="field-note rotation-roster-hint">
@@ -337,6 +354,7 @@ const SelectedPlacementDetail = ({
   onToggleCast,
   onCastOrder,
   onSkillVariant,
+  onSkillCasts,
 }: {
   placement: TimelinePlacement;
   timingMode: TimingMode;
@@ -350,6 +368,7 @@ const SelectedPlacementDetail = ({
   onToggleCast: (key: "castSkill" | "castBurst", value: boolean) => void;
   onCastOrder: (order: CastOrder) => void;
   onSkillVariant: (variant: SkillCastVariant) => void;
+  onSkillCasts: (casts: number) => void;
 }) => {
   const char = getCharacter(placement.characterId);
   if (!char) return null;
@@ -358,7 +377,6 @@ const SelectedPlacementDetail = ({
   const canHold = hasSkillHold(char.id, kitHold);
   const base = getFieldCastTimings(char.id, kitHold);
   const pairLabels = skillVariantLabels(base.skillPairStyle ?? "hold");
-  const combo = !!base.comboIncludesBurst;
   const skillLabel = skillToggleLabel(char.id, kitHold);
   const effective = effectiveCastTimes(
     char.id,
@@ -367,6 +385,7 @@ const SelectedPlacementDetail = ({
     placement.skillVariant,
     kitHold,
   );
+  const combo = !!effective.comboIncludesBurst;
   const kitOptions = getKitEffectOptions(char);
   const cooldownOptions = getKitCooldownOptions(char);
   const artifactOptions = getArtifactDurationOptions(char);
@@ -446,6 +465,7 @@ const SelectedPlacementDetail = ({
             onToggleCast={onToggleCast}
             onCastOrder={onCastOrder}
             onSkillVariant={onSkillVariant}
+            onSkillCasts={onSkillCasts}
           />
         </div>
 
@@ -564,6 +584,7 @@ const CastControls = ({
   onToggleCast,
   onCastOrder,
   onSkillVariant,
+  onSkillCasts,
 }: {
   placement: TimelinePlacement;
   characterId: string;
@@ -582,7 +603,9 @@ const CastControls = ({
   onToggleCast: (key: "castSkill" | "castBurst", value: boolean) => void;
   onCastOrder: (order: CastOrder) => void;
   onSkillVariant: (variant: SkillCastVariant) => void;
+  onSkillCasts: (casts: number) => void;
 }) => {
+  const dragMovedRef = useRef(false);
   const castKinds =
     placement.castOrder === "burst-first"
       ? (["burst", "skill"] as const)
@@ -603,25 +626,69 @@ const CastControls = ({
     kitHold,
   );
 
+  const maxCharges = getSkillCharges(characterId, kitHold);
+  const discreteCharges = usesDiscreteSkillCharges(
+    characterId,
+    kitHold,
+    placement.skillVariant,
+  );
+  const skillCasts = clampSkillCasts(
+    placement.skillCasts,
+    characterId,
+    kitHold,
+  );
+  const skillTotalSeconds = placement.castSkill
+    ? effective.skillCast *
+      (discreteCharges ? skillCasts : 1)
+    : 0;
+
   const skillTitle = () => {
-    return skill?.name
+    const baseTitle = skill?.name
       ? `${skill.name} · frame ${frameSkill.toFixed(2)}s`
       : `${skillLabel} · frame ${frameSkill.toFixed(2)}s`;
+    if (discreteCharges && maxCharges > 1) {
+      return `${baseTitle} · ${skillCasts}/${maxCharges} charges · drag to timeline`;
+    }
+    return `${baseTitle} · drag to timeline`;
   };
 
   const burstTitle = () => {
     if (combo) {
-      return "Extra standalone burst (combo already includes woven bursts)";
+      return "Expected on-field already weaves burst — this adds a standalone Burst · drag to timeline";
     }
     return burst?.name
-      ? `${burst.name} · frame ${base.burstCast.toFixed(2)}s`
-      : `Burst · frame ${base.burstCast.toFixed(2)}s`;
+      ? `${burst.name} · frame ${base.burstCast.toFixed(2)}s · drag to timeline`
+      : `Burst · frame ${base.burstCast.toFixed(2)}s · drag to timeline`;
   };
 
   const toggleCastOrder = () => {
     onCastOrder(
       placement.castOrder === "burst-first" ? "skill-first" : "burst-first",
     );
+  };
+
+  const onCastDragStart = (e: DragEvent, kind: "skill" | "burst") => {
+    dragMovedRef.current = true;
+    setCastDrag(e, {
+      characterId,
+      kind,
+      skillVariant: placement.skillVariant,
+      skillCasts,
+    });
+  };
+
+  const onCastDragEnd = () => {
+    window.setTimeout(() => {
+      dragMovedRef.current = false;
+    }, 0);
+  };
+
+  const onCastClick = (key: "castSkill" | "castBurst", value: boolean) => {
+    if (dragMovedRef.current) {
+      dragMovedRef.current = false;
+      return;
+    }
+    onToggleCast(key, value);
   };
 
   return (
@@ -633,12 +700,16 @@ const CastControls = ({
               key="skill"
               type="button"
               className={joinClassNames("chip compact", placement.castSkill && "active")}
-              onClick={() => onToggleCast("castSkill", !placement.castSkill)}
+              draggable
+              onDragStart={(e) => onCastDragStart(e, "skill")}
+              onDragEnd={onCastDragEnd}
+              onClick={() => onCastClick("castSkill", !placement.castSkill)}
               title={skillTitle()}
             >
               {skillLabel}
+              {discreteCharges && skillCasts > 1 ? `×${skillCasts}` : ""}
               <span className="rotation-dur-chip-secs">
-                {effective.skillCast.toFixed(2)}s
+                {skillTotalSeconds.toFixed(2)}s
               </span>
             </button>
           ) : (
@@ -646,7 +717,10 @@ const CastControls = ({
               key="burst"
               type="button"
               className={joinClassNames("chip compact", placement.castBurst && "active")}
-              onClick={() => onToggleCast("castBurst", !placement.castBurst)}
+              draggable
+              onDragStart={(e) => onCastDragStart(e, "burst")}
+              onDragEnd={onCastDragEnd}
+              onClick={() => onCastClick("castBurst", !placement.castBurst)}
               title={burstTitle()}
             >
               Burst
@@ -656,7 +730,7 @@ const CastControls = ({
             </button>
           ),
         )}
-        {placement.castSkill && placement.castBurst && !combo ? (
+        {placement.castSkill && placement.castBurst ? (
           <button
             type="button"
             className="chip compact"
@@ -671,6 +745,32 @@ const CastControls = ({
           </button>
         ) : null}
       </div>
+      {discreteCharges && maxCharges > 1 ? (
+        <div
+          className="chip-row wrap"
+          role="group"
+          aria-label="Skill charges to use"
+        >
+          {Array.from({ length: maxCharges }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={joinClassNames(
+                "chip compact",
+                placement.castSkill && skillCasts === n && "active",
+              )}
+              disabled={!placement.castSkill}
+              onClick={() => onSkillCasts(n)}
+              title={`Use ${n} skill charge${n === 1 ? "" : "s"}`}
+            >
+              E×{n}
+              <span className="rotation-dur-chip-secs">
+                {(effective.skillCast * n).toFixed(2)}s
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
       {canHold ? (
         <div
           className="chip-row wrap"

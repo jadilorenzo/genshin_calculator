@@ -79,6 +79,18 @@ export interface CharacterKitsFile {
 /** Order of skill vs burst casts within an on-field window. */
 export type CastOrder = 'skill-first' | 'burst-first'
 
+/** One step in a fine-grained inspect combo sequence. */
+export type ComboStep = {
+  /** Instance id for drag/drop keys */
+  id: string
+  /** Animation timing action id (e.g. na1, skill, burst) */
+  actionId: string
+  /** Animation state id; defaults to "default" */
+  stateId?: string
+  /** Idle seconds after this step (spacing) */
+  gapAfter?: number
+}
+
 /** A character placement on the rotation timeline. */
 export interface TimelinePlacement {
   id: string
@@ -95,6 +107,16 @@ export interface TimelinePlacement {
   castOrder: CastOrder
   /** Press vs hold skill when the kit supports both (defaults to hold) */
   skillVariant: 'press' | 'hold'
+  /**
+   * How many Elemental Skill charges to use this field window
+   * (Sucrose EE = 2). Clamped to the character's skillCharges.
+   */
+  skillCasts: number
+  /**
+   * Fine combo sequence for inspect timeline. When non-empty, drives the
+   * under-block action strip instead of coarse Skill/Burst presets.
+   */
+  comboSteps: ComboStep[]
   /** Selected kit duration overlays (e.g. "skill:Shield Duration") */
   activeDurations: string[]
   /**

@@ -11,7 +11,7 @@ import {
   type SetStateAction,
 } from "react";
 import { getCharacter } from "./characters";
-import { readCharacterDrag } from "./CharacterPalette";
+import { readCastDrag, readCharacterDrag } from "./CharacterPalette";
 import { CharacterIcon } from "./CharacterIcon";
 import {
   effectStartOffset,
@@ -22,11 +22,19 @@ import {
 import {
   castTimingOffsets,
   defaultOnFieldDuration,
+  defaultSkillCasts,
   defaultSkillVariant,
+  fieldActionSegments,
   kitHoldChannelSeconds,
   parseCastOrder,
   type TimingMode,
 } from "./fieldTimings";
+import {
+  comboActionFamily,
+  packComboSteps,
+  placementUsesComboSteps,
+  shortActionLabel,
+} from "./comboSequence";
 import {
   MIN_ON_FIELD,
   adjustHandoffAfter,
@@ -47,8 +55,15 @@ const MIN_PX_PER_SEC = 18;
 const MAX_PX_PER_SEC = 180;
 export const TIMELINE_SECONDS = 30;
 
-const BLOCK_ROW_HEIGHT = 5.75;
-const LANE_HEIGHT = BLOCK_ROW_HEIGHT + 5.25;
+const BLOCK_ROW_HEIGHT = 4;
+const ACTION_STRIP_HEIGHT = 1.05;
+/** Extra lane padding in the editor so centered blocks have room for names. */
+const LANE_PAD = 3.75;
+const LANE_HEIGHT = BLOCK_ROW_HEIGHT + ACTION_STRIP_HEIGHT + LANE_PAD;
+/** Room above blocks for character name chips (preview top-align). */
+const PREVIEW_NAME_GAP = 1.55;
+const PREVIEW_LANE_HEIGHT =
+  PREVIEW_NAME_GAP + BLOCK_ROW_HEIGHT + ACTION_STRIP_HEIGHT + 0.35;
 const DURATION_ROW_HEIGHT = 1.55;
 
 const clamp = (n: number, min: number, max: number) => {
@@ -107,6 +122,15 @@ interface RotationTimelineProps {
   onHistoryGestureEnd?: () => void;
   /** View-only preview (no drag / remove / drop). */
   readOnly?: boolean;
+  /** Hide kit / artifact / CD duration overlay lanes. */
+  hideDurationOverlays?: boolean;
+  /**
+   * Lock horizontal zoom as a fraction of the default (e.g. 0.75).
+   * Disables wheel zoom and toolbar zoom controls.
+   */
+  fixedZoomScale?: number;
+  /** Hide the Timeline heading / zoom toolbar. */
+  hideToolbar?: boolean;
 }
 
 const majorTickStep = (pxPerSec: number) => {
@@ -147,6 +171,7 @@ const buildDurationRows = (
       mode: timingMode,
       humanLag,
       skillVariant: placement.skillVariant,
+      skillCasts: placement.skillCasts,
       kitHoldSeconds: kitHold,
     });
     const options = getDurationOptions(character);
@@ -201,6 +226,9 @@ export const RotationTimeline = ({
   onHistoryGestureStart,
   onHistoryGestureEnd,
   readOnly = false,
+  hideDurationOverlays = false,
+  fixedZoomScale,
+  hideToolbar = false,
 }: RotationTimelineProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -208,8 +236,18 @@ export const RotationTimeline = ({
   const switchBufferRef = useRef(switchBuffer);
   const timingModeRef = useRef(timingMode);
   const humanLagRef = useRef(humanLag);
-  const pxPerSecRef = useRef(DEFAULT_PX_PER_SEC);
-  const [pxPerSec, setPxPerSec] = useState(DEFAULT_PX_PER_SEC);
+  const lockedPxPerSec =
+    fixedZoomScale != null && Number.isFinite(fixedZoomScale)
+      ? clamp(
+          DEFAULT_PX_PER_SEC * fixedZoomScale,
+          MIN_PX_PER_SEC,
+          MAX_PX_PER_SEC,
+        )
+      : null;
+  const pxPerSecRef = useRef(lockedPxPerSec ?? DEFAULT_PX_PER_SEC);
+  const [pxPerSec, setPxPerSec] = useState(
+    lockedPxPerSec ?? DEFAULT_PX_PER_SEC,
+  );
   const [dragOver, setDragOver] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -247,6 +285,13 @@ export const RotationTimeline = ({
   }, [pxPerSec]);
 
   useEffect(() => {
+    if (lockedPxPerSec == null) return;
+    pxPerSecRef.current = lockedPxPerSec;
+    setPxPerSec(lockedPxPerSec);
+  }, [lockedPxPerSec]);
+
+  useEffect(() => {
+    if (readOnly) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Delete" && e.key !== "Backspace") return;
       const target = e.target as HTMLElement | null;
@@ -263,11 +308,11 @@ export const RotationTimeline = ({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onChange, onSelectPlacement]);
+  }, [onChange, onSelectPlacement, readOnly]);
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || lockedPxPerSec != null) return;
 
     const onWheel = (e: WheelEvent) => {
       const absX = Math.abs(e.deltaX);
@@ -284,7 +329,7 @@ export const RotationTimeline = ({
       if (absY === 0) return;
 
       e.preventDefault();
-      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      const factor = e.deltaY < 0 ? 1.05 : 1 / 1.05;
       const prev = pxPerSecRef.current;
       const next = clamp(prev * factor, MIN_PX_PER_SEC, MAX_PX_PER_SEC);
       if (next === prev) return;
@@ -302,7 +347,7 @@ export const RotationTimeline = ({
 
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [lockedPxPerSec]);
 
   const coverageEnd = useMemo(
     () => rotationCycleLength(placements, switchBuffer),
@@ -324,14 +369,23 @@ export const RotationTimeline = ({
   );
   const durationRows = useMemo(
     () =>
-      buildDurationRows(
-        placements,
-        timingMode,
-        humanLag,
-        showLoop,
-        cycleLength,
-      ),
-    [placements, timingMode, humanLag, showLoop, cycleLength],
+      hideDurationOverlays
+        ? []
+        : buildDurationRows(
+            placements,
+            timingMode,
+            humanLag,
+            showLoop,
+            cycleLength,
+          ),
+    [
+      hideDurationOverlays,
+      placements,
+      timingMode,
+      humanLag,
+      showLoop,
+      cycleLength,
+    ],
   );
   const durationLaneCount = useMemo(() => {
     return new Set(durationRows.map((row) => row.lane)).size;
@@ -344,8 +398,13 @@ export const RotationTimeline = ({
   const width = displayEnd * pxPerSec;
   const majorEvery = majorTickStep(pxPerSec);
   const durationsHeight = Math.max(durationLaneCount * DURATION_ROW_HEIGHT, 0);
-  const trackMinHeight =
-    3.5 + LANE_HEIGHT + (durationLaneCount ? 0.85 + durationsHeight : 1.5);
+  const previewLayout = hideDurationOverlays;
+  const laneHeight = previewLayout ? PREVIEW_LANE_HEIGHT : LANE_HEIGHT;
+  const trackMinHeight = previewLayout
+    ? 1.45 + laneHeight + 0.45
+    : 3.5 +
+      LANE_HEIGHT +
+      (durationLaneCount ? 0.85 + durationsHeight : 1.5);
 
   const timeFromClientX = useCallback((clientX: number) => {
     const scroll = scrollRef.current;
@@ -394,7 +453,9 @@ export const RotationTimeline = ({
   const handleDrop = (e: DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const characterId = readCharacterDrag(e);
+
+    const cast = readCastDrag(e);
+    const characterId = cast?.characterId ?? readCharacterDrag(e);
     if (!characterId || !getCharacter(characterId)) return;
 
     const raw = timeFromClientX(e.clientX);
@@ -406,23 +467,31 @@ export const RotationTimeline = ({
     const kitHold = kitHoldChannelSeconds(
       getCharacter(characterId)?.kit.elementalSkill ?? null,
     );
-    const skillVariant = defaultSkillVariant(characterId, kitHold);
+    const skillVariant =
+      cast?.skillVariant ?? defaultSkillVariant(characterId, kitHold);
+    const skillCasts =
+      cast?.skillCasts ?? defaultSkillCasts(characterId, kitHold);
+    const castSkill = cast ? cast.kind === "skill" : true;
+    const castBurst = cast ? cast.kind === "burst" : true;
     const next: TimelinePlacement = {
       id: createPlacementId(),
       characterId,
       start: at,
       duration: defaultOnFieldDuration(characterId, {
-        skill: true,
-        burst: true,
+        skill: castSkill,
+        burst: castBurst,
         mode: timingModeRef.current,
         humanLag: humanLagRef.current,
         skillVariant,
+        skillCasts,
         kitHoldSeconds: kitHold,
       }),
-      castSkill: true,
-      castBurst: true,
+      castSkill,
+      castBurst,
       castOrder: "skill-first",
       skillVariant,
+      skillCasts,
+      comboSteps: [],
       activeDurations: [],
       durationOverrides: {},
     };
@@ -493,6 +562,7 @@ export const RotationTimeline = ({
     id: string,
     mode: "resize-right" | "resize-left",
   ) => {
+    if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
     const placement = placementsRef.current.find((p) => p.id === id);
@@ -513,6 +583,7 @@ export const RotationTimeline = ({
   };
 
   const beginMove = (e: ReactPointerEvent, id: string) => {
+    if (readOnly) return;
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
@@ -561,6 +632,10 @@ export const RotationTimeline = ({
         pxPerSec={pxPerSec}
         selected={selectedId === placement.id}
         moving={movingId === placement.id}
+        timingMode={timingMode}
+        humanLag={humanLag}
+        readOnly={readOnly}
+        previewLayout={previewLayout}
         onSelect={selectBlock}
         onHoverEnter={(id) => setHoveredId(id)}
         onHoverLeave={(id) =>
@@ -585,17 +660,26 @@ export const RotationTimeline = ({
   };
 
   return (
-    <section className="rotation-timeline" aria-label="Rotation timeline">
-      <TimelineToolbar
-        hasSelection={selectedId != null}
-        hasPlacements={placements.length > 0}
-        readOnly={readOnly}
-        onZoomOut={zoomOut}
-        onZoomIn={zoomIn}
-        onFit={fitToFirstRotation}
-        onRemove={removeSelected}
-        onClear={clearAll}
-      />
+    <section
+      className={joinClassNames(
+        "rotation-timeline",
+        hideDurationOverlays && "preview",
+      )}
+      aria-label="Rotation timeline"
+    >
+      {hideToolbar ? null : (
+        <TimelineToolbar
+          hasSelection={selectedId != null}
+          hasPlacements={placements.length > 0}
+          readOnly={readOnly}
+          lockZoom={lockedPxPerSec != null}
+          onZoomOut={zoomOut}
+          onZoomIn={zoomIn}
+          onFit={fitToFirstRotation}
+          onRemove={removeSelected}
+          onClear={clearAll}
+        />
+      )}
 
       <div className="rotation-timeline-scroll" ref={scrollRef}>
         <div
@@ -627,10 +711,12 @@ export const RotationTimeline = ({
 
           <div
             className="rotation-lane"
-            style={{ height: `${LANE_HEIGHT}rem` }}
+            style={{ height: `${laneHeight}rem` }}
           >
             {placements.length === 0 ? (
-              <p className="rotation-drop-hint">Drop characters here</p>
+              <p className="rotation-drop-hint">
+                Drop characters or casts here
+              </p>
             ) : null}
             {renderBlocks(false)}
             {showLoop ? renderBlocks(true) : null}
@@ -659,14 +745,16 @@ export const RotationTimeline = ({
             ) : null}
           </div>
 
-          <DurationLanes
-            rows={durationRows}
-            laneCount={durationLaneCount}
-            height={durationsHeight}
-            rowHeight={DURATION_ROW_HEIGHT}
-            pxPerSec={pxPerSec}
-            emptyMessage={durationEmptyMessage(placements.length)}
-          />
+          {hideDurationOverlays ? null : (
+            <DurationLanes
+              rows={durationRows}
+              laneCount={durationLaneCount}
+              height={durationsHeight}
+              rowHeight={DURATION_ROW_HEIGHT}
+              pxPerSec={pxPerSec}
+              emptyMessage={durationEmptyMessage(placements.length)}
+            />
+          )}
         </div>
       </div>
     </section>
@@ -677,6 +765,7 @@ const TimelineToolbar = ({
   hasSelection,
   hasPlacements,
   readOnly,
+  lockZoom,
   onZoomOut,
   onZoomIn,
   onFit,
@@ -686,6 +775,7 @@ const TimelineToolbar = ({
   hasSelection: boolean;
   hasPlacements: boolean;
   readOnly?: boolean;
+  lockZoom?: boolean;
   onZoomOut: () => void;
   onZoomIn: () => void;
   onFit: () => void;
@@ -696,20 +786,24 @@ const TimelineToolbar = ({
     <div className="rotation-timeline-head">
       <h2 className="rotation-section-title">Timeline</h2>
       <div className="rotation-timeline-actions">
-        <button type="button" className="chip compact" onClick={onZoomOut}>
-          −
-        </button>
-        <button
-          type="button"
-          className="chip compact"
-          title="Fit zoom to first rotation (0 → end)"
-          onClick={onFit}
-        >
-          1
-        </button>
-        <button type="button" className="chip compact" onClick={onZoomIn}>
-          +
-        </button>
+        {lockZoom ? null : (
+          <>
+            <button type="button" className="chip compact" onClick={onZoomOut}>
+              −
+            </button>
+            <button
+              type="button"
+              className="chip compact"
+              title="Fit zoom to first rotation (0 → end)"
+              onClick={onFit}
+            >
+              1
+            </button>
+            <button type="button" className="chip compact" onClick={onZoomIn}>
+              +
+            </button>
+          </>
+        )}
         {readOnly ? null : (
           <>
             <button
@@ -770,6 +864,10 @@ const TimelineBlock = ({
   pxPerSec,
   selected,
   moving,
+  timingMode,
+  humanLag,
+  readOnly,
+  previewLayout,
   onSelect,
   onHoverEnter,
   onHoverLeave,
@@ -783,6 +881,10 @@ const TimelineBlock = ({
   pxPerSec: number;
   selected: boolean;
   moving: boolean;
+  timingMode: TimingMode;
+  humanLag: number;
+  readOnly?: boolean;
+  previewLayout?: boolean;
   onSelect: (id: string) => void;
   onHoverEnter: (id: string) => void;
   onHoverLeave: (id: string) => void;
@@ -800,6 +902,46 @@ const TimelineBlock = ({
     placement.duration * pxPerSec,
     MIN_ON_FIELD * pxPerSec,
   );
+
+  const kitHold = kitHoldChannelSeconds(character.kit.elementalSkill);
+  const actionSegments = placementUsesComboSteps(placement)
+    ? packComboSteps(placement.characterId, placement.comboSteps).segments.map(
+        (seg) => ({
+          id: seg.stepId,
+          kind: comboActionFamily(seg.kind),
+          label: seg.label,
+          shortLabel: shortActionLabel(seg.label, seg.actionId || seg.kind),
+          start: seg.start,
+          duration: seg.duration,
+        }),
+      )
+    : fieldActionSegments(placement.characterId, placement.duration, {
+        skill: placement.castSkill ?? true,
+        burst: placement.castBurst ?? true,
+        castOrder: parseCastOrder(placement.castOrder),
+        mode: timingMode,
+        humanLag,
+        skillVariant: placement.skillVariant,
+        skillCasts: placement.skillCasts,
+        kitHoldSeconds: kitHold,
+      }).map((seg) => ({
+        ...seg,
+        shortLabel: shortActionLabel(seg.label, seg.kind),
+      }));
+
+  // Clamp strip drawing to the on-field window width.
+  const fieldDuration = placement.duration;
+  const visibleSegments = actionSegments
+    .map((seg) => {
+      const start = Math.max(0, Math.min(fieldDuration, seg.start));
+      const end = Math.max(
+        start,
+        Math.min(fieldDuration, seg.start + seg.duration),
+      );
+      if (end <= start) return null;
+      return { ...seg, start, duration: end - start };
+    })
+    .filter((seg): seg is NonNullable<typeof seg> => seg != null);
 
   const handleClick = (e: ReactMouseEvent) => {
     e.stopPropagation();
@@ -826,9 +968,9 @@ const TimelineBlock = ({
       style={{
         left: start * pxPerSec,
         width,
-        top: "50%",
-        transform: "translateY(-50%)",
-        height: `${BLOCK_ROW_HEIGHT}rem`,
+        top: previewLayout ? `${PREVIEW_NAME_GAP}rem` : "50%",
+        transform: previewLayout ? "none" : "translateY(-50%)",
+        height: `${BLOCK_ROW_HEIGHT + ACTION_STRIP_HEIGHT}rem`,
       }}
     >
       <span className="rotation-block-name">{character.name}</span>
@@ -839,6 +981,7 @@ const TimelineBlock = ({
           !loop && selected && "selected",
           !loop && moving && "moving",
         )}
+        style={{ height: `${BLOCK_ROW_HEIGHT}rem` }}
         data-element={character.element}
         aria-hidden={loop || undefined}
         aria-label={
@@ -850,7 +993,7 @@ const TimelineBlock = ({
         onPointerLeave={loop ? undefined : () => onHoverLeave(placement.id)}
         onClick={loop ? undefined : handleClick}
       >
-        {loop ? null : (
+        {loop || readOnly ? null : (
           <button
             type="button"
             className="rotation-block-resize left"
@@ -860,8 +1003,12 @@ const TimelineBlock = ({
         )}
         <div
           className="rotation-block-body"
-          onPointerDown={loop ? undefined : (e) => onBeginMove(e, placement.id)}
-          title={loop ? undefined : "Drag to reorder"}
+          onPointerDown={
+            loop || readOnly
+              ? undefined
+              : (e) => onBeginMove(e, placement.id)
+          }
+          title={loop || readOnly ? undefined : "Drag to reorder"}
         >
           {icon}
           <span className="rotation-block-copy">
@@ -871,7 +1018,7 @@ const TimelineBlock = ({
             </span>
           </span>
         </div>
-        {loop ? null : (
+        {loop || readOnly ? null : (
           <button
             type="button"
             className="rotation-block-resize right"
@@ -881,6 +1028,35 @@ const TimelineBlock = ({
             }
           />
         )}
+      </div>
+      <div
+        className={joinClassNames(
+          "rotation-block-actions",
+          loop && "loop",
+          !loop && selected && "selected",
+        )}
+        style={{ height: `${ACTION_STRIP_HEIGHT}rem` }}
+        aria-hidden={loop || undefined}
+        aria-label={loop ? undefined : `${character.name} actions`}
+      >
+        {visibleSegments.map((seg) => {
+          const segWidth = Math.max(seg.duration * pxPerSec, 1);
+          return (
+            <span
+              key={seg.id}
+              className={`rotation-block-action kind-${seg.kind}`}
+              style={{
+                left: seg.start * pxPerSec,
+                width: segWidth,
+              }}
+              title={`${seg.label} · ${seg.duration.toFixed(2)}s`}
+            >
+              <span className="rotation-block-action-label">
+                {seg.shortLabel}
+              </span>
+            </span>
+          );
+        })}
       </div>
     </div>
   );

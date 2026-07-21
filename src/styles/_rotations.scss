@@ -628,6 +628,8 @@
   position: absolute;
   overflow: visible;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .rotation-block-shell.loop {
@@ -637,11 +639,11 @@
 .rotation-block {
   position: relative;
   width: 100%;
-  height: 100%;
+  flex: 0 0 auto;
   min-width: 0;
   padding: 0;
   border: 1px solid var(--block-border, var(--gold-hover));
-  border-radius: 2px;
+  border-radius: 2px 2px 0 0;
   background: var(--chip-surface);
   color: var(--mist);
   cursor: pointer;
@@ -791,8 +793,8 @@
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.4rem 0.5rem;
+  gap: 0.4rem;
+  padding: 0.3rem 0.45rem;
   overflow: hidden;
   box-sizing: border-box;
   cursor: grab;
@@ -810,9 +812,9 @@
 }
 
 .rotation-block-icon {
-  flex: 0 0 3.75rem;
-  width: 3.75rem;
-  height: 3.75rem;
+  flex: 0 0 2.85rem;
+  width: 2.85rem;
+  height: 2.85rem;
   border-radius: 2px;
   object-fit: cover;
   object-position: center top;
@@ -872,6 +874,370 @@
 
 .rotation-block-resize:hover {
   background: var(--gold-soft);
+}
+
+.rotation-block-actions {
+  position: relative;
+  width: 100%;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  border: 1px solid var(--block-border, var(--gold-hover));
+  border-top: none;
+  border-radius: 0 0 2px 2px;
+  background: color-mix(in srgb, var(--panel) 92%, var(--chip-surface));
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.rotation-block-actions.selected {
+  border-color: var(--block-fill-strong, var(--gold));
+}
+
+.rotation-block-actions.loop {
+  opacity: 0.38;
+  filter: grayscale(0.35);
+  border-style: dashed;
+  border-top-style: none;
+}
+
+.rotation-block-action {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-right: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.rotation-block-action:last-child {
+  border-right: none;
+}
+
+.rotation-block-action-label {
+  padding: 0 0.2rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  line-height: 1;
+  color: var(--fog);
+}
+
+.rotation-block-action.kind-skill {
+  background: color-mix(in srgb, #6fa8c9 42%, transparent);
+}
+
+.rotation-block-action.kind-skill .rotation-block-action-label {
+  color: color-mix(in srgb, #9ec9e0 70%, var(--text));
+}
+
+.rotation-block-action.kind-burst {
+  background: color-mix(in srgb, #c97a6f 42%, transparent);
+}
+
+.rotation-block-action.kind-burst .rotation-block-action-label {
+  color: color-mix(in srgb, #e0a89f 70%, var(--text));
+}
+
+.rotation-block-action.kind-na {
+  background: color-mix(in srgb, var(--mist) 35%, transparent);
+}
+
+.rotation-block-action.kind-na .rotation-block-action-label {
+  color: color-mix(in srgb, var(--mist) 70%, var(--text));
+}
+
+.rotation-block-action.kind-ca {
+  background: color-mix(in srgb, #c4a35a 40%, transparent);
+}
+
+.rotation-block-action.kind-ca .rotation-block-action-label {
+  color: color-mix(in srgb, #d4b87a 70%, var(--text));
+}
+
+.rotation-block-action.kind-dash,
+.rotation-block-action.kind-other {
+  background: color-mix(in srgb, var(--muted) 28%, transparent);
+}
+
+.rotation-block-action.kind-dash .rotation-block-action-label,
+.rotation-block-action.kind-other .rotation-block-action-label {
+  color: var(--muted);
+}
+
+.combo-inspect {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--panel);
+  box-shadow: var(--panel-shadow);
+}
+
+.combo-inspect-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.combo-inspect-titles {
+  min-width: 0;
+  flex: 1 1 14rem;
+}
+
+.combo-inspect-titles .field-note {
+  margin: 0.2rem 0 0;
+}
+
+.combo-inspect-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.combo-inspect-total {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fog);
+  margin-right: 0.25rem;
+}
+
+.combo-inspect-states {
+  margin: 0;
+}
+
+.combo-inspect-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.combo-inspect-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--chip-surface) 90%, transparent);
+  color: var(--mist);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: grab;
+  touch-action: none;
+}
+
+.combo-inspect-chip:active {
+  cursor: grabbing;
+}
+
+.combo-inspect-chip-secs {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.combo-inspect-chip.kind-na {
+  border-color: color-mix(in srgb, var(--mist) 45%, var(--line));
+}
+
+.combo-inspect-chip.kind-ca {
+  border-color: color-mix(in srgb, #c4a35a 50%, var(--line));
+}
+
+.combo-inspect-chip.kind-skill {
+  border-color: color-mix(in srgb, #6fa8c9 55%, var(--line));
+}
+
+.combo-inspect-chip.kind-burst {
+  border-color: color-mix(in srgb, #c97a6f 55%, var(--line));
+}
+
+.combo-inspect-chip.kind-dash,
+.combo-inspect-chip.kind-other {
+  border-color: color-mix(in srgb, var(--muted) 40%, var(--line));
+}
+
+.combo-inspect-lane {
+  min-height: 3.25rem;
+  padding: 0.55rem;
+  border: 1px dashed color-mix(in srgb, var(--line) 80%, var(--muted));
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--chip-surface) 70%, transparent);
+  overflow-x: auto;
+}
+
+.combo-inspect-empty {
+  display: grid;
+  place-items: center;
+  min-height: 2.5rem;
+  padding: 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.combo-inspect-empty.drop-target {
+  outline: 1px solid var(--gold);
+  background: color-mix(in srgb, var(--gold-soft) 35%, transparent);
+}
+
+.combo-inspect-track {
+  display: flex;
+  align-items: stretch;
+  min-width: min-content;
+  min-height: 2.4rem;
+  gap: 0;
+}
+
+.combo-inspect-step-wrap {
+  display: flex;
+  align-items: stretch;
+}
+
+.combo-inspect-drop {
+  flex: 0 0 0.45rem;
+  align-self: stretch;
+  border-radius: 1px;
+  transition:
+    background-color 120ms ease,
+    flex-basis 120ms ease;
+}
+
+.combo-inspect-drop.active,
+.combo-inspect-drop.end.active {
+  flex-basis: 0.7rem;
+  background: var(--gold);
+}
+
+.combo-inspect-drop.end {
+  flex: 1 0 2rem;
+  min-width: 2rem;
+}
+
+.combo-inspect-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+  min-width: 0;
+  padding: 0.35rem 0.45rem 0.35rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  box-sizing: border-box;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  overflow: hidden;
+}
+
+.combo-inspect-step:active {
+  cursor: grabbing;
+}
+
+.combo-inspect-step.incomplete {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+.combo-inspect-step.kind-na {
+  background: color-mix(in srgb, var(--mist) 28%, var(--chip-surface));
+}
+
+.combo-inspect-step.kind-ca {
+  background: color-mix(in srgb, #c4a35a 32%, var(--chip-surface));
+}
+
+.combo-inspect-step.kind-skill {
+  background: color-mix(in srgb, #6fa8c9 35%, var(--chip-surface));
+}
+
+.combo-inspect-step.kind-burst {
+  background: color-mix(in srgb, #c97a6f 35%, var(--chip-surface));
+}
+
+.combo-inspect-step.kind-dash,
+.combo-inspect-step.kind-other {
+  background: color-mix(in srgb, var(--muted) 22%, var(--chip-surface));
+}
+
+.combo-inspect-step-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 0.9rem;
+}
+
+.combo-inspect-step-time {
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fog);
+}
+
+.combo-inspect-step-remove {
+  position: absolute;
+  top: 0.1rem;
+  right: 0.1rem;
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  border: none;
+  border-radius: 1px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.combo-inspect-step-remove:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+}
+
+.combo-inspect-gap {
+  display: flex;
+  align-items: center;
+  margin: 0 0.1rem;
+}
+
+.combo-inspect-gap input {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0.2rem 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.combo-inspect-gap input:hover,
+.combo-inspect-gap input:focus {
+  border-color: var(--line);
+  background: var(--chip-surface);
+  color: var(--mist);
+  outline: none;
 }
 
 .rotation-roster {
@@ -1169,6 +1535,14 @@
 .rotation-cast-stack {
   display: grid;
   gap: 0.4rem;
+
+  > .chip-row:first-child .chip[draggable="true"] {
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
 }
 
 .rotation-cast-toggles {
@@ -1349,6 +1723,89 @@
   gap: 0.35rem;
 }
 
+.rotation-card-preview {
+  margin: 0.35rem 0 0;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--row-surface);
+  pointer-events: none;
+
+  .rotation-timeline {
+    margin: 0;
+  }
+
+  .rotation-timeline-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0;
+  }
+
+  .rotation-track {
+    min-height: 0 !important;
+    padding-bottom: 0.2rem;
+  }
+
+  .rotation-lane {
+    margin-top: 1.35rem;
+  }
+
+  .rotation-block {
+    height: 3.65rem !important;
+  }
+
+  .rotation-block-shell {
+    height: 4.85rem !important;
+  }
+
+  .rotation-block-body {
+    padding: 0.22rem 0.35rem;
+    gap: 0.3rem;
+  }
+
+  .rotation-block-icon {
+    flex-basis: 2.55rem;
+    width: 2.55rem;
+    height: 2.55rem;
+  }
+
+  .rotation-block-name {
+    font-size: 0.7rem;
+    bottom: calc(100% + 0.12rem);
+  }
+
+  .rotation-block-actions {
+    height: 1.2rem !important;
+  }
+
+  .rotation-block-action-label {
+    font-size: 0.58rem;
+  }
+
+  .rotation-drop-hint {
+    display: none;
+  }
+}
+
+.rotation-preview {
+  .rotation-timeline-actions:empty {
+    display: none;
+  }
+
+  .rotation-timeline-scroll {
+    overflow-x: auto;
+    padding-bottom: 0.15rem;
+  }
+
+  .rotation-track {
+    padding-bottom: 0.25rem;
+  }
+
+  .rotation-lane {
+    margin-top: 1.35rem;
+  }
+}
+
 .rotation-card-roster li {
   width: 2.1rem;
   height: 2.1rem;
@@ -1449,8 +1906,45 @@
   max-width: 36rem;
 }
 
+.rotation-meta-fields {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  max-width: 36rem;
+
+  .field {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    appearance: none;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    background: var(--input-surface);
+    color: var(--text);
+    padding: 0.65rem 0.8rem;
+    font: inherit;
+    font-size: 1rem;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 3.5rem;
+  }
+
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 1px;
+  }
+}
+
 .rotation-comment-form textarea,
-.rotation-save-panel textarea {
+.rotation-save-panel textarea,
+.rotation-meta-fields textarea {
   width: 100%;
   max-width: none;
   appearance: none;

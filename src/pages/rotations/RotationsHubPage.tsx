@@ -10,6 +10,8 @@ import {
   toggleCommunityRotationLike,
   type CommunityRotation,
 } from './communityApi'
+import type { RotationDoc } from './rotationDoc'
+import { RotationTimeline } from './RotationTimeline'
 
 const clerkConfigured = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
 
@@ -22,6 +24,21 @@ function formatDate(iso: string) {
     })
   } catch {
     return ''
+  }
+}
+
+function rotationPreviewDoc(item: CommunityRotation): {
+  placements: RotationDoc['placements']
+  switchBuffer: number
+  timingMode: RotationDoc['timingMode']
+  humanLag: number
+} {
+  const doc = (item.doc ?? {}) as Partial<RotationDoc>
+  return {
+    placements: Array.isArray(doc.placements) ? doc.placements : [],
+    switchBuffer: doc.switchBuffer ?? 0.33,
+    timingMode: doc.timingMode ?? 'frame',
+    humanLag: doc.humanLag ?? 0.15,
   }
 }
 
@@ -154,7 +171,9 @@ function RotationsHubInner({
         </div>
       ) : (
         <ul className="rotations-hub-list">
-          {items.map((item) => (
+          {items.map((item) => {
+            const preview = rotationPreviewDoc(item)
+            return (
             <li key={item.id}>
               <article className="rotation-card">
                 <Link to={`/rotations/${item.id}`} className="rotation-card-main">
@@ -177,6 +196,27 @@ function RotationsHubInner({
                       )
                     })}
                   </ul>
+                  {preview.placements.length > 0 ? (
+                    <div
+                      className="rotation-card-preview"
+                      aria-hidden
+                      onClick={(e) => e.preventDefault()}
+                    >
+                      <RotationTimeline
+                        placements={preview.placements}
+                        onChange={() => {}}
+                        selectedId={null}
+                        switchBuffer={preview.switchBuffer}
+                        timingMode={preview.timingMode}
+                        humanLag={preview.humanLag}
+                        onSelectPlacement={() => {}}
+                        readOnly
+                        hideDurationOverlays
+                        fixedZoomScale={0.75}
+                        hideToolbar
+                      />
+                    </div>
+                  ) : null}
                   <p className="rotation-card-meta">
                     {item.authorName} · {formatDate(item.createdAt)}
                   </p>
@@ -202,7 +242,8 @@ function RotationsHubInner({
                 </div>
               </article>
             </li>
-          ))}
+            )
+          })}
         </ul>
       )}
 

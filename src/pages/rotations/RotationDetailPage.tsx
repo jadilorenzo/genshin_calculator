@@ -8,6 +8,7 @@ import {
   listCommunityComments,
   postCommunityComment,
   toggleCommunityRotationLike,
+  updateCommunityRotation,
   type CommunityComment,
   type CommunityRotation,
 } from './communityApi'
@@ -34,6 +35,10 @@ function DetailInner({
   const [error, setError] = useState<string | null>(null)
   const [commentText, setCommentText] = useState('')
   const [posting, setPosting] = useState(false)
+  const [editingMeta, setEditingMeta] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [savingMeta, setSavingMeta] = useState(false)
 
   useDocumentTitle(
     item ? `${item.title} · Rotations · False Moon's Reckoning` : `Rotation · False Moon's Reckoning`,
@@ -77,6 +82,47 @@ function DetailInner({
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not like')
+    }
+  }
+
+  const startEditMeta = () => {
+    if (!item) return
+    setEditTitle(item.title)
+    setEditDescription(item.description || '')
+    setEditingMeta(true)
+    setError(null)
+  }
+
+  const onSaveMeta = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!item) return
+    if (!isSignedIn) {
+      window.location.href = '/sign-in'
+      return
+    }
+    const trimmed = editTitle.trim()
+    if (!trimmed) {
+      setError('Name is required.')
+      return
+    }
+    setSavingMeta(true)
+    setError(null)
+    try {
+      const updated = await updateCommunityRotation(
+        item.id,
+        {
+          title: trimmed,
+          description: editDescription,
+          authorName,
+        },
+        getToken,
+      )
+      setItem(updated)
+      setEditingMeta(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update details')
+    } finally {
+      setSavingMeta(false)
     }
   }
 
@@ -126,11 +172,24 @@ function DetailInner({
     <>
       <header className="hero">
         <div className="hero-top">
-          <h1>{item.title}</h1>
+          {editingMeta ? (
+            <h1 className="visually-hidden">Edit rotation details</h1>
+          ) : (
+            <h1>{item.title}</h1>
+          )}
           <div className="hero-actions">
             <Link to="/rotations" className="chip compact">
               All rotations
             </Link>
+            {isOwn && !editingMeta ? (
+              <button
+                type="button"
+                className="chip compact"
+                onClick={startEditMeta}
+              >
+                Edit details
+              </button>
+            ) : null}
             <Link
               to={`/rotations/editor/${item.id}`}
               className="chip filled"
@@ -139,7 +198,52 @@ function DetailInner({
             </Link>
           </div>
         </div>
-        {item.description ? <p className="lede">{item.description}</p> : null}
+        {editingMeta ? (
+          <form className="rotation-meta-fields" onSubmit={onSaveMeta}>
+            <label className="field">
+              <span className="label">Name</span>
+              <input
+                type="text"
+                required
+                maxLength={120}
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Rotation name"
+              />
+            </label>
+            <label className="field">
+              <span className="label">Description</span>
+              <textarea
+                rows={2}
+                maxLength={500}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Optional notes for the community"
+              />
+            </label>
+            <div className="chip-row">
+              <button
+                type="button"
+                className="chip compact"
+                disabled={savingMeta}
+                onClick={() => setEditingMeta(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="chip filled"
+                disabled={savingMeta || !editTitle.trim()}
+              >
+                {savingMeta ? 'Saving…' : 'Save details'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            {item.description ? <p className="lede">{item.description}</p> : null}
+          </>
+        )}
         <p className="field-note">
           by {item.authorName}
           {item.characterIds.length
@@ -165,7 +269,7 @@ function DetailInner({
 
       {error ? <p className="auth-error">{error}</p> : null}
 
-      <div className="rotation-workspace">
+      <div className="rotation-workspace rotation-preview">
         <RotationTimeline
           placements={placements}
           onChange={() => {}}
@@ -175,6 +279,8 @@ function DetailInner({
           humanLag={doc.humanLag ?? 0.15}
           onSelectPlacement={() => {}}
           readOnly
+          hideDurationOverlays
+          fixedZoomScale={0.75}
         />
       </div>
 

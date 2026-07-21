@@ -200,6 +200,8 @@ export function insertOnField(
         castBurst: target.castBurst ?? true,
         castOrder: target.castOrder ?? 'skill-first',
         skillVariant: target.skillVariant ?? 'hold',
+        skillCasts: target.skillCasts ?? 1,
+        comboSteps: [],
         activeDurations: [],
         durationOverrides: {},
       },

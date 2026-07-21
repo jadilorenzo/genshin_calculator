@@ -1,6 +1,6 @@
 {
   "source": "gcsim internal/characters (+ open PRs) + characterKits roster + fieldTimings",
-  "extractedAt": "2026-07-21T20:07:17.242Z",
+  "extractedAt": "2026-07-21T20:30:06.998Z",
   "fps": 60,
   "notes": [
     "Frames are at 60 FPS. seconds = frames / 60.",
@@ -13989,8 +13989,8 @@
         "fieldTimings"
       ],
       "completeness": {
-        "actionsWithFrames": 9,
-        "actionsTotal": 11
+        "actionsWithFrames": 10,
+        "actionsTotal": 12
       },
       "incomplete": true,
       "states": [
@@ -14077,6 +14077,27 @@
               "cancels": {},
               "source": "gcsim",
               "gcsimVar": "chargeFrames"
+            },
+            {
+              "id": "ca_phantasm",
+              "label": "Charged Attack (Phantasm)",
+              "kind": "ca",
+              "frames": 126,
+              "seconds": 2.1,
+              "hitmarks": [
+                30,
+                35,
+                43,
+                44,
+                45
+              ],
+              "cancels": {
+                "attack": 89,
+                "charge": 85
+              },
+              "source": "gcsim",
+              "notes": "Sacred Vow / Phantasm Performance special CA (Verdant Dew)",
+              "gcsimVar": "phantasmAnimationLength"
             },
             {
               "id": "skill",

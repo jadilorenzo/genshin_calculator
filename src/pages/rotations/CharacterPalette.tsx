@@ -5,17 +5,58 @@ import { CharacterInfoButton, CharacterInfoPopup } from "./CharacterInfoPopup";
 import type { CharacterData } from "./types";
 
 const DRAG_TYPE = "application/x-fmr-character";
+const CAST_DRAG_TYPE = "application/x-fmr-cast";
+const CAST_DRAG_PREFIX = "fmr-cast:";
+
+export type CastDragPayload = {
+  characterId: string;
+  kind: "skill" | "burst";
+  skillVariant?: "press" | "hold";
+  skillCasts?: number;
+};
 
 export const readCharacterDrag = (e: DragEvent): string | null => {
-  const id =
-    e.dataTransfer.getData(DRAG_TYPE) || e.dataTransfer.getData("text/plain");
-  return id || null;
+  const typed = e.dataTransfer.getData(DRAG_TYPE);
+  if (typed) return typed;
+  const plain = e.dataTransfer.getData("text/plain");
+  if (!plain || plain.startsWith(CAST_DRAG_PREFIX)) return null;
+  return plain;
 };
 
 export const setCharacterDrag = (e: DragEvent, characterId: string) => {
   e.dataTransfer.setData(DRAG_TYPE, characterId);
   e.dataTransfer.setData("text/plain", characterId);
   e.dataTransfer.effectAllowed = "copyMove";
+};
+
+export const setCastDrag = (e: DragEvent, payload: CastDragPayload) => {
+  const json = JSON.stringify(payload);
+  e.dataTransfer.setData(CAST_DRAG_TYPE, json);
+  e.dataTransfer.setData("text/plain", `${CAST_DRAG_PREFIX}${json}`);
+  e.dataTransfer.effectAllowed = "copy";
+};
+
+export const readCastDrag = (e: DragEvent): CastDragPayload | null => {
+  const raw =
+    e.dataTransfer.getData(CAST_DRAG_TYPE) ||
+    (() => {
+      const plain = e.dataTransfer.getData("text/plain");
+      if (!plain.startsWith(CAST_DRAG_PREFIX)) return "";
+      return plain.slice(CAST_DRAG_PREFIX.length);
+    })();
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as CastDragPayload;
+    if (
+      !parsed?.characterId ||
+      (parsed.kind !== "skill" && parsed.kind !== "burst")
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
 };
 
 interface CharacterPaletteProps {

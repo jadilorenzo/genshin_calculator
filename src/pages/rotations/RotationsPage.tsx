@@ -18,6 +18,7 @@ import {
   updateCommunityRotation,
 } from "./communityApi";
 import { PlacementRoster } from "./PlacementRoster";
+import { ComboInspectPanel } from "./ComboInspectPanel";
 import { RotationSettingsMenu } from "./RotationSettingsMenu";
 import {
   defaultOnFieldDuration,
@@ -91,10 +92,11 @@ const sanitizePlacements = (
         mode: timingMode,
         humanLag,
         skillVariant: next.skillVariant,
+        skillCasts: next.skillCasts,
         kitHoldSeconds: kitHold,
       }),
     );
-    // Backfill old flat 2.5s drops / pre-variant saves to Full defaults
+    // Backfill old flat 2.5s drops / pre-variant saves to expected on-field defaults
     if (
       migratedVariant ||
       (Math.abs(p.duration - 2.5) < 0.05 && fullDuration > 3.5)
@@ -205,6 +207,8 @@ const RotationsEditorInner = () => {
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
     null,
   );
+  const selectedPlacement =
+    placements.find((p) => p.id === selectedPlacementId) ?? null;
   const clipboardRef = useRef<TimelinePlacement | null>(null);
   const docRef = useRef(doc);
   const selectedPlacementIdRef = useRef(selectedPlacementId);
@@ -345,11 +349,16 @@ const RotationsEditorInner = () => {
       setSaveError("Still signing in… try again in a moment.");
       return;
     }
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      setSaveError("Add a name for this rotation.");
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     try {
       const payload = {
-        title,
+        title: trimmedTitle,
         description,
         doc,
         authorName,
@@ -361,6 +370,8 @@ const RotationsEditorInner = () => {
       setEditingId(item.id);
       setSourceAuthorId(item.authorId);
       setSourceTitle(item.title);
+      setTitle(item.title);
+      setDescription(item.description || "");
       setSaveOpen(false);
       navigate(`/rotations/${item.id}`, { replace: true });
     } catch (err) {
@@ -410,6 +421,31 @@ const RotationsEditorInner = () => {
         </p>
       </header>
 
+      <div className="rotation-meta-fields">
+        <label className="field">
+          <span className="label">Name</span>
+          <input
+            type="text"
+            maxLength={120}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Hyperbloom Neuvillette"
+            aria-label="Rotation name"
+          />
+        </label>
+        <label className="field">
+          <span className="label">Description</span>
+          <textarea
+            rows={2}
+            maxLength={500}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Optional notes for the community"
+            aria-label="Rotation description"
+          />
+        </label>
+      </div>
+
       {saveOpen ? (
         <div className="rotation-save-panel">
           <form className="auth-form" onSubmit={onSave}>
@@ -425,28 +461,13 @@ const RotationsEditorInner = () => {
                 Creates a new community post under your account. The original is
                 left unchanged.
               </p>
-            ) : null}
-            <label className="field">
-              <span className="label">Title</span>
-              <input
-                type="text"
-                required
-                maxLength={120}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Hyperbloom Neuvillette"
-              />
-            </label>
-            <label className="field">
-              <span className="label">Description</span>
-              <textarea
-                rows={2}
-                maxLength={500}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional notes for the community"
-              />
-            </label>
+            ) : (
+              <p className="field-note">
+                {title.trim()
+                  ? `Publishing as “${title.trim()}”.`
+                  : "Add a name above before publishing."}
+              </p>
+            )}
             {saveError ? <p className="auth-error">{saveError}</p> : null}
             <div className="chip-row">
               <button
@@ -456,7 +477,11 @@ const RotationsEditorInner = () => {
               >
                 Cancel
               </button>
-              <button type="submit" className="chip filled" disabled={saving}>
+              <button
+                type="submit"
+                className="chip filled"
+                disabled={saving || !title.trim()}
+              >
                 {saving
                   ? "Saving…"
                   : isOwnRotation
@@ -482,6 +507,14 @@ const RotationsEditorInner = () => {
           onHistoryGestureStart={beginHistoryGesture}
           onHistoryGestureEnd={endHistoryGesture}
         />
+
+        {selectedPlacement ? (
+          <ComboInspectPanel
+            placement={selectedPlacement}
+            switchBuffer={switchBuffer}
+            onChange={setPlacements}
+          />
+        ) : null}
 
         <div className="rotation-below">
           <CharacterPalette

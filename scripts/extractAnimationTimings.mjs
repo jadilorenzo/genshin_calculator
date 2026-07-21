@@ -455,6 +455,50 @@ function parseAttackGo(src) {
   return [...statesById.values()]
 }
 
+/**
+ * Alternate charged routes that aren't a simple chargeFrames slice
+ * (e.g. Nefer Phantasm Performance).
+ */
+function parseSpecialChargedAttacks(src) {
+  if (!src) return []
+  const actions = []
+
+  const phantasmLen = src.match(
+    /phantasmAnimationLength\s*=\s*(\d+)/,
+  )
+  const windup = src.match(/basicChargeWindup\s*=\s*(\d+)/)
+  if (phantasmLen) {
+    const windupFrames = windup ? Number(windup[1]) : 0
+    const anim = Number(phantasmLen[1])
+    const frames = windupFrames + anim
+    const hitmarks = []
+    for (const m of src.matchAll(/phantasmHit(\d+)\s*=\s*(\d+)/g)) {
+      hitmarks.push(windupFrames + Number(m[2]))
+    }
+    hitmarks.sort((a, b) => a - b)
+    const cancels = {}
+    const postAtk = src.match(/phantasmPostAttackCancel\s*=\s*(\d+)/)
+    const postCa = src.match(/phantasmPostChargeCancel\s*=\s*(\d+)/)
+    if (postAtk) cancels.attack = windupFrames + Number(postAtk[1])
+    if (postCa) cancels.charge = windupFrames + Number(postCa[1])
+    actions.push({
+      id: 'ca_phantasm',
+      label: 'Charged Attack (Phantasm)',
+      kind: 'ca',
+      frames,
+      seconds: Math.round((frames / FPS) * 1000) / 1000,
+      hitmarks,
+      cancels,
+      source: 'gcsim',
+      notes: 'Phantasm Performance special CA (Verdant Dew)',
+      gcsimVar: 'phantasmAnimationLength',
+      stateHint: 'default',
+    })
+  }
+
+  return actions
+}
+
 function parseAbilFile(src, options) {
   const {
     varPrefix,
@@ -748,6 +792,7 @@ function parseGcsimCharacter(folder) {
       kind: 'ca',
     }),
   )
+  mergeActionsIntoStates(statesById, parseSpecialChargedAttacks(charge))
 
   // Aimed shots (bows) — file is often aimed.go
   mergeActionsIntoStates(
