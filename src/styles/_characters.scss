@@ -2,6 +2,112 @@
   padding-right: 5.5rem;
 }
 
+.anim-timings-warn {
+  font-weight: 600;
+  font-size: 0.78em;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, #c4a35a 75%, var(--fog));
+}
+
+.anim-timings-lede,
+.anim-timings-empty,
+.anim-timings-gap {
+  margin: 0.35rem 0 0.65rem;
+}
+
+.anim-timings-gap {
+  color: color-mix(in srgb, #c4a35a 70%, var(--mist));
+}
+
+.anim-timings-states {
+  margin: 0 0 0.75rem;
+}
+
+.anim-timings-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.anim-timings-row {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 11rem) minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.anim-timings-label {
+  font-size: 0.8rem;
+  color: var(--mist);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.anim-timings-track {
+  height: 0.7rem;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--chip-surface) 80%, var(--line));
+  overflow: hidden;
+}
+
+.anim-timings-bar {
+  height: 100%;
+  border-radius: 1px;
+  min-width: 2px;
+  background: var(--gold);
+  transition: width 180ms ease;
+}
+
+.anim-timings-bar.fam-na {
+  background: color-mix(in srgb, var(--mist) 55%, var(--gold));
+}
+
+.anim-timings-bar.fam-ca {
+  background: color-mix(in srgb, #c4a35a 70%, var(--gold));
+}
+
+.anim-timings-bar.fam-skill {
+  background: color-mix(in srgb, #6fa8c9 65%, var(--gold));
+}
+
+.anim-timings-bar.fam-burst {
+  background: color-mix(in srgb, #c97a6f 65%, var(--gold));
+}
+
+.anim-timings-bar.fam-dash,
+.anim-timings-bar.fam-move {
+  background: color-mix(in srgb, var(--muted) 50%, var(--gold));
+}
+
+.anim-timings-value {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fog);
+  white-space: nowrap;
+  text-align: right;
+  min-width: 5.5rem;
+}
+
+.anim-timings-range {
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .anim-timings-row {
+    grid-template-columns: minmax(5.5rem, 7.5rem) minmax(0, 1fr) auto;
+    gap: 0.4rem;
+  }
+
+  .anim-timings-value {
+    min-width: 4.5rem;
+    font-size: 0.7rem;
+  }
+}
+
 .characters-workspace {
   display: grid;
   grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);

@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "extract:kits": "node scripts/extractCharacterKits.mjs"
+    "extract:kits": "node scripts/extractCharacterKits.mjs",
+    "extract:animation-timings": "node scripts/extractAnimationTimings.mjs",
+    "fetch:gcsim-pr-chars": "node scripts/fetchGcsimPrChars.mjs"
   },
   "dependencies": {
     "@clerk/backend": "^3.12.0",

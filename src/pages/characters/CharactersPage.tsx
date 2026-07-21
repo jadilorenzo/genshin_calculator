@@ -71,7 +71,8 @@ export default function CharactersPage() {
           <h1>Characters</h1>
         </div>
         <p className="field-note">
-          {CHARACTER_KITS.length} kits — talents, passives, and constellations.
+          {CHARACTER_KITS.length} kits — animation timings, talents, passives,
+          and constellations.
         </p>
       </header>
 

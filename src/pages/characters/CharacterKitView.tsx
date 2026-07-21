@@ -1,5 +1,6 @@
 import { CharacterIcon } from '../rotations/CharacterIcon'
 import type { CharacterData, KitAttribute, KitSkill } from '../rotations/types'
+import { CharacterAnimationTimingsView } from './CharacterAnimationTimingsView'
 
 function formatAttr(attr: KitAttribute): string {
   const { name, raw, unit, format } = attr
@@ -111,6 +112,12 @@ export function CharacterKitView({
       ) : null}
 
       <div className="rotation-char-info-body character-kit-view-body">
+        <CharacterAnimationTimingsView
+          characterId={character.id}
+          weapon={character.weapon}
+          defaultOpen={open}
+        />
+
         <SkillSection
           title="Normal Attack"
           skill={kit.normalAttack}
