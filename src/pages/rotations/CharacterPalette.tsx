@@ -2,6 +2,7 @@ import { useMemo, useState, type DragEvent } from "react";
 import { CHARACTER_KITS, ELEMENTS } from "./characters";
 import { CharacterIcon } from "./CharacterIcon";
 import { CharacterInfoButton, CharacterInfoPopup } from "./CharacterInfoPopup";
+import { setCharacterDragImage } from "./dragGhost";
 import type { CharacterData } from "./types";
 
 const DRAG_TYPE = "application/x-fmr-character";
@@ -62,11 +63,15 @@ export const readCastDrag = (e: DragEvent): CastDragPayload | null => {
 interface CharacterPaletteProps {
   selectedId: string | null;
   onSelect: (character: CharacterData) => void;
+  onAdd?: (character: CharacterData) => void;
+  insertHint?: string | null;
 }
 
 export const CharacterPalette = ({
   selectedId,
   onSelect,
+  onAdd,
+  insertHint,
 }: CharacterPaletteProps) => {
   const [query, setQuery] = useState("");
   const [element, setElement] = useState<string>("all");
@@ -93,6 +98,16 @@ export const CharacterPalette = ({
         <h2 className="rotation-section-title">Characters</h2>
         <p className="field-note">{CHARACTER_KITS.length} kits loaded</p>
       </div>
+
+      {insertHint ? (
+        <p className="rotation-insert-hint" role="status">
+          {insertHint}
+        </p>
+      ) : (
+        <p className="field-note rotation-drag-hint">
+          Drag a row onto the timeline, or tap + to add.
+        </p>
+      )}
 
       <label className="rotation-search">
         <span className="visually-hidden">Search characters</span>
@@ -136,11 +151,18 @@ export const CharacterPalette = ({
             >
               <button
                 type="button"
-                className="rotation-char-card-main"
+                className="rotation-char-card-main is-draggable"
                 draggable
-                onDragStart={(e) => setCharacterDrag(e, c.id)}
+                onDragStart={(e) => {
+                  setCharacterDrag(e, c.id);
+                  setCharacterDragImage(e, c);
+                }}
                 onClick={() => onSelect(c)}
+                title="Drag onto timeline"
               >
+                <span className="drag-affordance" aria-hidden>
+                  ⠿
+                </span>
                 {c.icon || c.iconFile ? (
                   <CharacterIcon character={c} className="rotation-char-icon" />
                 ) : (
@@ -161,6 +183,17 @@ export const CharacterPalette = ({
                   {c.rarity}★
                 </span>
               </button>
+              {onAdd ? (
+                <button
+                  type="button"
+                  className="rotation-char-add-btn"
+                  onClick={() => onAdd(c)}
+                  title={`Add ${c.name} to rotation`}
+                  aria-label={`Add ${c.name} to rotation`}
+                >
+                  +
+                </button>
+              ) : null}
               <CharacterInfoButton character={c} onOpen={setInfoCharacter} />
             </div>
           </li>

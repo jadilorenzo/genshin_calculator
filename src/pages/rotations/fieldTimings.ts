@@ -709,6 +709,25 @@ export function getFieldCastTimings(
   return base
 }
 
+/** Main DPS expected-on-field style (long skillCast window). */
+export function isComboFieldStyle(
+  characterId: string,
+  kitHoldSeconds: number | null = null,
+): boolean {
+  return getFieldCastTimings(characterId, kitHoldSeconds).skillPairStyle === 'combo'
+}
+
+/**
+ * Supports / dual-role kits get cast-sequence prefills (e.g. Sucrose EE + Q).
+ * Combo DPS do not — build actions, then Fit to actions.
+ */
+export function prefersSupportCastPrefill(
+  characterId: string,
+  kitHoldSeconds: number | null = null,
+): boolean {
+  return !isComboFieldStyle(characterId, kitHoldSeconds)
+}
+
 export function hasSkillHold(
   characterId: string,
   kitHoldSeconds: number | null = null,

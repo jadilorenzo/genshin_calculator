@@ -27,10 +27,13 @@ import {
   fieldActionSegments,
   kitHoldChannelSeconds,
   parseCastOrder,
+  prefersSupportCastPrefill,
   type TimingMode,
 } from "./fieldTimings";
 import {
   comboActionFamily,
+  initialComboStepsForPlacement,
+  initialOnFieldDuration,
   packComboSteps,
   placementUsesComboSteps,
   shortActionLabel,
@@ -92,6 +95,14 @@ type DragState = {
   mids: number[];
 };
 
+type MoveGhost = {
+  characterId: string;
+  name: string;
+  element: string;
+  x: number;
+  y: number;
+};
+
 type DurationRow = {
   placementId: string;
   optionId: string;
@@ -125,12 +136,21 @@ interface RotationTimelineProps {
   /** Hide kit / artifact / CD duration overlay lanes. */
   hideDurationOverlays?: boolean;
   /**
-   * Lock horizontal zoom as a fraction of the default (e.g. 0.75).
-   * Disables wheel zoom and toolbar zoom controls.
+   * Starting zoom as a fraction of the default (e.g. 0.75).
+   * Does not lock zoom — use `lockZoom` for that.
    */
+  initialZoomScale?: number;
+  /**
+   * Lock horizontal zoom (disables wheel zoom and toolbar zoom controls).
+   * When true with `initialZoomScale`, zoom stays at that scale.
+   */
+  lockZoom?: boolean;
+  /** @deprecated Prefer `initialZoomScale` + `lockZoom`. */
   fixedZoomScale?: number;
   /** Hide the Timeline heading / zoom toolbar. */
   hideToolbar?: boolean;
+  /** Compact block sizing (hub / detail previews). */
+  compactLayout?: boolean;
 }
 
 const majorTickStep = (pxPerSec: number) => {
@@ -227,8 +247,11 @@ export const RotationTimeline = ({
   onHistoryGestureEnd,
   readOnly = false,
   hideDurationOverlays = false,
+  initialZoomScale,
+  lockZoom = false,
   fixedZoomScale,
   hideToolbar = false,
+  compactLayout = false,
 }: RotationTimelineProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -236,20 +259,26 @@ export const RotationTimeline = ({
   const switchBufferRef = useRef(switchBuffer);
   const timingModeRef = useRef(timingMode);
   const humanLagRef = useRef(humanLag);
-  const lockedPxPerSec =
-    fixedZoomScale != null && Number.isFinite(fixedZoomScale)
-      ? clamp(
-          DEFAULT_PX_PER_SEC * fixedZoomScale,
-          MIN_PX_PER_SEC,
-          MAX_PX_PER_SEC,
-        )
-      : null;
-  const pxPerSecRef = useRef(lockedPxPerSec ?? DEFAULT_PX_PER_SEC);
-  const [pxPerSec, setPxPerSec] = useState(
-    lockedPxPerSec ?? DEFAULT_PX_PER_SEC,
-  );
+  const startScale =
+    initialZoomScale ??
+    (fixedZoomScale != null && Number.isFinite(fixedZoomScale)
+      ? fixedZoomScale
+      : null);
+  const zoomLocked =
+    lockZoom ||
+    (fixedZoomScale != null &&
+      Number.isFinite(fixedZoomScale) &&
+      initialZoomScale == null);
+  const startPxPerSec =
+    startScale != null && Number.isFinite(startScale)
+      ? clamp(DEFAULT_PX_PER_SEC * startScale, MIN_PX_PER_SEC, MAX_PX_PER_SEC)
+      : DEFAULT_PX_PER_SEC;
+  const lockedPxPerSec = zoomLocked ? startPxPerSec : null;
+  const pxPerSecRef = useRef(startPxPerSec);
+  const [pxPerSec, setPxPerSec] = useState(startPxPerSec);
   const [dragOver, setDragOver] = useState(false);
   const [movingId, setMovingId] = useState<string | null>(null);
+  const [moveGhost, setMoveGhost] = useState<MoveGhost | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const suppressClickRef = useRef(false);
@@ -398,10 +427,13 @@ export const RotationTimeline = ({
   const width = displayEnd * pxPerSec;
   const majorEvery = majorTickStep(pxPerSec);
   const durationsHeight = Math.max(durationLaneCount * DURATION_ROW_HEIGHT, 0);
-  const previewLayout = hideDurationOverlays;
+  const previewLayout = compactLayout || hideDurationOverlays;
   const laneHeight = previewLayout ? PREVIEW_LANE_HEIGHT : LANE_HEIGHT;
   const trackMinHeight = previewLayout
-    ? 1.45 + laneHeight + 0.45
+    ? 1.45 +
+      laneHeight +
+      0.45 +
+      (durationLaneCount ? 0.55 + durationsHeight * 0.85 : 0)
     : 3.5 +
       LANE_HEIGHT +
       (durationLaneCount ? 0.85 + durationsHeight : 1.5);
@@ -471,27 +503,41 @@ export const RotationTimeline = ({
       cast?.skillVariant ?? defaultSkillVariant(characterId, kitHold);
     const skillCasts =
       cast?.skillCasts ?? defaultSkillCasts(characterId, kitHold);
-    const castSkill = cast ? cast.kind === "skill" : true;
-    const castBurst = cast ? cast.kind === "burst" : true;
+    const supportPrefill = prefersSupportCastPrefill(characterId, kitHold);
+    // Character drops: only supports prefill Skill/Burst (e.g. Sucrose EE).
+    // Cast-chip drops keep the dragged ability. Combo DPS start empty.
+    const castSkill = cast ? cast.kind === "skill" : supportPrefill;
+    const castBurst = cast ? cast.kind === "burst" : supportPrefill;
+    const comboSteps = initialComboStepsForPlacement(characterId, {
+      skill: castSkill,
+      burst: castBurst,
+      castOrder: "skill-first",
+      skillVariant,
+      skillCasts,
+      kitHoldSeconds: kitHold,
+    });
+    const durationOpts = {
+      skill: castSkill,
+      burst: castBurst,
+      mode: timingModeRef.current,
+      humanLag: humanLagRef.current,
+      skillVariant,
+      skillCasts,
+      kitHoldSeconds: kitHold,
+    };
     const next: TimelinePlacement = {
       id: createPlacementId(),
       characterId,
       start: at,
-      duration: defaultOnFieldDuration(characterId, {
-        skill: castSkill,
-        burst: castBurst,
-        mode: timingModeRef.current,
-        humanLag: humanLagRef.current,
-        skillVariant,
-        skillCasts,
-        kitHoldSeconds: kitHold,
-      }),
+      duration: cast
+        ? defaultOnFieldDuration(characterId, durationOpts)
+        : initialOnFieldDuration(characterId, durationOpts, comboSteps),
       castSkill,
       castBurst,
       castOrder: "skill-first",
       skillVariant,
       skillCasts,
-      comboSteps: [],
+      comboSteps,
       activeDurations: [],
       durationOverrides: {},
     };
@@ -506,6 +552,11 @@ export const RotationTimeline = ({
 
     if (drag.mode === "move") {
       if (Math.abs(e.clientX - drag.originX) > 4) drag.moved = true;
+      setMoveGhost((prev) =>
+        prev
+          ? { ...prev, x: e.clientX, y: e.clientY }
+          : prev,
+      );
       const insertAt = insertIndexFromMids(
         drag.mids,
         timeFromClientX(e.clientX),
@@ -546,6 +597,7 @@ export const RotationTimeline = ({
     if (dragRef.current?.moved) suppressClickRef.current = true;
     dragRef.current = null;
     setMovingId(null);
+    setMoveGhost(null);
     onHistoryGestureEnd?.();
     window.removeEventListener("pointermove", onPointerMove);
     window.removeEventListener("pointerup", onPointerUp);
@@ -610,6 +662,18 @@ export const RotationTimeline = ({
       mids: slots.mids,
     };
     setMovingId(id);
+    const character = getCharacter(placement.characterId);
+    if (character) {
+      setMoveGhost({
+        characterId: character.id,
+        name: character.name,
+        element: String(character.element),
+        x: e.clientX,
+        y: e.clientY,
+      });
+    } else {
+      setMoveGhost(null);
+    }
     startPointerGesture();
   };
 
@@ -663,7 +727,7 @@ export const RotationTimeline = ({
     <section
       className={joinClassNames(
         "rotation-timeline",
-        hideDurationOverlays && "preview",
+        previewLayout && "preview",
       )}
       aria-label="Rotation timeline"
     >
@@ -672,7 +736,7 @@ export const RotationTimeline = ({
           hasSelection={selectedId != null}
           hasPlacements={placements.length > 0}
           readOnly={readOnly}
-          lockZoom={lockedPxPerSec != null}
+          lockZoom={zoomLocked}
           onZoomOut={zoomOut}
           onZoomIn={zoomIn}
           onFit={fitToFirstRotation}
@@ -745,18 +809,45 @@ export const RotationTimeline = ({
             ) : null}
           </div>
 
-          {hideDurationOverlays ? null : (
+          {hideDurationOverlays ||
+          (readOnly && durationRows.length === 0) ? null : (
             <DurationLanes
               rows={durationRows}
               laneCount={durationLaneCount}
               height={durationsHeight}
               rowHeight={DURATION_ROW_HEIGHT}
               pxPerSec={pxPerSec}
-              emptyMessage={durationEmptyMessage(placements.length)}
+              emptyMessage={
+                readOnly ? "" : durationEmptyMessage(placements.length)
+              }
             />
           )}
         </div>
       </div>
+
+      {moveGhost ? (
+        <div
+          className="rotation-drag-ghost floating"
+          data-element={moveGhost.element}
+          style={{
+            left: moveGhost.x,
+            top: moveGhost.y,
+          }}
+          aria-hidden
+        >
+          <CharacterIcon
+            character={
+              getCharacter(moveGhost.characterId) ?? {
+                name: moveGhost.name,
+                icon: null,
+                iconFile: null,
+              }
+            }
+            className="rotation-drag-ghost-icon"
+          />
+          <span className="rotation-drag-ghost-name">{moveGhost.name}</span>
+        </div>
+      ) : null}
     </section>
   );
 };
@@ -1002,7 +1093,7 @@ const TimelineBlock = ({
           />
         )}
         <div
-          className="rotation-block-body"
+          className="rotation-block-body is-draggable"
           onPointerDown={
             loop || readOnly
               ? undefined
@@ -1010,6 +1101,11 @@ const TimelineBlock = ({
           }
           title={loop || readOnly ? undefined : "Drag to reorder"}
         >
+          {loop || readOnly ? null : (
+            <span className="drag-affordance" aria-hidden>
+              ⠿
+            </span>
+          )}
           {icon}
           <span className="rotation-block-copy">
             <span className="rotation-block-label">{character.name}</span>
@@ -1104,6 +1200,7 @@ const DurationLanes = ({
   emptyMessage: string;
 }) => {
   if (laneCount === 0) {
+    if (!emptyMessage) return null;
     return <p className="rotation-duration-empty">{emptyMessage}</p>;
   }
 

@@ -98,6 +98,29 @@ export function switchGaps(
  * Insert a character at `atTime`, splitting whoever is on-field there.
  * Switch buffers are re-applied by normalize.
  */
+/** Insert a placement at a roster index (0 = start), then re-lay out. */
+export function insertAtIndex(
+  placements: TimelinePlacement[],
+  incoming: TimelinePlacement,
+  index: number,
+  switchBuffer = DEFAULT_SWITCH_BUFFER,
+): TimelinePlacement[] {
+  const buffer = clampSwitchBuffer(switchBuffer)
+  const sorted = normalizeOnField(placements, buffer)
+  const i = Math.max(0, Math.min(Math.floor(index), sorted.length))
+  return normalizeOnField(
+    [
+      ...sorted.slice(0, i),
+      {
+        ...incoming,
+        duration: Math.max(MIN_ON_FIELD, incoming.duration),
+      },
+      ...sorted.slice(i),
+    ],
+    buffer,
+  )
+}
+
 export function insertOnField(
   placements: TimelinePlacement[],
   incoming: TimelinePlacement,

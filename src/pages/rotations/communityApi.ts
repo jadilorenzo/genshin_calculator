@@ -148,3 +148,38 @@ export const postCommunityComment = async (
   if (!response.ok) throw new Error(body.error || 'Failed to post comment')
   return body as { item: CommunityComment; commentsCount: number }
 }
+
+export const updateCommunityComment = async (
+  rotationId: string,
+  commentId: string,
+  text: string,
+  getToken: TokenFn,
+) => {
+  const headers = await withAuth(getToken, true)
+  const response = await fetch(
+    `/api/community-rotation-comments?id=${encodeURIComponent(rotationId)}&commentId=${encodeURIComponent(commentId)}`,
+    {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ body: text }),
+    },
+  )
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(body.error || 'Failed to update comment')
+  return body.item as CommunityComment
+}
+
+export const deleteCommunityComment = async (
+  rotationId: string,
+  commentId: string,
+  getToken: TokenFn,
+) => {
+  const headers = await withAuth(getToken, true)
+  const response = await fetch(
+    `/api/community-rotation-comments?id=${encodeURIComponent(rotationId)}&commentId=${encodeURIComponent(commentId)}`,
+    { method: 'DELETE', headers },
+  )
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(body.error || 'Failed to delete comment')
+  return body as { ok: boolean; commentsCount: number }
+}

@@ -219,6 +219,18 @@ export function ComboInspectPanel({
     updateSteps(seeded)
   }
 
+  const fitDurationToActions = () => {
+    if (packed.totalSeconds <= 0) return
+    onChange((prev) =>
+      setOnFieldDuration(
+        prev,
+        placement.id,
+        Math.max(0.5, packed.totalSeconds),
+        switchBuffer,
+      ),
+    )
+  }
+
   const onPaletteDragStart = (e: DragEvent, actionId: string) => {
     dragMovedRef.current = true
     dragKindRef.current = 'palette'
@@ -351,6 +363,9 @@ export function ComboInspectPanel({
               : `${action.label} · untimed — click or drag`
         }
       >
+        <span className="drag-affordance compact" aria-hidden>
+          ⠿
+        </span>
         <span>{action.label}</span>
         <span className="combo-inspect-chip-secs">
           {action.id === NORMALS_ACTION_ID
@@ -389,6 +404,22 @@ export function ComboInspectPanel({
             title="Fill from Skill/Burst cast presets"
           >
             Seed from casts
+          </button>
+          <button
+            type="button"
+            className="chip compact"
+            disabled={
+              packed.totalSeconds <= 0 ||
+              Math.abs(placement.duration - packed.totalSeconds) < 0.005
+            }
+            onClick={fitDurationToActions}
+            title={
+              packed.totalSeconds > 0
+                ? `Resize on-field to ${packed.totalSeconds.toFixed(2)}s`
+                : 'Add actions first'
+            }
+          >
+            Fit to actions
           </button>
           <button
             type="button"
@@ -508,7 +539,7 @@ export function ComboInspectPanel({
                     }}
                     title={`${seg.label} · ${seg.duration.toFixed(2)}s${
                       seg.durationOverridden ? ' (custom)' : ''
-                    }`}
+                    } — drag to reorder`}
                   >
                     <span className="combo-inspect-step-label">{seg.label}</span>
                     <label

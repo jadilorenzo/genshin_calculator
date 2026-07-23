@@ -4,10 +4,12 @@ import { useAuth, useUser } from '@clerk/react'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { getCharacter } from './characters'
 import {
+  deleteCommunityComment,
   getCommunityRotation,
   listCommunityComments,
   postCommunityComment,
   toggleCommunityRotationLike,
+  updateCommunityComment,
   updateCommunityRotation,
   type CommunityComment,
   type CommunityRotation,
@@ -39,6 +41,9 @@ function DetailInner({
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [savingMeta, setSavingMeta] = useState(false)
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editCommentText, setEditCommentText] = useState('')
+  const [commentBusyId, setCommentBusyId] = useState<string | null>(null)
 
   useDocumentTitle(
     item ? `${item.title} · Rotations · False Moon's Reckoning` : `Rotation · False Moon's Reckoning`,
@@ -152,6 +157,64 @@ function DetailInner({
     }
   }
 
+  const startEditComment = (comment: CommunityComment) => {
+    setEditingCommentId(comment.id)
+    setEditCommentText(comment.body)
+    setError(null)
+  }
+
+  const onSaveComment = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!item || !editingCommentId) return
+    if (!isSignedIn) {
+      window.location.href = '/sign-in'
+      return
+    }
+    setCommentBusyId(editingCommentId)
+    setError(null)
+    try {
+      const updated = await updateCommunityComment(
+        item.id,
+        editingCommentId,
+        editCommentText,
+        getToken,
+      )
+      setComments((prev) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      )
+      setEditingCommentId(null)
+      setEditCommentText('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update comment')
+    } finally {
+      setCommentBusyId(null)
+    }
+  }
+
+  const onDeleteComment = async (commentId: string) => {
+    if (!item) return
+    if (!isSignedIn) {
+      window.location.href = '/sign-in'
+      return
+    }
+    if (!window.confirm('Delete this comment?')) return
+    setCommentBusyId(commentId)
+    setError(null)
+    try {
+      const result = await deleteCommunityComment(item.id, commentId, getToken)
+      setComments((prev) => prev.filter((c) => c.id !== commentId))
+      setItem({ ...item, commentsCount: result.commentsCount })
+      if (editingCommentId === commentId) {
+        setEditingCommentId(null)
+        setEditCommentText('')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete comment')
+    } finally {
+      setCommentBusyId(null)
+    }
+  }
+
   if (loading) return <p className="field-note">Loading rotation…</p>
   if (!item) {
     return (
@@ -187,14 +250,14 @@ function DetailInner({
                 className="chip compact"
                 onClick={startEditMeta}
               >
-                Edit details
+                Details
               </button>
             ) : null}
             <Link
               to={`/rotations/editor/${item.id}`}
               className="chip filled"
             >
-              {isOwn ? 'Edit in editor' : 'Remix in editor'}
+              {isOwn ? 'Edit' : 'Remix'}
             </Link>
           </div>
         </div>
@@ -279,8 +342,8 @@ function DetailInner({
           humanLag={doc.humanLag ?? 0.15}
           onSelectPlacement={() => {}}
           readOnly
-          hideDurationOverlays
-          fixedZoomScale={0.75}
+          compactLayout
+          initialZoomScale={0.75}
         />
       </div>
 
@@ -290,12 +353,80 @@ function DetailInner({
           <p className="field-note">No comments yet.</p>
         ) : (
           <ul className="rotation-comment-list">
-            {comments.map((c) => (
-              <li key={c.id} className="rotation-comment">
-                <p className="rotation-comment-meta">{c.authorName}</p>
-                <p className="rotation-comment-body">{c.body}</p>
-              </li>
-            ))}
+            {comments.map((c) => {
+              const isCommentOwn = Boolean(userId && c.authorId === userId)
+              const isEditing = editingCommentId === c.id
+              const busy = commentBusyId === c.id
+              return (
+                <li key={c.id} className="rotation-comment">
+                  <div className="rotation-comment-head">
+                    <p className="rotation-comment-meta">{c.authorName}</p>
+                    {isCommentOwn && !isEditing ? (
+                      <div className="rotation-comment-actions">
+                        <button
+                          type="button"
+                          className="chip compact"
+                          disabled={busy}
+                          onClick={() => startEditComment(c)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="chip compact"
+                          disabled={busy}
+                          onClick={() => {
+                            void onDeleteComment(c.id)
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                  {isEditing ? (
+                    <form
+                      className="rotation-comment-edit"
+                      onSubmit={onSaveComment}
+                    >
+                      <label className="field">
+                        <span className="visually-hidden">Edit comment</span>
+                        <textarea
+                          rows={3}
+                          maxLength={1000}
+                          value={editCommentText}
+                          onChange={(e) => setEditCommentText(e.target.value)}
+                          disabled={busy}
+                          required
+                        />
+                      </label>
+                      <div className="chip-row">
+                        <button
+                          type="button"
+                          className="chip compact"
+                          disabled={busy}
+                          onClick={() => {
+                            setEditingCommentId(null)
+                            setEditCommentText('')
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="chip filled"
+                          disabled={busy || !editCommentText.trim()}
+                        >
+                          {busy ? 'Saving…' : 'Save'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <p className="rotation-comment-body">{c.body}</p>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
 

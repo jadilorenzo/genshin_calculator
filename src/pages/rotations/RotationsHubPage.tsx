@@ -45,9 +45,11 @@ function rotationPreviewDoc(item: CommunityRotation): {
 function RotationsHubInner({
   getToken,
   isSignedIn,
+  userId,
 }: {
   getToken: () => Promise<string | null>
   isSignedIn: boolean
+  userId: string | null | undefined
 }) {
   useDocumentTitle(PAGE_TITLES.rotations)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -173,29 +175,40 @@ function RotationsHubInner({
         <ul className="rotations-hub-list">
           {items.map((item) => {
             const preview = rotationPreviewDoc(item)
+            const isOwn = Boolean(userId && item.authorId === userId)
+            const href = isOwn
+              ? `/rotations/editor/${item.id}`
+              : `/rotations/${item.id}`
             return (
             <li key={item.id}>
               <article className="rotation-card">
-                <Link to={`/rotations/${item.id}`} className="rotation-card-main">
-                  <h2 className="rotation-card-title">{item.title}</h2>
+                <Link to={href} className="rotation-card-main">
+                  <div className="rotation-card-topline">
+                    <h2 className="rotation-card-title">{item.title}</h2>
+                    {isOwn ? (
+                      <span className="rotation-card-own">Your edit</span>
+                    ) : null}
+                    <ul className="rotation-card-roster" aria-label="Team">
+                      {(item.characterIds ?? []).slice(0, 6).map((cid) => {
+                        const character = getCharacter(cid)
+                        if (!character) return null
+                        return (
+                          <li key={cid}>
+                            <CharacterIcon
+                              character={character}
+                              className="rotation-card-icon"
+                            />
+                            <span className="visually-hidden">
+                              {character.name}
+                            </span>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
                   {item.description ? (
                     <p className="rotation-card-desc">{item.description}</p>
                   ) : null}
-                  <ul className="rotation-card-roster" aria-label="Team">
-                    {(item.characterIds ?? []).slice(0, 6).map((cid) => {
-                      const character = getCharacter(cid)
-                      if (!character) return null
-                      return (
-                        <li key={cid}>
-                          <CharacterIcon
-                            character={character}
-                            className="rotation-card-icon"
-                          />
-                          <span className="visually-hidden">{character.name}</span>
-                        </li>
-                      )
-                    })}
-                  </ul>
                   {preview.placements.length > 0 ? (
                     <div
                       className="rotation-card-preview"
@@ -211,8 +224,9 @@ function RotationsHubInner({
                         humanLag={preview.humanLag}
                         onSelectPlacement={() => {}}
                         readOnly
-                        hideDurationOverlays
+                        compactLayout
                         fixedZoomScale={0.75}
+                        lockZoom
                         hideToolbar
                       />
                     </div>
@@ -275,11 +289,12 @@ function RotationsHubInner({
 }
 
 function RotationsHubWithClerk() {
-  const { getToken, isSignedIn } = useAuth()
+  const { getToken, isSignedIn, userId } = useAuth()
   return (
     <RotationsHubInner
       getToken={() => getToken()}
       isSignedIn={Boolean(isSignedIn)}
+      userId={userId}
     />
   )
 }
@@ -287,7 +302,11 @@ function RotationsHubWithClerk() {
 export default function RotationsHubPage() {
   if (!clerkConfigured) {
     return (
-      <RotationsHubInner getToken={async () => null} isSignedIn={false} />
+      <RotationsHubInner
+        getToken={async () => null}
+        isSignedIn={false}
+        userId={null}
+      />
     )
   }
   return <RotationsHubWithClerk />

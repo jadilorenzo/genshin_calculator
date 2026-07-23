@@ -9,6 +9,9 @@ import {
 } from './animationTimings'
 import type { AnimationAction, AnimationCancelMap } from './animationTimingsTypes'
 import {
+  defaultOnFieldDuration,
+  isComboFieldStyle,
+  prefersSupportCastPrefill,
   resolveSkillCasts,
   type SkillCastVariant,
   type TimingMode,
@@ -381,6 +384,28 @@ export function seedComboStepsFromCasts(
   return steps
 }
 
+/**
+ * Prefill combo steps only for supports (Sucrose EE, etc.).
+ * Combo DPS start empty so expected on-field is not assumed.
+ */
+export function initialComboStepsForPlacement(
+  characterId: string,
+  opts: {
+    skill: boolean
+    burst: boolean
+    castOrder?: CastOrder
+    skillVariant?: SkillCastVariant
+    skillCasts?: number
+    kitHoldSeconds?: number | null
+  },
+): ComboStep[] {
+  if (!prefersSupportCastPrefill(characterId, opts.kitHoldSeconds ?? null)) {
+    return []
+  }
+  if (!opts.skill && !opts.burst) return []
+  return seedComboStepsFromCasts(characterId, opts)
+}
+
 /** Total packed seconds for a placement's inspect sequence (0 if empty). */
 export function comboStepsTotalSeconds(
   characterId: string,
@@ -388,6 +413,31 @@ export function comboStepsTotalSeconds(
 ): number {
   if (!steps?.length) return 0
   return packComboSteps(characterId, steps).totalSeconds
+}
+
+/**
+ * On-field duration for a newly added character.
+ * Supports: cast sum / seeded actions (e.g. Sucrose double E).
+ * Combo DPS: short placeholder until actions are built (or Expected on-field is chosen).
+ */
+export function initialOnFieldDuration(
+  characterId: string,
+  opts: {
+    skill: boolean
+    burst: boolean
+    mode?: TimingMode
+    humanLag?: number
+    skillVariant?: SkillCastVariant
+    skillCasts?: number
+    kitHoldSeconds?: number | null
+  },
+  comboSteps?: ComboStep[] | null,
+): number {
+  const kitHold = opts.kitHoldSeconds ?? null
+  const fromActions = comboStepsTotalSeconds(characterId, comboSteps)
+  if (fromActions > 0) return Math.max(0.5, fromActions)
+  if (isComboFieldStyle(characterId, kitHold)) return 0.5
+  return defaultOnFieldDuration(characterId, opts)
 }
 
 export function placementUsesComboSteps(

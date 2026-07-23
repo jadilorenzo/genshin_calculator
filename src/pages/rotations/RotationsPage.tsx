@@ -21,8 +21,15 @@ import { PlacementRoster } from "./PlacementRoster";
 import { ComboInspectPanel } from "./ComboInspectPanel";
 import { RotationSettingsMenu } from "./RotationSettingsMenu";
 import {
+  initialComboStepsForPlacement,
+  initialOnFieldDuration,
+} from "./comboSequence";
+import {
   defaultOnFieldDuration,
+  defaultSkillCasts,
+  defaultSkillVariant,
   kitHoldChannelSeconds,
+  prefersSupportCastPrefill,
   sanitizePlacementCasts,
   type TimingMode,
 } from "./fieldTimings";
@@ -30,12 +37,13 @@ import { RotationTimeline } from "./RotationTimeline";
 import {
   clampSwitchBuffer,
   fieldEnd,
+  insertAtIndex,
   insertOnField,
   normalizeOnField,
   removeAndCloseGaps,
   snapTime,
 } from "./timelineContinuous";
-import type { TimelinePlacement } from "./types";
+import type { CharacterData, TimelinePlacement } from "./types";
 import { getCharacter } from "./characters";
 import {
   ROTATION_DOC_KEY,
@@ -144,15 +152,20 @@ const RotationsEditorInner = () => {
     { load: loadRotationDoc, forceHistory: forceRotationHistory },
   );
 
-  const [saveOpen, setSaveOpen] = useState(false);
+  const [metaOpen, setMetaOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveOk, setSaveOk] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(rotationId ?? null);
   const [sourceAuthorId, setSourceAuthorId] = useState<string | null>(null);
   const [sourceTitle, setSourceTitle] = useState("");
+  const [insertAtIndexState, setInsertAtIndexState] = useState<number | null>(
+    null,
+  );
   const loadedRemoteRef = useRef<string | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const isOwnRotation = Boolean(
     editingId && sourceAuthorId && userId && sourceAuthorId === userId,
@@ -322,25 +335,69 @@ const RotationsEditorInner = () => {
     }));
   };
 
-  const openSave = () => {
-    if (!clerkConfigured || !isSignedIn) {
-      navigate("/sign-in");
-      return;
-    }
-    setSaveError(null);
-    if (
-      isForking &&
-      sourceTitle &&
-      title.trim() === sourceTitle.trim() &&
-      !/\(copy\)$/i.test(title.trim())
-    ) {
-      setTitle(`${sourceTitle.trim()} (copy)`);
-    }
-    setSaveOpen(true);
+  const createPlacement = (characterId: string): TimelinePlacement | null => {
+    if (!getCharacter(characterId)) return null;
+    const kitHold = kitHoldChannelSeconds(
+      getCharacter(characterId)?.kit.elementalSkill ?? null,
+    );
+    const skillVariant = defaultSkillVariant(characterId, kitHold);
+    const skillCasts = defaultSkillCasts(characterId, kitHold);
+    const supportPrefill = prefersSupportCastPrefill(characterId, kitHold);
+    const castSkill = supportPrefill;
+    const castBurst = supportPrefill;
+    const comboSteps = initialComboStepsForPlacement(characterId, {
+      skill: castSkill,
+      burst: castBurst,
+      castOrder: "skill-first",
+      skillVariant,
+      skillCasts,
+      kitHoldSeconds: kitHold,
+    });
+    const durationOpts = {
+      skill: castSkill,
+      burst: castBurst,
+      mode: timingMode,
+      humanLag,
+      skillVariant,
+      skillCasts,
+      kitHoldSeconds: kitHold,
+    };
+    return {
+      id: createPlacementId(),
+      characterId,
+      start: 0,
+      duration: initialOnFieldDuration(characterId, durationOpts, comboSteps),
+      castSkill,
+      castBurst,
+      castOrder: "skill-first",
+      skillVariant,
+      skillCasts,
+      comboSteps,
+      activeDurations: [],
+      durationOverrides: {},
+    };
   };
 
-  const onSave = async (event: FormEvent) => {
-    event.preventDefault();
+  const addCharacterToRotation = (character: CharacterData) => {
+    const incoming = createPlacement(character.id);
+    if (!incoming) return;
+    const index =
+      insertAtIndexState == null ? placements.length : insertAtIndexState;
+    setDoc((prev) => ({
+      ...prev,
+      placements: insertAtIndex(
+        prev.placements,
+        incoming,
+        index,
+        prev.switchBuffer,
+      ),
+    }));
+    setSelectedPlacementId(incoming.id);
+    setSelectedCharacterId(character.id);
+    setInsertAtIndexState(null);
+  };
+
+  const saveRotation = async () => {
     if (!clerkConfigured || !isSignedIn) {
       navigate("/sign-in");
       return;
@@ -349,13 +406,29 @@ const RotationsEditorInner = () => {
       setSaveError("Still signing in… try again in a moment.");
       return;
     }
-    const trimmedTitle = title.trim();
+
+    let nextTitle = title;
+    if (
+      isForking &&
+      sourceTitle &&
+      nextTitle.trim() === sourceTitle.trim() &&
+      !/\(copy\)$/i.test(nextTitle.trim())
+    ) {
+      nextTitle = `${sourceTitle.trim()} (copy)`;
+      setTitle(nextTitle);
+    }
+
+    const trimmedTitle = nextTitle.trim();
     if (!trimmedTitle) {
-      setSaveError("Add a name for this rotation.");
+      setMetaOpen(true);
+      setSaveError("Add a name in Details before saving.");
+      requestAnimationFrame(() => titleInputRef.current?.focus());
       return;
     }
+
     setSaving(true);
     setSaveError(null);
+    setSaveOk(false);
     try {
       const payload = {
         title: trimmedTitle,
@@ -372,13 +445,20 @@ const RotationsEditorInner = () => {
       setSourceTitle(item.title);
       setTitle(item.title);
       setDescription(item.description || "");
-      setSaveOpen(false);
-      navigate(`/rotations/${item.id}`, { replace: true });
+      setMetaOpen(false);
+      setSaveOk(true);
+      window.setTimeout(() => setSaveOk(false), 2000);
+      navigate(`/rotations/editor/${item.id}`, { replace: true });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSaving(false);
     }
+  };
+
+  const onSaveMeta = (event: FormEvent) => {
+    event.preventDefault();
+    setMetaOpen(false);
   };
 
   return (
@@ -403,97 +483,117 @@ const RotationsEditorInner = () => {
               }
             />
             <ClearPageButton prefix="gc:rotations:" />
-            <button type="button" className="chip filled" onClick={openSave}>
+            <button
+              type="button"
+              className="chip compact"
+              onClick={() => {
+                setMetaOpen((open) => !open);
+                setSaveError(null);
+              }}
+              aria-expanded={metaOpen}
+            >
+              Details
+            </button>
+            <button
+              type="button"
+              className="chip filled"
+              disabled={saving}
+              onClick={() => {
+                void saveRotation();
+              }}
+            >
               {!isSignedIn
                 ? "Sign in to save"
-                : isForking
-                  ? "Save as copy"
-                  : "Save"}
+                : saving
+                  ? "Saving…"
+                  : saveOk
+                    ? "Saved"
+                    : isForking
+                      ? "Save copy"
+                      : isOwnRotation
+                        ? "Save"
+                        : "Publish"}
             </button>
           </div>
         </div>
         <p className="lede">
-          Sketch field time and see team buffs, artifact sets, and cooldowns as
-          timeline overlays — then save to publish when you&apos;re signed in.
+          {title.trim() ? (
+            <>
+              <span className="rotation-editor-title">{title.trim()}</span>
+              {description.trim()
+                ? ` — ${description.trim().slice(0, 120)}${description.trim().length > 120 ? "…" : ""}`
+                : null}
+            </>
+          ) : (
+            <>
+              Sketch field time and buff overlays, then save when you&apos;re
+              signed in.
+            </>
+          )}
           {isForking
             ? " This rotation belongs to someone else; saving publishes your own copy."
             : null}
         </p>
       </header>
 
-      <div className="rotation-meta-fields">
-        <label className="field">
-          <span className="label">Name</span>
-          <input
-            type="text"
-            maxLength={120}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Hyperbloom Neuvillette"
-            aria-label="Rotation name"
-          />
-        </label>
-        <label className="field">
-          <span className="label">Description</span>
-          <textarea
-            rows={2}
-            maxLength={500}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional notes for the community"
-            aria-label="Rotation description"
-          />
-        </label>
-      </div>
-
-      {saveOpen ? (
-        <div className="rotation-save-panel">
-          <form className="auth-form" onSubmit={onSave}>
-            <h2 className="rotation-section-title">
-              {isOwnRotation
-                ? "Update rotation"
-                : isForking
-                  ? "Publish your copy"
-                  : "Save rotation"}
-            </h2>
-            {isForking ? (
-              <p className="field-note">
-                Creates a new community post under your account. The original is
-                left unchanged.
-              </p>
-            ) : (
-              <p className="field-note">
-                {title.trim()
-                  ? `Publishing as “${title.trim()}”.`
-                  : "Add a name above before publishing."}
-              </p>
-            )}
-            {saveError ? <p className="auth-error">{saveError}</p> : null}
-            <div className="chip-row">
-              <button
-                type="button"
-                className="chip compact"
-                onClick={() => setSaveOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="chip filled"
-                disabled={saving || !title.trim()}
-              >
-                {saving
-                  ? "Saving…"
-                  : isOwnRotation
-                    ? "Update published"
-                    : isForking
-                      ? "Publish copy"
-                      : "Publish"}
-              </button>
-            </div>
-          </form>
-        </div>
+      {metaOpen ? (
+        <form className="rotation-meta-fields" onSubmit={onSaveMeta}>
+          <p className="field-note">
+            Title and description are metadata for the published post — not part
+            of the timeline.
+          </p>
+          <label className="field">
+            <span className="label">Name</span>
+            <input
+              ref={titleInputRef}
+              type="text"
+              maxLength={120}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Hyperbloom Neuvillette"
+              aria-label="Rotation name"
+            />
+          </label>
+          <label className="field">
+            <span className="label">Description</span>
+            <textarea
+              rows={2}
+              maxLength={500}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional notes for the community"
+              aria-label="Rotation description"
+            />
+          </label>
+          <div className="chip-row">
+            <button
+              type="button"
+              className="chip compact"
+              onClick={() => setMetaOpen(false)}
+            >
+              Done
+            </button>
+            <button
+              type="button"
+              className="chip filled"
+              disabled={saving || !title.trim()}
+              onClick={() => {
+                void saveRotation();
+              }}
+            >
+              {saving
+                ? "Saving…"
+                : isOwnRotation
+                  ? "Save now"
+                  : isForking
+                    ? "Publish copy"
+                    : "Publish"}
+            </button>
+          </div>
+        </form>
       ) : null}
+
+      {saveError ? <p className="auth-error">{saveError}</p> : null}
 
       <div className="rotation-workspace">
         <RotationTimeline
@@ -526,6 +626,12 @@ const RotationsEditorInner = () => {
                 .sort((a, b) => a.start - b.start)[0];
               if (match) setSelectedPlacementId(match.id);
             }}
+            onAdd={addCharacterToRotation}
+            insertHint={
+              insertAtIndexState == null
+                ? null
+                : `Inserting at position ${insertAtIndexState + 1} — tap + on a character`
+            }
           />
 
           <PlacementRoster
@@ -536,6 +642,8 @@ const RotationsEditorInner = () => {
             humanLag={humanLag}
             onSelect={selectPlacement}
             onChange={setPlacements}
+            insertAtIndex={insertAtIndexState}
+            onRequestInsertAt={setInsertAtIndexState}
             onRemove={(id) => {
               setPlacements((prev) =>
                 removeAndCloseGaps(prev, id, switchBuffer),

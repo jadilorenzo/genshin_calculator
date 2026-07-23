@@ -4,6 +4,7 @@ import {
 } from "./artifactDurationOptions";
 import { setCastDrag } from "./CharacterPalette";
 import { CharacterIcon } from "./CharacterIcon";
+import { setCharacterDragImage } from "./dragGhost";
 import { getCharacter } from "./characters";
 import {
   getKitCooldownOptions,
@@ -30,6 +31,10 @@ import {
   type TimingMode,
 } from "./fieldTimings";
 import {
+  comboStepsTotalSeconds,
+  placementUsesComboSteps,
+} from "./comboSequence";
+import {
   MIN_ON_FIELD,
   reorderOnField,
   setOnFieldDuration,
@@ -37,7 +42,7 @@ import {
 } from "./timelineContinuous";
 import type { CharacterData, KitSkill, TimelinePlacement } from "./types";
 import type { DragEvent, SetStateAction } from "react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 const joinClassNames = (
   ...parts: Array<string | false | null | undefined>
@@ -91,6 +96,8 @@ interface PlacementRosterProps {
   onSelect: (id: string) => void;
   onChange: (next: SetStateAction<TimelinePlacement[]>) => void;
   onRemove: (id: string) => void;
+  insertAtIndex?: number | null;
+  onRequestInsertAt?: (index: number | null) => void;
 }
 
 export const PlacementRoster = ({
@@ -102,12 +109,16 @@ export const PlacementRoster = ({
   onSelect,
   onChange,
   onRemove,
+  insertAtIndex = null,
+  onRequestInsertAt,
 }: PlacementRosterProps) => {
   if (placements.length === 0) {
     return (
       <section className="rotation-roster" aria-label="Placed characters">
         <h2 className="rotation-section-title">On timeline</h2>
-        <p className="field-note">Drop characters onto the timeline.</p>
+        <p className="field-note">
+          Drop characters onto the timeline, or use + in the character list.
+        </p>
       </section>
     );
   }
@@ -247,22 +258,47 @@ export const PlacementRoster = ({
     });
   };
 
+  const requestInsert = (index: number) => {
+    if (!onRequestInsertAt) return;
+    onRequestInsertAt(insertAtIndex === index ? null : index);
+  };
+
   return (
     <section className="rotation-roster" aria-label="Placed characters">
       <h2 className="rotation-section-title">On timeline</h2>
+      <p className="field-note rotation-drag-hint">
+        Drag pills to reorder. Use + gaps to insert a character.
+      </p>
       <ul className="rotation-roster-list compact">
-        {sorted.map((p) => {
+        {onRequestInsertAt ? (
+          <li className="rotation-roster-insert-slot">
+            <InsertGapButton
+              active={insertAtIndex === 0}
+              label="Insert at start"
+              onClick={() => requestInsert(0)}
+            />
+          </li>
+        ) : null}
+        {sorted.map((p, index) => {
           const char = getCharacter(p.characterId);
           if (!char) return null;
           return (
-            <RosterPill
-              key={p.id}
-              placement={p}
-              character={char}
-              isSelected={selectedId === p.id}
-              onSelect={onSelect}
-              onMove={movePlacement}
-            />
+            <li key={p.id} className="rotation-roster-item">
+              <RosterPill
+                placement={p}
+                character={char}
+                isSelected={selectedId === p.id}
+                onSelect={onSelect}
+                onMove={movePlacement}
+              />
+              {onRequestInsertAt ? (
+                <InsertGapButton
+                  active={insertAtIndex === index + 1}
+                  label={`Insert after ${char.name}`}
+                  onClick={() => requestInsert(index + 1)}
+                />
+              ) : null}
+            </li>
           );
         })}
       </ul>
@@ -292,6 +328,32 @@ export const PlacementRoster = ({
   );
 };
 
+const InsertGapButton = ({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) => {
+  return (
+    <button
+      type="button"
+      className={joinClassNames(
+        "rotation-roster-insert",
+        active && "active",
+      )}
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      aria-pressed={active}
+    >
+      +
+    </button>
+  );
+};
+
 const RosterPill = ({
   placement,
   character,
@@ -305,39 +367,51 @@ const RosterPill = ({
   onSelect: (id: string) => void;
   onMove: (fromId: string, toId: string) => void;
 }) => {
+  const [dragging, setDragging] = useState(false);
+
   return (
-    <li>
-      <button
-        type="button"
-        className={joinClassNames("rotation-roster-pill", isSelected && "selected")}
-        data-element={character.element}
-        draggable
-        title="Drag to reorder"
-        onDragStart={(e) => {
-          e.dataTransfer.setData("text/placement-id", placement.id);
-          e.dataTransfer.effectAllowed = "move";
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "move";
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          const fromId = e.dataTransfer.getData("text/placement-id");
-          if (fromId) onMove(fromId, placement.id);
-        }}
-        onClick={() => onSelect(placement.id)}
-      >
-        <CharacterIcon
-          character={character}
-          className="rotation-roster-pill-icon"
-        />
-        <span className="rotation-roster-pill-name">{character.name}</span>
-        <span className="rotation-roster-pill-dur">
-          {placement.duration.toFixed(2)}s
-        </span>
-      </button>
-    </li>
+    <button
+      type="button"
+      className={joinClassNames(
+        "rotation-roster-pill",
+        "is-draggable",
+        isSelected && "selected",
+        dragging && "dragging",
+      )}
+      data-element={character.element}
+      draggable
+      title="Drag to reorder"
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/placement-id", placement.id);
+        e.dataTransfer.effectAllowed = "move";
+        setCharacterDragImage(e, character);
+        setDragging(true);
+      }}
+      onDragEnd={() => setDragging(false)}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        const fromId = e.dataTransfer.getData("text/placement-id");
+        if (fromId) onMove(fromId, placement.id);
+      }}
+      onClick={() => onSelect(placement.id)}
+    >
+      <span className="drag-affordance" aria-hidden>
+        ⠿
+      </span>
+      <CharacterIcon
+        character={character}
+        className="rotation-roster-pill-icon"
+      />
+      <span className="rotation-roster-pill-name">{character.name}</span>
+      <span className="rotation-roster-pill-dur">
+        {placement.duration.toFixed(2)}s
+      </span>
+    </button>
   );
 };
 
@@ -405,6 +479,10 @@ const SelectedPlacementDetail = ({
     durationOpts(placement, timingMode, humanLag),
   );
   const isDefault = Math.abs(placement.duration - defaultDur) < 0.005;
+  const actionsDur = comboStepsTotalSeconds(char.id, placement.comboSteps);
+  const hasActions = placementUsesComboSteps(placement) && actionsDur > 0;
+  const fitsActions =
+    hasActions && Math.abs(placement.duration - actionsDur) < 0.005;
   const frameSkill =
     placement.skillVariant === "hold" && base.skillHoldCast != null
       ? base.skillHoldCast
@@ -422,6 +500,11 @@ const SelectedPlacementDetail = ({
   const handleOnFieldChange = (raw: number) => {
     if (!Number.isFinite(raw)) return;
     onSetDuration(raw);
+  };
+
+  const handleFitToActions = () => {
+    if (!hasActions) return;
+    onSetDuration(actionsDur);
   };
 
   return (
@@ -489,6 +572,19 @@ const SelectedPlacementDetail = ({
               onClick={onResetDuration}
             >
               Reset
+            </button>
+            <button
+              type="button"
+              className="chip compact"
+              disabled={!hasActions || fitsActions}
+              title={
+                hasActions
+                  ? `Resize on-field to ${actionsDur.toFixed(2)}s from inspect actions`
+                  : "Add inspect actions first"
+              }
+              onClick={handleFitToActions}
+            >
+              Fit actions
             </button>
           </div>
         </div>
@@ -699,13 +795,19 @@ const CastControls = ({
             <button
               key="skill"
               type="button"
-              className={joinClassNames("chip compact", placement.castSkill && "active")}
+              className={joinClassNames(
+                "chip compact is-draggable",
+                placement.castSkill && "active",
+              )}
               draggable
               onDragStart={(e) => onCastDragStart(e, "skill")}
               onDragEnd={onCastDragEnd}
               onClick={() => onCastClick("castSkill", !placement.castSkill)}
-              title={skillTitle()}
+              title={`${skillTitle()} · Drag onto timeline`}
             >
+              <span className="drag-affordance compact" aria-hidden>
+                ⠿
+              </span>
               {skillLabel}
               {discreteCharges && skillCasts > 1 ? `×${skillCasts}` : ""}
               <span className="rotation-dur-chip-secs">
@@ -716,13 +818,19 @@ const CastControls = ({
             <button
               key="burst"
               type="button"
-              className={joinClassNames("chip compact", placement.castBurst && "active")}
+              className={joinClassNames(
+                "chip compact is-draggable",
+                placement.castBurst && "active",
+              )}
               draggable
               onDragStart={(e) => onCastDragStart(e, "burst")}
               onDragEnd={onCastDragEnd}
               onClick={() => onCastClick("castBurst", !placement.castBurst)}
-              title={burstTitle()}
+              title={`${burstTitle()} · Drag onto timeline`}
             >
+              <span className="drag-affordance compact" aria-hidden>
+                ⠿
+              </span>
               Burst
               <span className="rotation-dur-chip-secs">
                 {effective.burstCast.toFixed(2)}s
