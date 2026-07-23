@@ -55,7 +55,14 @@ import {
   partyConvertsBloom,
   partyConvertsElectroCharged,
 } from "./combatMechanicsData";
-import { simulateAura, type AuraTransition } from "./auraSim";
+import {
+  formatReactionLabel,
+  formatReactionShortLabel,
+  reactionAccentColor,
+  simulateAura,
+  type AuraTransition,
+  type ReactionEvent,
+} from "./auraSim";
 import { ElementIcon } from "./ElementIcon";
 import { expandRotationHits, isElementalApplicationHit, type TimedHit } from "./rotationHits";
 import {
@@ -509,20 +516,54 @@ export const RotationTimeline = ({
     [placements],
   );
 
-  const auraTransitions = useMemo(() => {
-    if (!showAuraMarkers || placements.length === 0) return [];
+  const reactionPlacementIds = useMemo(() => {
+    return new Set(
+      placements.filter((p) => p.showReactions === true).map((p) => p.id),
+    );
+  }, [placements]);
+  const showReactionLane = reactionPlacementIds.size > 0;
+
+  const auraSimResult = useMemo(() => {
+    if (
+      (!showAuraMarkers && !showReactionLane) ||
+      placements.length === 0
+    ) {
+      return null;
+    }
     const characterIds = [
       ...new Set(sorted.map((p) => p.characterId)),
     ];
     const hits = expandRotationHits(placements);
-    if (!hits.length) return [];
+    if (!hits.length) return null;
     return simulateAura(hits, {
       convertElectroCharged: partyConvertsElectroCharged(characterIds),
       convertBloom: partyConvertsBloom(characterIds),
       sampleInterval: 0.5,
-      endTime: Math.max(coverageEnd + 0.5, hits[hits.length - 1]?.time ?? 0),
-    }).transitions;
-  }, [showAuraMarkers, placements, sorted, coverageEnd]);
+      endTime: Math.max(coverageEnd * 1.25, hits[hits.length - 1]?.time ?? 0),
+    });
+  }, [
+    showAuraMarkers,
+    showReactionLane,
+    placements,
+    sorted,
+    coverageEnd,
+  ]);
+
+  const auraTransitions = showAuraMarkers
+    ? (auraSimResult?.transitions ?? [])
+    : [];
+  const reactionEvents = useMemo(() => {
+    if (!showReactionLane || !auraSimResult) return [];
+    return auraSimResult.events.filter((ev) => {
+      if (!ev.placementId || !reactionPlacementIds.has(ev.placementId)) {
+        return false;
+      }
+      // On-field triggers only (skip Ripple/Oz/Ring ticks and EC aura ticks).
+      if (!ev.actionId || ev.actionId.startsWith('offfield:')) return false;
+      if (ev.actionId === 'ec-tick') return false;
+      return true;
+    });
+  }, [showReactionLane, auraSimResult, reactionPlacementIds]);
 
   const offFieldApps = useMemo(() => {
     if (placements.length === 0) return [];
@@ -546,21 +587,24 @@ export const RotationTimeline = ({
   const laneHeight = previewLayout ? PREVIEW_LANE_HEIGHT : LANE_HEIGHT;
   // Aura lane: lasting row + optional flash row (~2.85rem) + small margins.
   const auraLaneReserve = showAuraMarkers ? 3.05 : 0;
+  const reactionLaneReserve = showReactionLane ? 1.45 : 0;
   const offFieldLaneReserve = showOffFieldLane ? 1.55 : 0;
   const trackMinHeight = previewLayout
     ? 1.45 +
       laneHeight +
       0.25 +
       auraLaneReserve +
+      reactionLaneReserve +
       offFieldLaneReserve +
       (durationLaneCount ? 0.55 + durationsHeight * 0.85 : 0)
     : 1.35 +
       LANE_HEIGHT +
       auraLaneReserve +
+      reactionLaneReserve +
       offFieldLaneReserve +
       (durationLaneCount
         ? 0.85 + durationsHeight
-        : showAuraMarkers || showOffFieldLane
+        : showAuraMarkers || showReactionLane || showOffFieldLane
           ? 0.2
           : 1.5);
 
@@ -667,6 +711,7 @@ export const RotationTimeline = ({
       activeDurations: [],
       durationOverrides: {},
       showOffFieldApplications: false,
+      showReactions: false,
       showNightsoulFill: false,
     };
     onChange((prev) => insertOnField(prev, next, at, switchBufferRef.current));
@@ -979,6 +1024,15 @@ export const RotationTimeline = ({
             />
           ) : null}
 
+          {showReactionLane ? (
+            <ReactionMarkerLane
+              events={reactionEvents}
+              pxPerSec={pxPerSec}
+              showLoop={showLoop}
+              cycleLength={cycleLength}
+            />
+          ) : null}
+
           {showAuraMarkers ? (
             <AuraMarkerLane
               transitions={auraTransitions}
@@ -1047,10 +1101,10 @@ const TimelineToolbar = ({
       <h2 className="rotation-section-title">Timeline</h2>
       <div className="rotation-timeline-actions">
         {readOnly ? null : (
-            <label
-              className="chip compact rotation-aura-toggle"
-              title="Show enemy aura changes on the timeline"
-            >
+          <label
+            className="chip compact rotation-aura-toggle"
+            title="Show enemy aura changes on the timeline"
+          >
             <input
               type="checkbox"
               checked={showAuraMarkers}
@@ -1162,6 +1216,70 @@ const OffFieldAppLane = ({
           {hits.map((hit, i) => renderMark(hit, false, i))}
           {showLoop
             ? hits.map((hit, i) => renderMark(hit, true, i))
+            : null}
+        </>
+      )}
+    </div>
+  );
+};
+
+const ReactionMarkerLane = ({
+  events,
+  pxPerSec,
+  showLoop,
+  cycleLength,
+}: {
+  events: ReactionEvent[];
+  pxPerSec: number;
+  showLoop: boolean;
+  cycleLength: number;
+}) => {
+  const renderMark = (ev: ReactionEvent, loop: boolean, index: number) => {
+    const left = (ev.time + (loop ? cycleLength : 0)) * pxPerSec;
+    const character = getCharacter(ev.characterId);
+    const name = character?.name ?? ev.characterId;
+    const full = formatReactionLabel(ev.reaction);
+    const short = formatReactionShortLabel(ev.reaction);
+    const color = reactionAccentColor(ev.reaction);
+    const trigger =
+      ev.auraElement != null
+        ? `${ev.triggerElement} → ${ev.auraElement}`
+        : ev.triggerElement;
+    return (
+      <div
+        key={`${loop ? "loop-" : ""}${ev.time}-${ev.reaction}-${ev.characterId}-${ev.actionId}-${index}`}
+        className={joinClassNames(
+          "rotation-aura-mark rotation-reaction-mark",
+          loop && "loop",
+        )}
+        style={{ left }}
+        title={`${ev.time.toFixed(2)}s — ${full} · ${name} · ${ev.actionId}${
+          trigger ? ` · ${trigger}` : ""
+        }${ev.note ? ` · ${ev.note}` : ""}`}
+      >
+        <span
+          className="rotation-reaction-chip"
+          style={{ background: color }}
+          aria-hidden
+        >
+          {short}
+        </span>
+      </div>
+    );
+  };
+
+  return (
+    <div
+      className="rotation-aura-lane rotation-reaction-lane"
+      aria-label="Reactions"
+    >
+      {events.length === 0 ? (
+        <p className="rotation-aura-empty">No reactions yet</p>
+      ) : (
+        <>
+          {events.map((ev, i) => renderMark(ev, false, i))}
+          {showLoop
+            ? events.map((ev, i) => renderMark(ev, true, i))
             : null}
         </>
       )}

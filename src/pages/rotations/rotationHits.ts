@@ -6,6 +6,7 @@ import { getAnimationAction, framesToSeconds } from './animationTimings'
 import {
   NORMALS_ACTION_ID,
   comboActionFamily,
+  comboStepsTotalSeconds,
   packComboSteps,
   seedComboStepsFromCasts,
   type PackedComboSegment,
@@ -52,6 +53,8 @@ const SKILL_INFUSION_SECONDS: Record<string, number> = {
   skirk: 9,
   diluc: 12,
   keqing: 5,
+  // Nightsoul Blessing / Flamestrider form — spans early tE into the DPS window.
+  mavuika: 22,
 }
 
 function resolveSteps(placement: TimelinePlacement) {
@@ -132,6 +135,50 @@ function isInfusedAt(
     }
   }
   return localTime < infusionUntil - 1e-6
+}
+
+/** Flamestrider / Paramita / skill-form animation states are always infused. */
+function isInfusedFormState(stateId: string | null | undefined): boolean {
+  const s = (stateId || '').toLowerCase()
+  if (!s || s === 'default') return false
+  return (
+    s === 'skill_state' ||
+    s.includes('flamestrider') ||
+    s.includes('bike') ||
+    s.includes('paramita') ||
+    s.includes('infusion') ||
+    s.includes('nightsoul')
+  )
+}
+
+function isHitInfused(
+  characterId: string,
+  segments: PackedComboSegment[],
+  localTime: number,
+  stateId: string | null | undefined,
+  absoluteTime: number,
+  infusionActiveUntil: number,
+): boolean {
+  if (isInfusedFormState(stateId)) return true
+  if (absoluteTime < infusionActiveUntil - 1e-6) return true
+  return isInfusedAt(characterId, segments, localTime)
+}
+
+/** Absolute-time infusion expiry from skill casts in one placement. */
+function placementInfusionUntil(placement: TimelinePlacement): number {
+  if (!hasSkillInfusedNormalApp(placement.characterId)) return -1
+  const duration = resolveSkillInfusionDuration(placement.characterId)
+  if (duration <= 0) return -1
+  const steps = resolveSteps(placement)
+  if (!steps.length) return -1
+  const packed = packComboSteps(placement.characterId, steps)
+  let until = -1
+  for (const seg of packed.segments) {
+    if (skillStartsInfusion(seg.actionId)) {
+      until = Math.max(until, placement.start + seg.start + duration)
+    }
+  }
+  return until
 }
 
 function normalsHitInterval(characterId: string): number {
@@ -285,6 +332,7 @@ function expandNormalsSegmentHits(
   seg: PackedComboSegment,
   segments: PackedComboSegment[],
   hits: TimedHit[],
+  infusionActiveUntil = -1,
 ): void {
   const interval = Math.max(0.2, normalsHitInterval(placement.characterId))
   const firstOffset = Math.min(0.12, seg.duration * 0.25)
@@ -293,10 +341,13 @@ function expandNormalsSegmentHits(
     local < seg.start + seg.duration - 1e-6;
     local = roundTime(local + interval)
   ) {
-    const infused = isInfusedAt(
+    const infused = isHitInfused(
       placement.characterId,
       segments,
       local,
+      seg.stateId,
+      placement.start + local,
+      infusionActiveUntil,
     )
     const app = matchElementApp(placement.characterId, 'na1', { infused })
     pushHitFromApp(
@@ -315,12 +366,16 @@ function expandNormalsSegmentHits(
  * Expand one placement into absolute-time hit attempts.
  * Synthetic "normals" filler emits approximate NA applications (infusion-aware).
  */
-export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
+export function expandPlacementHits(
+  placement: TimelinePlacement,
+  opts?: { infusionActiveUntil?: number },
+): TimedHit[] {
   const steps = resolveSteps(placement)
   if (!steps.length) return expandOffFieldHits(placement)
 
   const packed = packComboSteps(placement.characterId, steps)
   const hits: TimedHit[] = []
+  const infusionActiveUntil = opts?.infusionActiveUntil ?? -1
 
   for (const seg of packed.segments) {
     if (seg.actionId === NORMALS_ACTION_ID) {
@@ -329,14 +384,18 @@ export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
         seg,
         packed.segments,
         hits,
+        infusionActiveUntil,
       )
       continue
     }
 
-    const infused = isInfusedAt(
+    const infused = isHitInfused(
       placement.characterId,
       packed.segments,
       seg.start,
+      seg.stateId,
+      placement.start + seg.start,
+      infusionActiveUntil,
     )
 
     const anim = getAnimationAction(
@@ -345,7 +404,8 @@ export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
       seg.stateId || 'default',
     )
 
-    // Phantasm Performance: emit Nefer self gauge hits (1U each), not shade/C6 0U lunar.
+    // Phantasm Performance: Nefer self Dendro gauge (1U×2) plus direct Lunar-Bloom
+    // reaction markers (kit LB damage). Shade/C6 DirectLunar rows stay separate.
     if (/phantasm/i.test(seg.actionId)) {
       const phantasmApps = listPhantasmGaugeApps(placement.characterId)
       const hitmarks =
@@ -364,6 +424,7 @@ export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
         const app = apps[i]!
         const frame = hitmarks[i] ?? hitmarks[0] ?? 0
         const offset = framesToSeconds(frame) ?? 0
+        const local = seg.start + offset
         const element =
           app.element && !app.elementDynamic
             ? app.element
@@ -380,7 +441,7 @@ export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
               : 0
         if (!element || gauge <= 0) continue
         hits.push({
-          time: roundTime(placement.start + seg.start + offset),
+          time: roundTime(placement.start + local),
           characterId: placement.characterId,
           placementId: placement.id,
           actionId: seg.actionId,
@@ -392,7 +453,33 @@ export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
           directReaction: null,
           attackTag: app.attackTag ?? null,
         })
+        // Phantasm self-hits deal Lunar-Bloom DMG even without a Hydro aura.
+        if (
+          placement.characterId === 'nefer' &&
+          /phantasm performance \(nefer/i.test(app.abil || '')
+        ) {
+          hits.push({
+            time: roundTime(placement.start + local),
+            characterId: placement.characterId,
+            placementId: placement.id,
+            actionId: seg.actionId,
+            abil: app.abil ?? seg.label,
+            element: null,
+            gaugeUnits: 0,
+            icdTag: 'None',
+            icdGroup: 'None',
+            directReaction: 'lunar-bloom',
+            attackTag: 'DirectLunarBloom',
+          })
+        }
       }
+      continue
+    }
+
+    // Dash / jump are movement cancels. Emitting gauge here would steal aura and
+    // advance Flamestrider ICD (breaking KQM C3F D C3F). Timed dash = no app.
+    const family = comboActionFamily(seg.actionId)
+    if (family === 'dash' || family === 'jump') {
       continue
     }
 
@@ -407,10 +494,13 @@ export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
     for (const frame of hitmarks) {
       const offset = framesToSeconds(frame) ?? 0
       const local = seg.start + offset
-      const hitInfused = isInfusedAt(
+      const hitInfused = isHitInfused(
         placement.characterId,
         packed.segments,
         local,
+        seg.stateId,
+        placement.start + local,
+        infusionActiveUntil,
       )
       const hitApp =
         hitInfused === infused
@@ -466,11 +556,65 @@ export function expandRotationHits(
   placements: TimelinePlacement[],
 ): TimedHit[] {
   const sorted = [...placements].sort((a, b) => a.start - b.start)
-  const hits = sorted.flatMap(expandPlacementHits)
+  const infusionUntilByChar = new Map<string, number>()
+  const hits: TimedHit[] = []
+
+  for (const placement of sorted) {
+    const priorUntil = infusionUntilByChar.get(placement.characterId) ?? -1
+    hits.push(
+      ...expandPlacementHits(placement, { infusionActiveUntil: priorUntil }),
+    )
+    const nextUntil = placementInfusionUntil(placement)
+    if (nextUntil > priorUntil) {
+      infusionUntilByChar.set(placement.characterId, nextUntil)
+    }
+  }
+
   hits.sort(
     (a, b) => a.time - b.time || a.characterId.localeCompare(b.characterId),
   )
-  return hits
+  return suppressRingWhileFlamestrider(hits, sorted)
+}
+
+/**
+ * KQM / kit: Ring of Searing Radiance disappears while Mavuika is on
+ * Flamestrider (Burst Crucibile / bike CA window). Keep off-field ring ticks
+ * only while she is swapped out.
+ */
+function suppressRingWhileFlamestrider(
+  hits: TimedHit[],
+  placements: TimelinePlacement[],
+): TimedHit[] {
+  const bikeWindows: { characterId: string; start: number; end: number }[] = []
+  for (const p of placements) {
+    if (p.characterId !== 'mavuika') continue
+    const steps = p.comboSteps ?? []
+    const onBike = steps.some(
+      (s) =>
+        s.actionId === 'burst' ||
+        s.stateId === 'skill_state' ||
+        /bike|flamestrider|ca_cycle|ca_bike/i.test(s.actionId),
+    )
+    if (!onBike) continue
+    const dur =
+      p.duration != null && p.duration > 0
+        ? p.duration
+        : comboStepsTotalSeconds(p.characterId, steps) || 8
+    bikeWindows.push({
+      characterId: p.characterId,
+      start: p.start,
+      end: p.start + dur,
+    })
+  }
+  if (!bikeWindows.length) return hits
+
+  return hits.filter((h) => {
+    if (h.characterId !== 'mavuika' || !h.offField) return true
+    if (!/ring|searing radiance/i.test(h.abil || h.actionId)) return true
+    return !bikeWindows.some(
+      (w) => h.time >= w.start - 1e-6 && h.time <= w.end + 1e-6,
+    )
+  })
 }
 
 function roundTime(t: number) {

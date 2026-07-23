@@ -15,30 +15,32 @@ describe('animation cancels', () => {
     expect(cancel?.frames).toBe(45)
   })
 
-  it('packs Q C4 J C4F with cancel durations under full CA length', () => {
+  it('packs Q C3F D C3F with ICD-aligned cancels', () => {
     const bike = 'skill_state'
     const packed = packComboSteps('mavuika', [
       { id: 'q', actionId: 'burst', stateId: 'default' },
       { id: 'c1', actionId: 'ca_cycle', stateId: bike },
       { id: 'c2', actionId: 'ca_cycle', stateId: bike },
       { id: 'c3', actionId: 'ca_cycle', stateId: bike },
+      { id: 'f1', actionId: 'ca_bikechargefinal', stateId: bike },
+      { id: 'd', actionId: 'dash', stateId: 'default' },
       { id: 'c4', actionId: 'ca_cycle', stateId: bike },
-      { id: 'j', actionId: 'jump_bikejump', stateId: bike },
       { id: 'c5', actionId: 'ca_cycle', stateId: bike },
       { id: 'c6', actionId: 'ca_cycle', stateId: bike },
-      { id: 'c7', actionId: 'ca_cycle', stateId: bike },
-      { id: 'c8', actionId: 'ca_cycle', stateId: bike },
-      { id: 'f', actionId: 'ca_bikechargefinal', stateId: bike },
+      { id: 'f2', actionId: 'ca_bikechargefinal', stateId: bike },
     ])
     const cycles = packed.segments.filter((s) => s.actionId === 'ca_cycle')
-    expect(cycles.length).toBe(8)
-    // Intermediate cycles cancel into next CA (~0.75s), not full 0.833s
+    const finals = packed.segments.filter(
+      (s) => s.actionId === 'ca_bikechargefinal',
+    )
+    expect(cycles).toHaveLength(6)
+    expect(finals).toHaveLength(2)
+    // Cycles cancel into next CA / finisher
     expect(cycles[0].cancelledInto).toBe('charge')
-    expect(cycles[0].canCancel).toBe(true)
+    expect(cycles[2].cancelledInto).toBe('charge')
     expect(cycles[0].duration).toBeCloseTo(0.75, 2)
-    expect(cycles[0].duration).toBeLessThan(cycles[0].fullDuration!)
-    // Last cycle before final also cancels into final CA
-    expect(cycles[7].cancelledInto).toBe('charge')
+    // Finisher cancels into dash
+    expect(finals[0].cancelledInto).toBe('dash')
     expect(shortActionLabel(cycles[0].label, 'ca_cycle')).toBe('C')
     expect(
       shortActionLabel('Charged Attack final', 'ca_bikechargefinal'),

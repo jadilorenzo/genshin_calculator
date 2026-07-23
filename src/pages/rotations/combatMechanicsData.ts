@@ -90,6 +90,17 @@ export function matchElementApp(
 /** True when this character has a distinct skill-infused Normal app row. */
 export function hasSkillInfusedNormalApp(characterId: string): boolean {
   const apps = getCombatCharacter(characterId)?.elementApps ?? []
+  const normals = apps.filter(
+    (a) =>
+      (a.attackTag || '').toLowerCase().includes('normal') &&
+      (a.gaugeUnits ?? 0) > 0,
+  )
+  const hasPhysical = normals.some((a) => (a.element || '') === 'Physical')
+  const hasElemental = normals.some(
+    (a) => Boolean(a.element) && a.element !== 'Physical',
+  )
+  // Flamestrider / Paramita style: Physical Normal + elemental form Normal.
+  if (hasPhysical && hasElemental) return true
   return apps.some(
     (a) =>
       isSkillInfusedAbil(a.abil) &&
@@ -106,12 +117,20 @@ function actionFamily(actionId: string): string {
   if (x === 'ca' || x.startsWith('ca_') || x.startsWith('aim')) return 'ca'
   if (x === 'skill' || x.startsWith('skill')) return 'skill'
   if (x === 'burst' || x.startsWith('burst')) return 'burst'
+  if (x === 'dash' || x.startsWith('dash')) return 'dash'
+  if (x === 'jump' || x.startsWith('jump')) return 'jump'
   if (x.includes('phantasm')) return 'ca'
   return 'other'
 }
 
+/** Skill-form / infusion attack rows (vs base Physical). */
 function isSkillInfusedAbil(abil: string | null | undefined): boolean {
-  return /\(\s*skill\s*\)/i.test(abil || '')
+  const a = abil || ''
+  return (
+    /\(\s*skill\s*\)/i.test(a) ||
+    /flamestrider/i.test(a) ||
+    /paramita/i.test(a)
+  )
 }
 
 function scoreApp(
@@ -167,6 +186,18 @@ function scoreApp(
     }
     if (abil.includes('moondew') && aid.includes('moondew')) score += 8
     if (abil === 'charge attack' && aid.includes('phantasm')) score -= 4
+    // Flamestrider donut cycle vs release final
+    if (aid.includes('final') || aid.includes('bikechargefinal')) {
+      if (abil.includes('final')) score += 12
+      if (abil.includes('cyclic')) score -= 10
+    } else if (
+      aid.includes('cycle') ||
+      aid.includes('donut') ||
+      aid.includes('spin')
+    ) {
+      if (abil.includes('cyclic')) score += 12
+      if (abil.includes('final')) score -= 10
+    }
     if (infused) {
       if (isSkillInfusedAbil(app.abil)) score += 8
       else if ((app.element || '') === 'Physical' && !abil.includes('phantasm')) {
@@ -202,6 +233,21 @@ function scoreApp(
     } else if (abil.includes('symphony') || abil.includes('thunderous')) {
       score -= 6
     }
+  } else if (family === 'dash') {
+    // Don't fall through to Charge / NA rows. Flamestrider Sprint only when infused.
+    if (file !== 'dash.go' && !abil.includes('sprint') && abil !== 'dash') {
+      return 0
+    }
+    if (file === 'dash.go') score += 5
+    if (abil.includes('sprint') || abil === 'dash') score += 5
+    if (infused) {
+      if (isSkillInfusedAbil(app.abil) || abil.includes('sprint')) score += 8
+      else score -= 8
+    } else if (abil.includes('sprint') || isSkillInfusedAbil(app.abil)) {
+      score -= 8
+    }
+  } else if (family === 'jump') {
+    return 0
   }
 
   // Prefer apps that actually apply gauge (unless we already ranked DirectLunar).

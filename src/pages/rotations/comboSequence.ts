@@ -181,7 +181,7 @@ export function isAttackStringAction(action: AnimationAction): boolean {
 function isExcludedMovementAction(action: AnimationAction): boolean {
   const id = action.id.toLowerCase()
   const kind = action.kind.toLowerCase()
-  // Jump / dash are allowed — used as animation cancels in combos (Mavuika C4 J C4F).
+  // Jump / dash are allowed — used as animation cancels in combos (Mavuika C3F D C3F).
   return (
     id === 'swap' ||
     id === 'walk' ||

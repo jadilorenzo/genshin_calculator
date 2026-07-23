@@ -48,6 +48,8 @@ export type ReactionEvent = {
   triggerElement: string
   auraElement: string | null
   characterId: string
+  /** Timeline placement that produced the trigger hit (empty for aura ticks). */
+  placementId: string
   actionId: string
   note?: string
 }
@@ -214,7 +216,8 @@ function shouldApplyByIcd(
   const key = `${characterId}::${tag}`
   const existing = icd.get(key)
 
-  // 2.5s (or group reset) since last successful application → apply + reset sequence
+  // Timer is from the *first hit of the current ICD window* (not last apply).
+  // After resetSeconds, the next hit starts a fresh sequence and applies.
   if (!existing || hit.time - existing.windowStart >= reset) {
     icd.set(key, { windowStart: hit.time, index: 1 })
     return true
@@ -222,7 +225,6 @@ function shouldApplyByIcd(
 
   const applies = seq[existing.index % seq.length] !== 0
   existing.index += 1
-  if (applies) existing.windowStart = hit.time
   icd.set(key, existing)
   return applies
 }
@@ -588,19 +590,27 @@ export function simulateAura(
   auraTimeline.push(snapshot(0, auras))
 
   const advanceTo = (target: number) => {
-    if (target <= time + 1e-12) return
+    const goal = roundTime(target)
+    if (goal <= time + 1e-12) {
+      time = Math.max(time, goal)
+      return
+    }
     let cursor = time
-    while (cursor < target - 1e-9) {
+    let guard = 0
+    while (cursor < goal - 1e-9) {
+      if (++guard > 200_000) break
       const expiry = timeToNextExpiry(auras)
       const ecActive = hasAura(auras, 'Hydro') && hasAura(auras, 'Electro')
       const nextTickAt = ecActive ? ecTick.time + EC_TICK_INTERVAL : Infinity
-      let stepTo = target
+      let stepTo = goal
       if (expiry != null) stepTo = Math.min(stepTo, cursor + expiry)
       if (ecActive) stepTo = Math.min(stepTo, nextTickAt)
 
-      const dt = stepTo - cursor
+      const dt = Math.max(0, stepTo - cursor)
       decayAuras(auras, dt)
-      cursor = roundTime(stepTo)
+      const next = roundTime(stepTo)
+      // Float rounding can leave cursor == next with empty auras → spin.
+      cursor = next > cursor + 1e-12 ? next : roundTime(cursor + 0.001)
       noteTransition(cursor)
 
       if (
@@ -621,6 +631,7 @@ export function simulateAura(
           triggerElement: 'tick',
           auraElement: 'Hydro+Electro',
           characterId: '',
+          placementId: '',
           actionId: 'ec-tick',
           note: 'aura tick',
         })
@@ -629,9 +640,9 @@ export function simulateAura(
       }
     }
     if (!(hasAura(auras, 'Hydro') && hasAura(auras, 'Electro'))) {
-      ecTick.time = target - EC_TICK_INTERVAL
+      ecTick.time = goal - EC_TICK_INTERVAL
     }
-    time = target
+    time = goal
   }
 
   while (hitIdx < hits.length || time < endTime - 1e-9) {
@@ -669,6 +680,7 @@ export function simulateAura(
           triggerElement: nextHit.element ?? 'direct',
           auraElement: null,
           characterId: nextHit.characterId,
+          placementId: nextHit.placementId,
           actionId: nextHit.actionId,
           note: nextHit.abil ?? 'direct reaction',
         })
@@ -709,6 +721,7 @@ export function simulateAura(
             triggerElement: element,
             auraElement: outcome.auraElement,
             characterId: nextHit.characterId,
+            placementId: nextHit.placementId,
             actionId: nextHit.actionId,
           })
           bumpCount(reactionCounts, outcome.reaction)
@@ -762,6 +775,7 @@ export function simulateAura(
           triggerElement: element,
           auraElement: outcome.auraElement,
           characterId: nextHit.characterId,
+          placementId: nextHit.placementId,
           actionId: nextHit.actionId,
         })
         bumpCount(reactionCounts, outcome.reaction)
@@ -830,4 +844,50 @@ export function formatReactionLabel(id: string): string {
     shatter: 'Shatter',
   }
   return labels[id] ?? id
+}
+
+/** Compact labels for timeline chips. */
+export function formatReactionShortLabel(id: string): string {
+  const labels: Record<string, string> = {
+    melt: 'Melt',
+    vaporize: 'Vape',
+    overload: 'OL',
+    superconduct: 'SC',
+    'electro-charged': 'EC',
+    'lunar-charged': 'LC',
+    freeze: 'Frz',
+    swirl: 'Swirl',
+    crystallize: 'Cry',
+    burning: 'Burn',
+    bloom: 'Bloom',
+    'lunar-bloom': 'LB',
+    quicken: 'Qkn',
+    aggravate: 'Agg',
+    spread: 'Spr',
+    shatter: 'Shat',
+  }
+  return labels[id] ?? formatReactionLabel(id)
+}
+
+/** Accent color for reaction timeline chips. */
+export function reactionAccentColor(id: string): string {
+  const colors: Record<string, string> = {
+    melt: 'rgba(230, 110, 70, 0.92)',
+    vaporize: 'rgba(90, 150, 230, 0.92)',
+    overload: 'rgba(210, 90, 70, 0.92)',
+    superconduct: 'rgba(130, 160, 230, 0.92)',
+    'electro-charged': 'rgba(160, 110, 230, 0.92)',
+    'lunar-charged': 'rgba(150, 130, 240, 0.95)',
+    freeze: 'rgba(150, 210, 240, 0.92)',
+    swirl: 'rgba(110, 200, 180, 0.92)',
+    crystallize: 'rgba(210, 170, 80, 0.92)',
+    burning: 'rgba(220, 100, 50, 0.92)',
+    bloom: 'rgba(100, 180, 90, 0.92)',
+    'lunar-bloom': 'rgba(80, 170, 120, 0.95)',
+    quicken: 'rgba(140, 200, 100, 0.92)',
+    aggravate: 'rgba(170, 130, 230, 0.92)',
+    spread: 'rgba(120, 190, 90, 0.92)',
+    shatter: 'rgba(180, 210, 230, 0.92)',
+  }
+  return colors[id] ?? 'rgba(180, 180, 180, 0.9)'
 }

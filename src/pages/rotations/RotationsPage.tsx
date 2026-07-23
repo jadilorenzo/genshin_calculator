@@ -520,6 +520,7 @@ const RotationsEditorInner = () => {
       activeDurations: [],
       durationOverrides: {},
       showOffFieldApplications: false,
+      showReactions: false,
       showNightsoulFill: false,
     };
   };
@@ -1028,7 +1029,7 @@ const RotationsEditorInner = () => {
             />
           ) : null}
 
-          <AuraSimPanel placements={placements} />
+          <AuraSimPanel placements={placements} switchBuffer={switchBuffer} />
         </main>
 
         <aside

@@ -10,10 +10,12 @@ import {
 } from './combatMechanicsData'
 import { getCharacter } from './characters'
 import { expandRotationHits } from './rotationHits'
+import { rotationCycleLength } from './timelineContinuous'
 import type { TimelinePlacement } from './types'
 
 interface AuraSimPanelProps {
   placements: TimelinePlacement[]
+  switchBuffer?: number
 }
 
 const ELEMENT_COLORS: Record<string, string> = {
@@ -37,7 +39,10 @@ function maxGauge(timeline: AuraSnapshot[]) {
   return m
 }
 
-export function AuraSimPanel({ placements }: AuraSimPanelProps) {
+export function AuraSimPanel({
+  placements,
+  switchBuffer,
+}: AuraSimPanelProps) {
   const [open, setOpen] = useState(false)
   const panelId = useId()
 
@@ -55,6 +60,13 @@ export function AuraSimPanel({ placements }: AuraSimPanelProps) {
   const convertEc = partyConvertsElectroCharged(characterIds)
   const convertBloom = partyConvertsBloom(characterIds)
 
+  const rotationEnd = useMemo(
+    () => rotationCycleLength(placements, switchBuffer),
+    [placements, switchBuffer],
+  )
+  // Match timeline fit padding: show rotation + ~25% tail for aura decay.
+  const gaugeEnd = Math.max(rotationEnd * 1.25, 1)
+
   const hits = useMemo(
     () => (open ? expandRotationHits(placements) : []),
     [placements, open],
@@ -67,9 +79,10 @@ export function AuraSimPanel({ placements }: AuraSimPanelProps) {
             convertElectroCharged: convertEc,
             convertBloom,
             sampleInterval: 0.2,
+            endTime: gaugeEnd,
           })
         : null,
-    [hits, convertEc, convertBloom, open],
+    [hits, convertEc, convertBloom, open, gaugeEnd],
   )
 
   if (!placements.length) return null
@@ -81,13 +94,7 @@ export function AuraSimPanel({ placements }: AuraSimPanelProps) {
     ? Object.entries(result.applicationCounts).sort((a, b) => b[1] - a[1])
     : []
 
-  const endTime = result
-    ? Math.max(
-        hits[hits.length - 1]?.time ?? 0,
-        result.auraTimeline[result.auraTimeline.length - 1]?.time ?? 0,
-        1,
-      )
-    : 1
+  const endTime = gaugeEnd
   const gaugeMax = result ? maxGauge(result.auraTimeline) : 0.8
   // Oldest → newest (last window of the log, chronological)
   const reactionEvents = result ? result.events.slice(-40) : []

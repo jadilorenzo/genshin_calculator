@@ -29,6 +29,8 @@ export interface RotationDoc {
   humanLag: number;
   /** Show enemy aura transition markers on the timeline (per rotation). */
   showAuraMarkers: boolean;
+  /** Show reaction occurrence markers on the timeline (per rotation). */
+  showReactionMarkers: boolean;
 }
 
 export const defaultRotationDoc = (): RotationDoc => {
@@ -38,6 +40,7 @@ export const defaultRotationDoc = (): RotationDoc => {
     timingMode: DEFAULT_TIMING_MODE,
     humanLag: DEFAULT_HUMAN_LAG,
     showAuraMarkers: true,
+    showReactionMarkers: true,
   };
 };
 
@@ -81,6 +84,10 @@ const normalizeDoc = (
     showAuraMarkers: parseShowAuraMarkers(
       raw.showAuraMarkers,
       parseShowAuraMarkers(legacyShowAuraMarkers, base.showAuraMarkers),
+    ),
+    showReactionMarkers: parseShowAuraMarkers(
+      raw.showReactionMarkers,
+      base.showReactionMarkers,
     ),
   };
 };

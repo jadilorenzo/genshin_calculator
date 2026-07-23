@@ -337,7 +337,7 @@ function DetailInner({
           placements={placements}
           onChange={() => {}}
           selectedId={null}
-          switchBuffer={doc.switchBuffer ?? 0.33}
+          switchBuffer={doc.switchBuffer ?? 0.1}
           timingMode={doc.timingMode ?? 'frame'}
           humanLag={doc.humanLag ?? 0.15}
           showAuraMarkers={doc.showAuraMarkers !== false}

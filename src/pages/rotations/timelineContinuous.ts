@@ -3,7 +3,7 @@ import type { TimelinePlacement } from './types'
 export const SNAP = 0.25
 export const MIN_ON_FIELD = 0.5
 /** Default character swap / animation buffer between on-field windows. */
-export const DEFAULT_SWITCH_BUFFER = 0.33
+export const DEFAULT_SWITCH_BUFFER = 0.1
 export const MIN_SWITCH_BUFFER = 0
 export const MAX_SWITCH_BUFFER = 1.5
 

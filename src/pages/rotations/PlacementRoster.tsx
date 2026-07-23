@@ -74,6 +74,7 @@ const withCastDefaults = (p: TimelinePlacement): TimelinePlacement => {
     activeDurations: p.activeDurations ?? [],
     durationOverrides: p.durationOverrides ?? {},
     showOffFieldApplications: p.showOffFieldApplications === true,
+    showReactions: p.showReactions === true,
     showNightsoulFill: p.showNightsoulFill === true,
   };
 };
@@ -339,6 +340,11 @@ export const PlacementRoster = ({
               showOffFieldApplications: value,
             })
           }
+          onToggleReactions={(value) =>
+            updatePlacement(selected.id, {
+              showReactions: value,
+            })
+          }
           onToggleNightsoulFill={(value) =>
             updatePlacement(selected.id, {
               showNightsoulFill: value,
@@ -461,6 +467,7 @@ const SelectedPlacementDetail = ({
   onSkillVariant,
   onSkillCasts,
   onToggleOffFieldApplications,
+  onToggleReactions,
   onToggleNightsoulFill,
 }: {
   placement: TimelinePlacement;
@@ -477,6 +484,7 @@ const SelectedPlacementDetail = ({
   onSkillVariant: (variant: SkillCastVariant) => void;
   onSkillCasts: (casts: number) => void;
   onToggleOffFieldApplications: (value: boolean) => void;
+  onToggleReactions: (value: boolean) => void;
   onToggleNightsoulFill: (value: boolean) => void;
 }) => {
   const char = getCharacter(placement.characterId);
@@ -639,6 +647,21 @@ const SelectedPlacementDetail = ({
               onChange={(e) =>
                 onToggleOffFieldApplications(e.target.checked)
               }
+            />
+            <span>Show on timeline</span>
+          </label>
+        </div>
+
+        <div className="rotation-selected-row">
+          <span className="label rotation-offfield-label">Reactions</span>
+          <label
+            className="chip compact rotation-aura-toggle"
+            title="Show this field time's on-field reactions on the timeline (melts, vapes, …)"
+          >
+            <input
+              type="checkbox"
+              checked={placement.showReactions === true}
+              onChange={(e) => onToggleReactions(e.target.checked)}
             />
             <span>Show on timeline</span>
           </label>

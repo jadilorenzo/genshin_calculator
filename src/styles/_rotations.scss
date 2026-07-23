@@ -1117,6 +1117,29 @@ body.rotation-editor-resizing {
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.28);
 }
 
+.rotation-reaction-lane {
+  height: 1.2rem;
+  margin: 0.12rem 0 0;
+}
+
+.rotation-reaction-chip {
+  display: block;
+  padding: 0.08rem 0.28rem;
+  border-radius: 2px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  color: #0b0d12;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.22);
+  white-space: nowrap;
+}
+
+.rotation-timeline.preview .rotation-reaction-chip {
+  font-size: 0.52rem;
+  padding: 0.05rem 0.2rem;
+}
+
 .rotation-aura-empty {
   margin: 0;
   padding: 0.2rem 0.5rem;
@@ -2013,11 +2036,69 @@ body.rotation-editor-resizing {
 
 .combo-inspect-titles {
   min-width: 0;
-  flex: 1 1 14rem;
+  flex: 1 1 10rem;
 }
 
-.combo-inspect-titles .field-note {
-  margin: 0.2rem 0 0;
+.combo-inspect-head-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.combo-inspect-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.2;
+  }
+}
+
+.combo-inspect-key-swatch {
+  pointer-events: none;
+  cursor: default;
+  padding: 0.12rem 0.38rem;
+  font-size: 0.68rem;
+  gap: 0.2rem;
+
+  &:active {
+    cursor: default;
+  }
+
+  &.gates {
+    padding-left: 0.42rem;
+  }
+
+  .combo-inspect-chip-unlocks {
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+}
+
+.combo-inspect-key-fold {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.38rem;
+  border: 1px dashed var(--line);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--row-surface) 70%, transparent);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--mist);
 }
 
 .combo-inspect-meta {
@@ -2134,7 +2215,11 @@ body.rotation-editor-resizing {
   }
 
   &.gates {
-    box-shadow: inset 2px 0 0 color-mix(in srgb, var(--gold) 70%, transparent);
+    border-color: color-mix(in srgb, var(--gold) 75%, var(--line));
+    background: color-mix(in srgb, var(--gold-soft) 40%, var(--chip-surface));
+    box-shadow:
+      inset 3px 0 0 var(--gold),
+      0 0 0 1px color-mix(in srgb, var(--gold) 28%, transparent);
   }
 
   &.locked {
@@ -2177,7 +2262,13 @@ body.rotation-editor-resizing {
 }
 
 .combo-inspect-chip-unlocks {
-  color: var(--gold);
+  color: var(--gold-bright, var(--gold));
+  font-weight: 700;
+}
+
+.combo-inspect-key-gates-label {
+  color: color-mix(in srgb, var(--gold) 70%, var(--muted));
+  font-weight: 600;
 }
 
 .combo-inspect-chip.kind-na {
@@ -2199,6 +2290,10 @@ body.rotation-editor-resizing {
 .combo-inspect-chip.kind-dash,
 .combo-inspect-chip.kind-other {
   border-color: color-mix(in srgb, var(--muted) 40%, var(--line));
+}
+
+.combo-inspect-chip.gates {
+  border-color: color-mix(in srgb, var(--gold) 80%, var(--line));
 }
 
 .combo-inspect-lane {

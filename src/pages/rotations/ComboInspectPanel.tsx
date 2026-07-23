@@ -579,18 +579,52 @@ export function ComboInspectPanel({
       <div className="combo-inspect-head">
         <div className="combo-inspect-titles">
           <h2 className="rotation-section-title">Inspect · {character.name}</h2>
-          <p className="field-note">
-            Use Normals (general) as filler, or expand N1–N5 / special CA for
-            exact hits. Abilities with a gold edge unlock follow-ups; dimmed
-            chips show what they need first.
-          </p>
         </div>
-        <div className="combo-inspect-meta">
-          <span className="combo-inspect-total">
-            {packed.totalSeconds > 0
-              ? `${packed.totalSeconds.toFixed(2)}s packed`
-              : 'Empty sequence'}
-          </span>
+        <div className="combo-inspect-head-right">
+          <ul className="combo-inspect-key" aria-label="Palette key">
+            <li>
+              <span
+                className="combo-inspect-chip emphasize kind-na combo-inspect-key-swatch"
+                aria-hidden
+              >
+                Normals
+              </span>
+              <span>filler</span>
+            </li>
+            <li>
+              <span className="combo-inspect-key-fold" aria-hidden>
+                N1–N5 / CA
+              </span>
+              <span>exact hits</span>
+            </li>
+            <li>
+              <span
+                className="combo-inspect-chip gates kind-skill combo-inspect-key-swatch"
+                aria-hidden
+              >
+                Skill
+                <span className="combo-inspect-chip-unlocks">→</span>
+              </span>
+              <span className="combo-inspect-key-gates-label">
+                unlocks follow-ups
+              </span>
+            </li>
+            <li>
+              <span
+                className="combo-inspect-chip locked kind-ca combo-inspect-key-swatch"
+                aria-hidden
+              >
+                Locked
+              </span>
+              <span>needs prereq</span>
+            </li>
+          </ul>
+          <div className="combo-inspect-meta">
+            <span className="combo-inspect-total">
+              {packed.totalSeconds > 0
+                ? `${packed.totalSeconds.toFixed(2)}s packed`
+                : 'Empty sequence'}
+            </span>
           {nightsoulCapable ? (
             <label
               className="chip compact rotation-aura-toggle"
@@ -673,6 +707,7 @@ export function ComboInspectPanel({
           >
             Clear
           </button>
+        </div>
         </div>
       </div>
 

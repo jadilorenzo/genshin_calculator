@@ -37,7 +37,7 @@ function rotationPreviewDoc(item: CommunityRotation): {
   const doc = (item.doc ?? {}) as Partial<RotationDoc>
   return {
     placements: Array.isArray(doc.placements) ? doc.placements : [],
-    switchBuffer: doc.switchBuffer ?? 0.33,
+    switchBuffer: doc.switchBuffer ?? 0.1,
     timingMode: doc.timingMode ?? 'frame',
     humanLag: doc.humanLag ?? 0.15,
     showAuraMarkers: doc.showAuraMarkers !== false,

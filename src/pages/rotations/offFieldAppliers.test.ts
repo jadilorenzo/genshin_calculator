@@ -121,5 +121,8 @@ describe('off-field aura appliers', () => {
     // 2 self-hits per phantasm × 2 CAs
     expect(phantasm.length).toBe(4)
     expect(phantasm.every((h) => /Nefer/i.test(h.abil ?? ''))).toBe(true)
+    const lunar = hits.filter((h) => h.directReaction === 'lunar-bloom')
+    expect(lunar).toHaveLength(4)
+    expect(lunar.every((h) => h.placementId === 'p4')).toBe(true)
   })
 })

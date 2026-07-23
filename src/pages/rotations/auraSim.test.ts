@@ -64,6 +64,25 @@ describe('simulateAura', () => {
     expect(result.skippedByIcd).toBe(2)
   })
 
+  it('resets Default ICD 2.5s after the first hit of the window', () => {
+    // C1 @0 apply, C2 @0.7 skip, C3 @1.4 skip, F @2.1 apply (hit 4),
+    // C4 @2.6 applies via timer (2.5s from first hit) — not blocked as hit 5.
+    const times = [0, 0.7, 1.4, 2.1, 2.6]
+    const hits: TimedHit[] = times.map((time, i) =>
+      hit({
+        time,
+        element: 'Pyro',
+        gaugeUnits: 1,
+        icdTag: 'MavuikaFlamestrider',
+        icdGroup: 'Default',
+        actionId: `ca${i}`,
+      }),
+    )
+    const result = simulateAura(hits, { endTime: 4 })
+    expect(result.applicationCounts.Pyro).toBe(3)
+    expect(result.skippedByIcd).toBe(2)
+  })
+
   it('shows Anemo briefly on swirl then recovers to lasting auras', () => {
     const result = simulateAura(
       [
@@ -109,5 +128,87 @@ describe('simulateAura', () => {
     // 1U after tax lasts ~9.5s
     expect(cleared!.time).toBeGreaterThan(8)
     expect(cleared!.time).toBeLessThan(11)
+  })
+
+  it('melts when off-field Cryo aura meets on-field Pyro', () => {
+    const result = simulateAura(
+      [
+        hit({
+          time: 1,
+          element: 'Cryo',
+          gaugeUnits: 1,
+          characterId: 'citlali',
+          actionId: 'offfield:itzpapa-frostfall',
+          offField: true,
+          icdTag: 'CitlaliFrostfallStorm',
+          icdGroup: 'CitlaliFrostfallStorm',
+        }),
+        hit({
+          time: 2,
+          element: 'Pyro',
+          gaugeUnits: 1,
+          characterId: 'mavuika',
+          actionId: 'na1',
+          abil: 'Flamestrider Normal',
+          icdTag: 'None',
+          icdGroup: 'None',
+        }),
+        hit({
+          time: 3.5,
+          element: 'Cryo',
+          gaugeUnits: 1,
+          characterId: 'citlali',
+          actionId: 'offfield:itzpapa-frostfall',
+          offField: true,
+          icdTag: 'CitlaliFrostfallStorm',
+          icdGroup: 'CitlaliFrostfallStorm',
+        }),
+        hit({
+          time: 4,
+          element: 'Pyro',
+          gaugeUnits: 1,
+          characterId: 'mavuika',
+          actionId: 'ca_cycle',
+          abil: 'Flamestrider Charged Attack (Cyclic)',
+          icdTag: 'None',
+          icdGroup: 'None',
+        }),
+      ],
+      { endTime: 6 },
+    )
+    expect(result.reactionCounts.melt).toBeGreaterThanOrEqual(2)
+    expect(result.events.filter((e) => e.reaction === 'melt').length).toBe(
+      result.reactionCounts.melt,
+    )
+  })
+
+  it('records direct Lunar-Bloom from Nefer Phantasm without Hydro aura', () => {
+    const result = simulateAura(
+      [
+        hit({
+          time: 1,
+          element: null,
+          gaugeUnits: 0,
+          characterId: 'nefer',
+          actionId: 'ca_phantasm',
+          abil: 'Phantasm Performance (Nefer 1)',
+          directReaction: 'lunar-bloom',
+          attackTag: 'DirectLunarBloom',
+        }),
+        hit({
+          time: 1.05,
+          element: 'Dendro',
+          gaugeUnits: 1,
+          characterId: 'nefer',
+          actionId: 'ca_phantasm',
+          abil: 'Phantasm Performance (Nefer 1)',
+          icdTag: 'None',
+          icdGroup: 'None',
+        }),
+      ],
+      { endTime: 2, convertBloom: true },
+    )
+    expect(result.reactionCounts['lunar-bloom']).toBe(1)
+    expect(result.events[0]?.placementId).toBe('p1')
   })
 })

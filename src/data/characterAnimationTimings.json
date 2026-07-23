@@ -12522,12 +12522,11 @@
               "kind": "dash",
               "frames": 24,
               "seconds": 0.4,
-              "hitmarks": [
-                106
-              ],
+              "hitmarks": [],
               "cancels": {},
               "source": "gcsim",
-              "gcsimVar": "dashFrames"
+              "gcsimVar": "dashFrames",
+              "notes": "Cancel dash \u2014 no hitmark (Flamestrider Sprint is a separate contact, not used for timed C3F cancels)"
             }
           ]
         },
@@ -12628,7 +12627,8 @@
                 "dash": 50,
                 "jump": 50,
                 "skill": 50,
-                "attack": 50
+                "attack": 50,
+                "charge": 50
               },
               "source": "gcsim",
               "gcsimVar": "bikeChargeFinalFrames"

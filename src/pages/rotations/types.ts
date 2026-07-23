@@ -141,6 +141,11 @@ export interface TimelinePlacement {
    */
   showOffFieldApplications?: boolean
   /**
+   * Show this placement's on-field reaction markers on the timeline
+   * (e.g. Mavuika melts). Default off when unset.
+   */
+  showReactions?: boolean
+  /**
    * Show approximate Nightsoul fill intensity on the timeline alongside
    * kit/effect duration overlays. Default off when unset.
    */
