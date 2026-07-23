@@ -18,6 +18,7 @@ import {
   updateCommunityRotation,
 } from "./communityApi";
 import { PlacementRoster } from "./PlacementRoster";
+import { AuraSimPanel } from "./AuraSimPanel";
 import { ComboInspectPanel } from "./ComboInspectPanel";
 import { RotationSettingsMenu } from "./RotationSettingsMenu";
 import {
@@ -615,6 +616,8 @@ const RotationsEditorInner = () => {
             onChange={setPlacements}
           />
         ) : null}
+
+        <AuraSimPanel placements={placements} />
 
         <div className="rotation-below">
           <CharacterPalette

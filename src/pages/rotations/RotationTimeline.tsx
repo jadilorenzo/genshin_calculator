@@ -51,6 +51,13 @@ import {
   snapToNearestBoundary,
   switchGaps,
 } from "./timelineContinuous";
+import {
+  partyConvertsBloom,
+  partyConvertsElectroCharged,
+} from "./combatMechanicsData";
+import { simulateAura, type AuraTransition } from "./auraSim";
+import { ElementIcon } from "./ElementIcon";
+import { expandRotationHits } from "./rotationHits";
 import type { CharacterData, TimelinePlacement } from "./types";
 
 const DEFAULT_PX_PER_SEC = 48;
@@ -280,6 +287,7 @@ export const RotationTimeline = ({
   const [movingId, setMovingId] = useState<string | null>(null);
   const [moveGhost, setMoveGhost] = useState<MoveGhost | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [showAuraMarkers, setShowAuraMarkers] = useState(false);
   const dragRef = useRef<DragState | null>(null);
   const suppressClickRef = useRef(false);
   const selectedIdRef = useRef(selectedId);
@@ -424,6 +432,21 @@ export const RotationTimeline = ({
     [placements],
   );
 
+  const auraTransitions = useMemo(() => {
+    if (!showAuraMarkers || placements.length === 0) return [];
+    const characterIds = [
+      ...new Set(sorted.map((p) => p.characterId)),
+    ];
+    const hits = expandRotationHits(placements);
+    if (!hits.length) return [];
+    return simulateAura(hits, {
+      convertElectroCharged: partyConvertsElectroCharged(characterIds),
+      convertBloom: partyConvertsBloom(characterIds),
+      sampleInterval: 0.5,
+      endTime: Math.max(coverageEnd + 0.5, hits[hits.length - 1]?.time ?? 0),
+    }).transitions;
+  }, [showAuraMarkers, placements, sorted, coverageEnd]);
+
   const width = displayEnd * pxPerSec;
   const majorEvery = majorTickStep(pxPerSec);
   const durationsHeight = Math.max(durationLaneCount * DURATION_ROW_HEIGHT, 0);
@@ -433,9 +456,11 @@ export const RotationTimeline = ({
     ? 1.45 +
       laneHeight +
       0.45 +
+      (showAuraMarkers ? 2 : 0) +
       (durationLaneCount ? 0.55 + durationsHeight * 0.85 : 0)
     : 3.5 +
       LANE_HEIGHT +
+      (showAuraMarkers ? 2.4 : 0) +
       (durationLaneCount ? 0.85 + durationsHeight : 1.5);
 
   const timeFromClientX = useCallback((clientX: number) => {
@@ -737,6 +762,8 @@ export const RotationTimeline = ({
           hasPlacements={placements.length > 0}
           readOnly={readOnly}
           lockZoom={zoomLocked}
+          showAuraMarkers={showAuraMarkers}
+          onToggleAuraMarkers={() => setShowAuraMarkers((v) => !v)}
           onZoomOut={zoomOut}
           onZoomIn={zoomIn}
           onFit={fitToFirstRotation}
@@ -822,6 +849,15 @@ export const RotationTimeline = ({
               }
             />
           )}
+
+          {showAuraMarkers ? (
+            <AuraMarkerLane
+              transitions={auraTransitions}
+              pxPerSec={pxPerSec}
+              showLoop={showLoop}
+              cycleLength={cycleLength}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -857,6 +893,8 @@ const TimelineToolbar = ({
   hasPlacements,
   readOnly,
   lockZoom,
+  showAuraMarkers,
+  onToggleAuraMarkers,
   onZoomOut,
   onZoomIn,
   onFit,
@@ -867,6 +905,8 @@ const TimelineToolbar = ({
   hasPlacements: boolean;
   readOnly?: boolean;
   lockZoom?: boolean;
+  showAuraMarkers: boolean;
+  onToggleAuraMarkers: () => void;
   onZoomOut: () => void;
   onZoomIn: () => void;
   onFit: () => void;
@@ -877,6 +917,17 @@ const TimelineToolbar = ({
     <div className="rotation-timeline-head">
       <h2 className="rotation-section-title">Timeline</h2>
       <div className="rotation-timeline-actions">
+        <button
+          type="button"
+          className={
+            showAuraMarkers ? "chip compact active" : "chip compact"
+          }
+          title="Show enemy aura changes on the timeline"
+          aria-pressed={showAuraMarkers}
+          onClick={onToggleAuraMarkers}
+        >
+          Aura
+        </button>
         {lockZoom ? null : (
           <>
             <button type="button" className="chip compact" onClick={onZoomOut}>
@@ -916,6 +967,68 @@ const TimelineToolbar = ({
           </>
         )}
       </div>
+    </div>
+  );
+};
+
+const AuraMarkerLane = ({
+  transitions,
+  pxPerSec,
+  showLoop,
+  cycleLength,
+}: {
+  transitions: AuraTransition[];
+  pxPerSec: number;
+  showLoop: boolean;
+  cycleLength: number;
+}) => {
+  const renderMark = (tr: AuraTransition, loop: boolean) => {
+    const left = (tr.time + (loop ? cycleLength : 0)) * pxPerSec;
+    const label =
+      tr.auras.length === 0
+        ? "Aura cleared"
+        : tr.auras
+            .map((a) => `${a.element} ${a.gauge.toFixed(2)}U`)
+            .join(" · ");
+    return (
+      <div
+        key={`${loop ? "loop-" : ""}${tr.time}-${tr.auras.map((a) => a.element).join("-")}`}
+        className={joinClassNames(
+          "rotation-aura-mark",
+          loop && "loop",
+          tr.auras.length === 0 && "cleared",
+        )}
+        style={{ left }}
+        title={`${tr.time.toFixed(2)}s — ${label}`}
+      >
+        {tr.auras.length === 0 ? (
+          <span className="rotation-aura-icon empty" aria-hidden />
+        ) : (
+          tr.auras.map((a) => (
+            <ElementIcon
+              key={a.element}
+              element={a.element}
+              className="rotation-aura-icon"
+              title={`${a.element} ${a.gauge.toFixed(2)}U`}
+            />
+          ))
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="rotation-aura-lane" aria-label="Enemy aura transitions">
+      {transitions.length === 0 ? (
+        <p className="rotation-aura-empty">No aura changes yet</p>
+      ) : (
+        <>
+          {transitions.map((tr) => renderMark(tr, false))}
+          {showLoop
+            ? transitions.map((tr) => renderMark(tr, true))
+            : null}
+        </>
+      )}
     </div>
   );
 };

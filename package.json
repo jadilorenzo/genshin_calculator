@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "extract:kits": "node scripts/extractCharacterKits.mjs",
     "extract:animation-timings": "node scripts/extractAnimationTimings.mjs",
+    "extract:combat-mechanics": "node scripts/extractCombatMechanics.mjs",
     "fetch:gcsim-pr-chars": "node scripts/fetchGcsimPrChars.mjs"
   },
   "dependencies": {
