@@ -340,6 +340,7 @@ function DetailInner({
           switchBuffer={doc.switchBuffer ?? 0.33}
           timingMode={doc.timingMode ?? 'frame'}
           humanLag={doc.humanLag ?? 0.15}
+          showAuraMarkers={doc.showAuraMarkers !== false}
           onSelectPlacement={() => {}}
           readOnly
           compactLayout

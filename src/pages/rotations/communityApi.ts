@@ -138,6 +138,20 @@ export const updateCommunityRotation = async (
   return { ...item, isPublic: item.isPublic !== false }
 }
 
+export const deleteCommunityRotation = async (
+  id: string,
+  getToken: TokenFn,
+) => {
+  const headers = await withAuth(getToken, true)
+  const response = await fetch(
+    `/api/community-rotation?id=${encodeURIComponent(id)}`,
+    { method: 'DELETE', headers },
+  )
+  const body = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(body.error || 'Failed to delete rotation')
+  return body as { ok: boolean }
+}
+
 export const toggleCommunityRotationLike = async (
   id: string,
   getToken: TokenFn,

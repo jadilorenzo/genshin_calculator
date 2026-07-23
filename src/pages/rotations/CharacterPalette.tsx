@@ -151,16 +151,22 @@ export const CharacterPalette = ({
             >
               <button
                 type="button"
-                className="rotation-char-card-main is-draggable"
-                draggable
-                onDragStart={(e) => {
-                  setCharacterDrag(e, c.id);
-                  setCharacterDragImage(e, c);
-                }}
+                className="rotation-char-card-main"
                 onClick={() => onSelect(c)}
-                title="Drag onto timeline"
+                title={c.name}
               >
-                <span className="drag-affordance" aria-hidden>
+                <span
+                  className="drag-affordance is-draggable"
+                  aria-hidden
+                  draggable
+                  title="Drag onto timeline"
+                  onClick={(e) => e.stopPropagation()}
+                  onDragStart={(e) => {
+                    e.stopPropagation();
+                    setCharacterDrag(e, c.id);
+                    setCharacterDragImage(e, c);
+                  }}
+                >
                   ⠿
                 </span>
                 {c.icon || c.iconFile ? (

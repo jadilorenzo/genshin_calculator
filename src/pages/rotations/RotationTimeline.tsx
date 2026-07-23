@@ -10,7 +10,6 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
-import { useLocalStorage } from "../../hooks/useLocalStorage.ts";
 import { getCharacter } from "./characters";
 import { readCastDrag, readCharacterDrag } from "./CharacterPalette";
 import { CharacterIcon } from "./CharacterIcon";
@@ -95,13 +94,19 @@ type DragState = {
   id: string;
   mode: "resize-right" | "resize-left" | "move";
   originX: number;
+  originY: number;
   originStart: number;
   originDuration: number;
+  /** True once movement crosses the drag threshold (move) or immediately (resize). */
+  active: boolean;
   moved: boolean;
   lastIndex: number;
   orderWithout: string[];
   mids: number[];
 };
+
+/** Pixels before a timeline block click becomes a reorder drag. */
+const MOVE_DRAG_THRESHOLD_PX = 12;
 
 type MoveGhost = {
   characterId: string;
@@ -139,6 +144,9 @@ interface RotationTimelineProps {
   humanLag: number;
   onHistoryGestureStart?: () => void;
   onHistoryGestureEnd?: () => void;
+  /** Show enemy aura transition markers (rotation-specific). */
+  showAuraMarkers?: boolean;
+  onShowAuraMarkersChange?: (value: boolean) => void;
   /** View-only preview (no drag / remove / drop). */
   readOnly?: boolean;
   /** Hide kit / artifact / CD duration overlay lanes. */
@@ -253,6 +261,8 @@ export const RotationTimeline = ({
   humanLag,
   onHistoryGestureStart,
   onHistoryGestureEnd,
+  showAuraMarkers = true,
+  onShowAuraMarkersChange,
   readOnly = false,
   hideDurationOverlays = false,
   initialZoomScale,
@@ -288,10 +298,6 @@ export const RotationTimeline = ({
   const [movingId, setMovingId] = useState<string | null>(null);
   const [moveGhost, setMoveGhost] = useState<MoveGhost | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [showAuraMarkers, setShowAuraMarkers] = useLocalStorage(
-    "gc:rotations:showAuraMarkers",
-    true,
-  );
   const dragRef = useRef<DragState | null>(null);
   const suppressClickRef = useRef(false);
   const selectedIdRef = useRef(selectedId);
@@ -583,14 +589,34 @@ export const RotationTimeline = ({
   const onPointerMove = (e: PointerEvent) => {
     const drag = dragRef.current;
     if (!drag) return;
-    const dx = (e.clientX - drag.originX) / pxPerSecRef.current;
 
     if (drag.mode === "move") {
-      if (Math.abs(e.clientX - drag.originX) > 4) drag.moved = true;
+      const dist = Math.hypot(e.clientX - drag.originX, e.clientY - drag.originY);
+      if (!drag.active) {
+        if (dist < MOVE_DRAG_THRESHOLD_PX) return;
+        drag.active = true;
+        drag.moved = true;
+        onHistoryGestureStart?.();
+        setMovingId(drag.id);
+        const placement = placementsRef.current.find((p) => p.id === drag.id);
+        const character = placement
+          ? getCharacter(placement.characterId)
+          : null;
+        if (character) {
+          setMoveGhost({
+            characterId: character.id,
+            name: character.name,
+            element: String(character.element),
+            x: e.clientX,
+            y: e.clientY,
+          });
+        }
+      } else if (dist > MOVE_DRAG_THRESHOLD_PX) {
+        drag.moved = true;
+      }
+
       setMoveGhost((prev) =>
-        prev
-          ? { ...prev, x: e.clientX, y: e.clientY }
-          : prev,
+        prev ? { ...prev, x: e.clientX, y: e.clientY } : prev,
       );
       const insertAt = insertIndexFromMids(
         drag.mids,
@@ -604,6 +630,7 @@ export const RotationTimeline = ({
       return;
     }
 
+    const dx = (e.clientX - drag.originX) / pxPerSecRef.current;
     if (Math.abs(dx) > 0.02) drag.moved = true;
 
     if (drag.mode === "resize-right") {
@@ -629,17 +656,19 @@ export const RotationTimeline = ({
   };
 
   const onPointerUp = () => {
-    if (dragRef.current?.moved) suppressClickRef.current = true;
+    const drag = dragRef.current;
+    if (drag?.moved) suppressClickRef.current = true;
+    const wasActive = Boolean(drag?.active);
     dragRef.current = null;
     setMovingId(null);
     setMoveGhost(null);
-    onHistoryGestureEnd?.();
+    if (wasActive) onHistoryGestureEnd?.();
     window.removeEventListener("pointermove", onPointerMove);
     window.removeEventListener("pointerup", onPointerUp);
   };
 
-  const startPointerGesture = () => {
-    onHistoryGestureStart?.();
+  const startPointerGesture = (beginHistory: boolean) => {
+    if (beginHistory) onHistoryGestureStart?.();
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
   };
@@ -659,14 +688,16 @@ export const RotationTimeline = ({
       id,
       mode,
       originX: e.clientX,
+      originY: e.clientY,
       originStart: placement.start,
       originDuration: placement.duration,
+      active: true,
       moved: false,
       lastIndex: -1,
       orderWithout: [],
       mids: [],
     };
-    startPointerGesture();
+    startPointerGesture(true);
   };
 
   const beginMove = (e: ReactPointerEvent, id: string) => {
@@ -689,27 +720,17 @@ export const RotationTimeline = ({
       id,
       mode: "move",
       originX: e.clientX,
+      originY: e.clientY,
       originStart: placement.start,
       originDuration: placement.duration,
+      active: false,
       moved: false,
       lastIndex: from,
       orderWithout: slots.orderWithout,
       mids: slots.mids,
     };
-    setMovingId(id);
-    const character = getCharacter(placement.characterId);
-    if (character) {
-      setMoveGhost({
-        characterId: character.id,
-        name: character.name,
-        element: String(character.element),
-        x: e.clientX,
-        y: e.clientY,
-      });
-    } else {
-      setMoveGhost(null);
-    }
-    startPointerGesture();
+    // Listen for movement, but don't arm reorder / ghost until threshold.
+    startPointerGesture(false);
   };
 
   const selectBlock = (id: string) => {
@@ -773,7 +794,9 @@ export const RotationTimeline = ({
           readOnly={readOnly}
           lockZoom={zoomLocked}
           showAuraMarkers={showAuraMarkers}
-          onToggleAuraMarkers={() => setShowAuraMarkers((v) => !v)}
+          onToggleAuraMarkers={() =>
+            onShowAuraMarkersChange?.(!showAuraMarkers)
+          }
           onZoomOut={zoomOut}
           onZoomIn={zoomIn}
           onFit={fitToFirstRotation}
@@ -927,17 +950,19 @@ const TimelineToolbar = ({
     <div className="rotation-timeline-head">
       <h2 className="rotation-section-title">Timeline</h2>
       <div className="rotation-timeline-actions">
-        <button
-          type="button"
-          className={
-            showAuraMarkers ? "chip compact active" : "chip compact"
-          }
-          title="Show enemy aura changes on the timeline"
-          aria-pressed={showAuraMarkers}
-          onClick={onToggleAuraMarkers}
-        >
-          Aura
-        </button>
+        {readOnly ? null : (
+          <button
+            type="button"
+            className={
+              showAuraMarkers ? "chip compact active" : "chip compact"
+            }
+            title="Show enemy aura changes on the timeline"
+            aria-pressed={showAuraMarkers}
+            onClick={onToggleAuraMarkers}
+          >
+            Aura
+          </button>
+        )}
         {lockZoom ? null : (
           <>
             <button type="button" className="chip compact" onClick={onZoomOut}>

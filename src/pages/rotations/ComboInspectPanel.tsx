@@ -8,6 +8,7 @@ import {
   type SetStateAction,
 } from 'react'
 import { getCharacter } from './characters'
+import { DeferredNumberInput } from './DeferredNumberInput'
 import {
   NORMALS_ACTION_ID,
   comboActionFamily,
@@ -553,8 +554,7 @@ export function ComboInspectPanel({
                       <span className="visually-hidden">
                         Duration for {seg.label}
                       </span>
-                      <input
-                        type="number"
+                      <DeferredNumberInput
                         min={0.05}
                         max={30}
                         step={0.05}
@@ -566,9 +566,7 @@ export function ComboInspectPanel({
                               ? 'Custom duration — double-click to reset'
                               : 'Action duration (seconds)'
                         }
-                        onChange={(e) => {
-                          const raw = Number(e.target.value)
-                          if (!Number.isFinite(raw)) return
+                        onCommit={(raw) => {
                           setStepDuration(seg.stepId, Math.max(0.05, raw))
                         }}
                         onDoubleClick={(e) => {

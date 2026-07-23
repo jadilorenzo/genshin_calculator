@@ -4,6 +4,7 @@ import {
 } from "./artifactDurationOptions";
 import { setCastDrag } from "./CharacterPalette";
 import { CharacterIcon } from "./CharacterIcon";
+import { DeferredNumberInput } from "./DeferredNumberInput";
 import { setCharacterDragImage } from "./dragGhost";
 import { getCharacter } from "./characters";
 import {
@@ -384,20 +385,11 @@ const RosterPill = ({
       type="button"
       className={joinClassNames(
         "rotation-roster-pill",
-        "is-draggable",
         isSelected && "selected",
         dragging && "dragging",
       )}
       data-element={character.element}
-      draggable
-      title="Drag to reorder"
-      onDragStart={(e) => {
-        e.dataTransfer.setData("text/placement-id", placement.id);
-        e.dataTransfer.effectAllowed = "move";
-        setCharacterDragImage(e, character);
-        setDragging(true);
-      }}
-      onDragEnd={() => setDragging(false)}
+      title={`${character.name} · ${placement.duration.toFixed(2)}s`}
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
@@ -410,7 +402,21 @@ const RosterPill = ({
       }}
       onClick={() => onSelect(placement.id)}
     >
-      <span className="drag-affordance" aria-hidden>
+      <span
+        className="drag-affordance is-draggable"
+        aria-hidden
+        draggable
+        title="Drag to reorder"
+        onClick={(e) => e.stopPropagation()}
+        onDragStart={(e) => {
+          e.stopPropagation();
+          e.dataTransfer.setData("text/placement-id", placement.id);
+          e.dataTransfer.effectAllowed = "move";
+          setCharacterDragImage(e, character);
+          setDragging(true);
+        }}
+        onDragEnd={() => setDragging(false)}
+      >
         ⠿
       </span>
       <CharacterIcon
@@ -565,13 +571,12 @@ const SelectedPlacementDetail = ({
         <div className="rotation-selected-row">
           <span className="label">On-field</span>
           <div className="rotation-onfield-adjust">
-            <input
-              type="number"
+            <DeferredNumberInput
               min={MIN_ON_FIELD}
               step={0.01}
               aria-label="On-field duration in seconds"
               value={placement.duration}
-              onChange={(e) => handleOnFieldChange(Number(e.target.value))}
+              onCommit={handleOnFieldChange}
             />
             <span className="rotation-onfield-unit">s</span>
             <button
@@ -961,14 +966,13 @@ const OverlaySecondsInput = ({
 
   return (
     <label className={joinClassNames("rotation-overlay-secs", adjusted && "adjusted")}>
-      <input
-        type="number"
+      <DeferredNumberInput
         min={0.5}
         max={60}
         step={0.5}
         aria-label={ariaLabel}
         value={seconds}
-        onChange={(e) => handleChange(Number(e.target.value))}
+        onCommit={handleChange}
       />
       <span>s</span>
       {adjusted ? (

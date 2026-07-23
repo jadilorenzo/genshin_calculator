@@ -8,27 +8,31 @@ import {
   type PointerEvent as ReactPointerEvent,
   type SetStateAction,
 } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/react";
-import { ClearPageButton } from "../../components/ClearPageButton.tsx";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle.ts";
 import { useLocalStorage } from "../../hooks/useLocalStorage.ts";
 import { useUndoableLocalStorage } from "../../hooks/useUndoableLocalStorage.ts";
 import { CharacterPalette } from "./CharacterPalette";
 import {
   createCommunityRotation,
+  deleteCommunityRotation,
   getCommunityRotation,
   updateCommunityRotation,
 } from "./communityApi";
 import { PlacementRoster } from "./PlacementRoster";
 import { AuraSimPanel } from "./AuraSimPanel";
 import { ComboInspectPanel } from "./ComboInspectPanel";
-import { RotationSettingsMenu } from "./RotationSettingsMenu";
+import { DeferredNumberInput } from "./DeferredNumberInput";
 import {
   initialComboStepsForPlacement,
   initialOnFieldDuration,
 } from "./comboSequence";
 import {
+  MAX_HUMAN_LAG,
+  MIN_HUMAN_LAG,
+  clampHumanLag,
   defaultOnFieldDuration,
   defaultSkillCasts,
   defaultSkillVariant,
@@ -82,7 +86,8 @@ const forceRotationHistory = (prev: RotationDoc, next: RotationDoc) => {
       placementEditSignature(next.placements) ||
     prev.switchBuffer !== next.switchBuffer ||
     prev.timingMode !== next.timingMode ||
-    prev.humanLag !== next.humanLag
+    prev.humanLag !== next.humanLag ||
+    prev.showAuraMarkers !== next.showAuraMarkers
   );
 };
 
@@ -134,6 +139,7 @@ const RotationsEditorInner = () => {
   useDocumentTitle(`Rotation Editor · False Moon's Reckoning`);
   const navigate = useNavigate();
   const { rotationId } = useParams();
+  const [searchParams] = useSearchParams();
   const { getToken, isSignedIn, userId } = useAuth();
   const { user } = useUser();
   const authorName =
@@ -158,10 +164,13 @@ const RotationsEditorInner = () => {
 
   const [metaOpen, setMetaOpen] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const metaDialogRef = useRef<HTMLDialogElement>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
+  const [autoSave, setAutoSave] = useLocalStorage(
+    "gc:rotations:autoSave",
+    true,
+  );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState(false);
@@ -171,18 +180,36 @@ const RotationsEditorInner = () => {
   const [insertAtIndexState, setInsertAtIndexState] = useState<number | null>(
     null,
   );
+  const [deleting, setDeleting] = useState(false);
   const loadedRemoteRef = useRef<string | null>(null);
+  const suppressAutoSaveRef = useRef(true);
+  const autoSaveTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const dialog = metaDialogRef.current;
-    if (!dialog) return;
-    if (metaOpen) {
-      if (!dialog.open) dialog.showModal();
-      requestAnimationFrame(() => titleInputRef.current?.focus());
-    } else if (dialog.open) {
-      dialog.close();
-    }
+    if (!metaOpen) return;
+    const frame = requestAnimationFrame(() => {
+      titleInputRef.current?.focus({ preventScroll: true });
+    });
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMetaOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, [metaOpen]);
+
+  useEffect(() => {
+    suppressAutoSaveRef.current = true;
+    const timer = window.setTimeout(() => {
+      suppressAutoSaveRef.current = false;
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [editingId, rotationId]);
 
   const isOwnRotation = Boolean(
     editingId && sourceAuthorId && userId && sourceAuthorId === userId,
@@ -209,7 +236,15 @@ const RotationsEditorInner = () => {
         setDescription(item.description || "");
         setIsPublic(item.isPublic !== false);
         skipNextHistory();
-        setDoc(item.doc as RotationDoc);
+        setDoc({
+          ...defaultRotationDoc(),
+          ...(item.doc as Partial<RotationDoc>),
+          placements: Array.isArray((item.doc as RotationDoc)?.placements)
+            ? (item.doc as RotationDoc).placements
+            : [],
+          showAuraMarkers:
+            (item.doc as Partial<RotationDoc>)?.showAuraMarkers !== false,
+        });
       } catch (err) {
         if (!cancelled) {
           const detail =
@@ -225,7 +260,8 @@ const RotationsEditorInner = () => {
     };
   }, [getToken, rotationId, setDoc, skipNextHistory]);
 
-  const { placements, switchBuffer, timingMode, humanLag } = doc;
+  const { placements, switchBuffer, timingMode, humanLag, showAuraMarkers } =
+    doc;
 
   const setPlacements = useCallback(
     (update: SetStateAction<TimelinePlacement[]>) => {
@@ -244,6 +280,31 @@ const RotationsEditorInner = () => {
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
     null,
   );
+
+  const resetEditor = useCallback(() => {
+    skipNextHistory();
+    setDoc(defaultRotationDoc());
+    setTitle("");
+    setDescription("");
+    setIsPublic(true);
+    setEditingId(null);
+    setSourceAuthorId(null);
+    setSourceTitle("");
+    setSelectedPlacementId(null);
+    setSelectedCharacterId(null);
+    setInsertAtIndexState(null);
+    setSaveError(null);
+    setSaveOk(false);
+    setMetaOpen(false);
+    loadedRemoteRef.current = null;
+  }, [setDoc, skipNextHistory]);
+
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    resetEditor();
+    navigate("/rotations/editor", { replace: true });
+  }, [navigate, resetEditor, searchParams]);
+
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [mobileHintDismissed, setMobileHintDismissed] = useState(false);
@@ -475,7 +536,8 @@ const RotationsEditorInner = () => {
     setInsertAtIndexState(null);
   };
 
-  const saveRotation = async () => {
+  const saveRotation = async (opts?: { closeMeta?: boolean }) => {
+    const closeMeta = opts?.closeMeta !== false;
     if (!clerkConfigured || !isSignedIn) {
       navigate("/sign-in");
       return;
@@ -499,8 +561,15 @@ const RotationsEditorInner = () => {
     const trimmedTitle = nextTitle.trim();
     if (!trimmedTitle) {
       setMetaOpen(true);
-      setSaveError("Add a name in Details before saving.");
-      requestAnimationFrame(() => titleInputRef.current?.focus());
+      setSaveError("Add a name in Rotation details before saving.");
+      requestAnimationFrame(() =>
+        titleInputRef.current?.focus({ preventScroll: true }),
+      );
+      return;
+    }
+
+    if (doc.placements.length === 0) {
+      setSaveError("Add at least one character before saving.");
       return;
     }
 
@@ -525,7 +594,7 @@ const RotationsEditorInner = () => {
       setTitle(item.title);
       setDescription(item.description || "");
       setIsPublic(item.isPublic !== false);
-      setMetaOpen(false);
+      if (closeMeta) setMetaOpen(false);
       setSaveOk(true);
       window.setTimeout(() => setSaveOk(false), 2000);
       navigate(`/rotations/editor/${item.id}`, { replace: true });
@@ -536,9 +605,67 @@ const RotationsEditorInner = () => {
     }
   };
 
+  useEffect(() => {
+    if (!autoSave) return;
+    if (!isOwnRotation || !isSignedIn || !clerkConfigured) return;
+    if (!title.trim() || doc.placements.length === 0) return;
+    if (suppressAutoSaveRef.current || deleting || saving) return;
+
+    if (autoSaveTimerRef.current != null) {
+      window.clearTimeout(autoSaveTimerRef.current);
+    }
+    autoSaveTimerRef.current = window.setTimeout(() => {
+      void saveRotation({ closeMeta: false });
+    }, 10_000);
+
+    return () => {
+      if (autoSaveTimerRef.current != null) {
+        window.clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+    };
+    // Intentionally depend on the editable payload; saveRotation closes over latest values.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- debounce autosave on content edits
+  }, [
+    autoSave,
+    isOwnRotation,
+    isSignedIn,
+    title,
+    description,
+    isPublic,
+    doc,
+    deleting,
+    saving,
+  ]);
+
   const onSaveMeta = (event: FormEvent) => {
     event.preventDefault();
     setMetaOpen(false);
+  };
+
+  const deleteRotation = async () => {
+    const message = isOwnRotation
+      ? "Delete this published rotation permanently? This cannot be undone."
+      : "Delete this rotation from the editor? This cannot be undone.";
+    if (!window.confirm(message)) return;
+
+    setDeleting(true);
+    setSaveError(null);
+    try {
+      if (isOwnRotation && editingId) {
+        if (!isSignedIn) {
+          navigate("/sign-in");
+          return;
+        }
+        await deleteCommunityRotation(editingId, () => getToken());
+      }
+      resetEditor();
+      navigate("/rotations/editor", { replace: true });
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -566,19 +693,6 @@ const RotationsEditorInner = () => {
           </div>
         </div>
         <div className="rotation-editor-bar-actions">
-          <RotationSettingsMenu
-            switchBuffer={switchBuffer}
-            onSwitchBufferChange={updateSwitchBuffer}
-            timingMode={timingMode}
-            onTimingModeChange={(mode) =>
-              setDoc((prev) => ({ ...prev, timingMode: mode }))
-            }
-            humanLag={humanLag}
-            onHumanLagChange={(value) =>
-              setDoc((prev) => ({ ...prev, humanLag: value }))
-            }
-          />
-          <ClearPageButton prefix="gc:rotations:" />
           <button
             type="button"
             className="chip compact"
@@ -588,7 +702,7 @@ const RotationsEditorInner = () => {
             }}
             aria-expanded={metaOpen}
           >
-            Details
+            Rotation details
           </button>
           <button
             type="button"
@@ -613,104 +727,203 @@ const RotationsEditorInner = () => {
         </div>
       </header>
 
-      {metaOpen ? (
-        <dialog
-          ref={metaDialogRef}
-          className="rotation-meta-dialog"
-          aria-labelledby="rotation-meta-dialog-title"
-          onCancel={(e) => {
-            e.preventDefault();
-            setMetaOpen(false);
-          }}
-          onClick={(e) => {
-            if (e.target === metaDialogRef.current) setMetaOpen(false);
-          }}
-        >
-          <form
-            className="rotation-meta-fields rotation-meta-dialog-body"
-            onSubmit={onSaveMeta}
-          >
-            <div className="rotation-meta-dialog-head">
-              <h2 id="rotation-meta-dialog-title" className="rotation-section-title">
-                Details
-              </h2>
-              <button
-                type="button"
-                className="chip compact"
-                onClick={() => setMetaOpen(false)}
+      {metaOpen
+        ? createPortal(
+            <div
+              className="rotation-meta-overlay"
+              role="presentation"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) setMetaOpen(false);
+              }}
+            >
+              <div
+                className="rotation-meta-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="rotation-meta-dialog-title"
               >
-                Close
-              </button>
-            </div>
-            <p className="field-note">
-              Title and description are metadata for the published post — not
-              part of the timeline.
-            </p>
-            <label className="field">
-              <span className="label">Name</span>
-              <input
-                ref={titleInputRef}
-                type="text"
-                maxLength={120}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Hyperbloom Neuvillette"
-                aria-label="Rotation name"
-              />
-            </label>
-            <label className="field">
-              <span className="label">Description</span>
-              <textarea
-                rows={3}
-                maxLength={500}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional notes for the community"
-                aria-label="Rotation description"
-              />
-            </label>
-            <label className="rotation-meta-public">
-              <input
-                type="checkbox"
-                checked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
-              />
-              <span>
-                <strong>Public</strong>
-                <span className="field-note">
-                  Listed on community Rotations. Uncheck to keep it only on My
-                  rotations.
-                </span>
-              </span>
-            </label>
-            <div className="chip-row">
-              <button
-                type="button"
-                className="chip compact"
-                onClick={() => setMetaOpen(false)}
-              >
-                Done
-              </button>
-              <button
-                type="button"
-                className="chip filled"
-                disabled={saving || !title.trim()}
-                onClick={() => {
-                  void saveRotation();
-                }}
-              >
-                {saving
-                  ? "Saving…"
-                  : isOwnRotation
-                    ? "Save now"
-                    : isForking
-                      ? "Publish copy"
-                      : "Publish"}
-              </button>
-            </div>
-          </form>
-        </dialog>
-      ) : null}
+                <form
+                  className="rotation-meta-dialog-body"
+                  onSubmit={onSaveMeta}
+                >
+                  <div className="rotation-meta-dialog-head">
+                    <h2
+                      id="rotation-meta-dialog-title"
+                      className="rotation-section-title"
+                    >
+                      Rotation details
+                    </h2>
+                    <button
+                      type="button"
+                      className="chip compact"
+                      onClick={() => setMetaOpen(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <p className="field-note">
+                    Title and description are metadata for the published post.
+                  </p>
+                  <label className="field">
+                    <span className="label">Name</span>
+                    <input
+                      ref={titleInputRef}
+                      type="text"
+                      maxLength={120}
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="e.g. Hyperbloom Neuvillette"
+                      aria-label="Rotation name"
+                    />
+                  </label>
+                  <label className="field">
+                    <span className="label">Description</span>
+                    <textarea
+                      rows={3}
+                      maxLength={500}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Optional notes for the community"
+                      aria-label="Rotation description"
+                    />
+                  </label>
+
+                  <div className="rotation-meta-section">
+                    <p className="rotation-meta-section-title">Timing</p>
+                    <label className="field">
+                      <span className="label">Switch buffer (s)</span>
+                      <DeferredNumberInput
+                        min={0}
+                        max={1.5}
+                        step={0.01}
+                        value={switchBuffer}
+                        onCommit={updateSwitchBuffer}
+                        aria-label="Switch buffer in seconds"
+                      />
+                    </label>
+                    <div
+                      className="field"
+                      role="group"
+                      aria-label="Cast timing mode"
+                    >
+                      <span className="label">Cast timings</span>
+                      <div className="chip-row">
+                        <button
+                          type="button"
+                          className={
+                            timingMode === "frame"
+                              ? "chip compact active"
+                              : "chip compact"
+                          }
+                          onClick={() =>
+                            setDoc((prev) => ({ ...prev, timingMode: "frame" }))
+                          }
+                        >
+                          Frame
+                        </button>
+                        <button
+                          type="button"
+                          className={
+                            timingMode === "human"
+                              ? "chip compact active"
+                              : "chip compact"
+                          }
+                          onClick={() =>
+                            setDoc((prev) => ({ ...prev, timingMode: "human" }))
+                          }
+                        >
+                          Human
+                        </button>
+                      </div>
+                    </div>
+                    {timingMode === "human" ? (
+                      <label className="field">
+                        <span className="label">Human lag / cast (s)</span>
+                        <DeferredNumberInput
+                          min={MIN_HUMAN_LAG}
+                          max={MAX_HUMAN_LAG}
+                          step={0.01}
+                          value={humanLag}
+                          onCommit={(n) =>
+                            setDoc((prev) => ({
+                              ...prev,
+                              humanLag: clampHumanLag(n),
+                            }))
+                          }
+                          aria-label="Human lag per cast in seconds"
+                        />
+                      </label>
+                    ) : null}
+                  </div>
+
+                  <label className="rotation-meta-public">
+                    <input
+                      type="checkbox"
+                      checked={isPublic}
+                      onChange={(e) => setIsPublic(e.target.checked)}
+                    />
+                    <span>
+                      <strong>Public</strong>
+                      <span className="field-note">
+                        Listed on community Rotations. Uncheck to keep it only
+                        on My rotations.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="rotation-meta-public">
+                    <input
+                      type="checkbox"
+                      checked={autoSave}
+                      onChange={(e) => setAutoSave(e.target.checked)}
+                    />
+                    <span>
+                      <strong>Auto-save</strong>
+                      <span className="field-note">
+                        Save edits to your published rotation automatically.
+                      </span>
+                    </span>
+                  </label>
+                  <div className="chip-row rotation-meta-actions">
+                    <button
+                      type="button"
+                      className="chip compact"
+                      onClick={() => setMetaOpen(false)}
+                    >
+                      Done
+                    </button>
+                    <button
+                      type="button"
+                      className="chip filled"
+                      disabled={saving || deleting || !title.trim()}
+                      onClick={() => {
+                        void saveRotation();
+                      }}
+                    >
+                      {saving
+                        ? "Saving…"
+                        : isOwnRotation
+                          ? "Save now"
+                          : isForking
+                            ? "Publish copy"
+                            : "Publish"}
+                    </button>
+                    <button
+                      type="button"
+                      className="chip compact rotation-meta-delete"
+                      disabled={deleting || saving}
+                      onClick={() => {
+                        void deleteRotation();
+                      }}
+                    >
+                      {deleting ? "Deleting…" : "Delete"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {saveError ? <p className="auth-error rotation-editor-error">{saveError}</p> : null}
 
@@ -783,6 +996,10 @@ const RotationsEditorInner = () => {
             switchBuffer={switchBuffer}
             timingMode={timingMode}
             humanLag={humanLag}
+            showAuraMarkers={showAuraMarkers}
+            onShowAuraMarkersChange={(value) =>
+              setDoc((prev) => ({ ...prev, showAuraMarkers: value }))
+            }
             onSelectPlacement={selectPlacement}
             onHistoryGestureStart={beginHistoryGesture}
             onHistoryGestureEnd={endHistoryGesture}

@@ -88,32 +88,78 @@
   background: var(--panel);
 }
 
+.rotation-meta-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: rgba(8, 10, 16, 0.62);
+}
+
+[data-theme='light'] .rotation-meta-overlay {
+  background: rgba(30, 40, 55, 0.35);
+}
+
 .rotation-meta-dialog {
-  margin: auto;
+  position: relative;
+  margin: 0;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 2px;
   background: var(--panel);
   color: var(--text);
   box-shadow: var(--panel-shadow);
-  width: min(28rem, calc(100vw - 2rem));
-}
-
-.rotation-meta-dialog::backdrop {
-  background: rgba(8, 10, 16, 0.62);
-}
-
-[data-theme='light'] .rotation-meta-dialog::backdrop {
-  background: rgba(30, 40, 55, 0.35);
+  width: min(28rem, 100%);
+  max-height: min(92vh, 44rem);
+  overflow: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .rotation-meta-dialog-body {
+  display: grid;
+  gap: 0.65rem;
   margin: 0;
-  max-width: none;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  padding: 1rem 1.1rem 1.15rem;
+  padding: 1rem 1.15rem 1.1rem;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+
+  .field {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+  }
+
+  input:not([type='checkbox']),
+  textarea {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    appearance: none;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    background: var(--input-surface);
+    color: var(--text);
+    padding: 0.55rem 0.75rem;
+    font: inherit;
+    font-size: 0.95rem;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 3rem;
+  }
+
+  input:not([type='checkbox']):focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 1px;
+  }
 }
 
 .rotation-meta-dialog-head {
@@ -121,6 +167,28 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  min-width: 0;
+}
+
+.rotation-meta-dialog-head .rotation-section-title {
+  margin: 0;
+  min-width: 0;
+}
+
+.rotation-meta-section {
+  display: grid;
+  gap: 0.65rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--line);
+}
+
+.rotation-meta-section-title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .rotation-meta-public {
@@ -131,9 +199,24 @@
   cursor: pointer;
 }
 
-.rotation-meta-public input {
-  margin-top: 0.2rem;
+.rotation-meta-public input[type='checkbox'] {
+  margin-top: 0.25rem;
   flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  max-width: 1rem;
+  display: inline-block;
+  appearance: auto;
+  accent-color: var(--gold);
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.rotation-meta-public > span {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .rotation-meta-public strong {
@@ -145,6 +228,32 @@
 .rotation-meta-public .field-note {
   display: block;
   margin: 0.2rem 0 0;
+}
+
+.rotation-meta-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.rotation-meta-delete {
+  margin-left: auto;
+  color: #e8a0a0;
+  border-color: rgba(200, 90, 90, 0.45);
+}
+
+.rotation-meta-delete:hover:not(:disabled) {
+  color: #ffd0d0;
+  border-color: rgba(220, 110, 110, 0.7);
+}
+
+[data-theme='light'] .rotation-meta-delete {
+  color: #9a3d3d;
+  border-color: rgba(160, 70, 70, 0.35);
+}
+
+[data-theme='light'] .rotation-meta-delete:hover:not(:disabled) {
+  color: #7a2a2a;
+  border-color: rgba(160, 70, 70, 0.55);
 }
 
 .rotation-editor-error {
@@ -432,79 +541,6 @@ body.rotation-editor-resizing {
   gap: 1.25rem;
 }
 
-.rotation-settings {
-  position: relative;
-}
-
-.rotation-settings-toggle {
-  display: grid;
-  place-items: center;
-  width: 2.15rem;
-  height: 2.15rem;
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  background: var(--chip-surface);
-  color: var(--muted);
-  cursor: pointer;
-  padding: 0;
-  line-height: 0;
-}
-
-.rotation-settings-toggle .icon {
-  display: block;
-  width: 1.1rem;
-  height: 1.1rem;
-  vertical-align: 0;
-  margin: 0;
-}
-
-.rotation-settings-toggle:hover,
-.rotation-settings-toggle.open {
-  color: var(--gold-bright);
-  border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
-}
-
-.rotation-settings-toggle:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.rotation-settings-panel {
-  position: absolute;
-  top: calc(100% + 0.4rem);
-  right: 0;
-  z-index: 40;
-  min-width: 15.5rem;
-  display: grid;
-  gap: 0.85rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  background: var(--panel);
-  box-shadow: var(--panel-shadow);
-}
-
-.rotation-settings-field {
-  display: grid;
-  gap: 0.4rem;
-}
-
-.rotation-settings-field input {
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  background: var(--input-surface);
-  color: var(--text);
-  padding: 0.35rem 0.5rem;
-  font: inherit;
-  font-variant-numeric: tabular-nums;
-}
-
-.rotation-settings-field input:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
 .rotation-switch-gap {
   position: absolute;
   top: 50%;
@@ -715,6 +751,9 @@ body.rotation-editor-resizing {
   letter-spacing: -0.08em;
   opacity: 0.7;
   user-select: none;
+  padding: 0.35rem 0.2rem;
+  margin: -0.35rem 0;
+  touch-action: none;
 }
 
 .drag-affordance.compact {

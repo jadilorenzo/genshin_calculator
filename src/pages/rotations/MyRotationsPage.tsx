@@ -32,6 +32,7 @@ function rotationPreviewDoc(item: CommunityRotation): {
   switchBuffer: number
   timingMode: RotationDoc['timingMode']
   humanLag: number
+  showAuraMarkers: boolean
 } {
   const doc = (item.doc ?? {}) as Partial<RotationDoc>
   return {
@@ -39,6 +40,7 @@ function rotationPreviewDoc(item: CommunityRotation): {
     switchBuffer: doc.switchBuffer ?? 0.33,
     timingMode: doc.timingMode ?? 'frame',
     humanLag: doc.humanLag ?? 0.15,
+    showAuraMarkers: doc.showAuraMarkers !== false,
   }
 }
 
@@ -136,7 +138,7 @@ function MyRotationsInner({
             <Link to="/rotations" className="chip compact">
               Community
             </Link>
-            <Link to="/rotations/editor" className="chip filled">
+            <Link to="/rotations/editor?new=1" className="chip filled">
               New rotation
             </Link>
           </div>
@@ -176,7 +178,7 @@ function MyRotationsInner({
       ) : !items?.length ? (
         <div className="rotations-hub-empty">
           <p>You have not saved any rotations yet.</p>
-          <Link to="/rotations/editor" className="chip filled">
+          <Link to="/rotations/editor?new=1" className="chip filled">
             Open the editor
           </Link>
         </div>
@@ -236,6 +238,7 @@ function MyRotationsInner({
                           switchBuffer={preview.switchBuffer}
                           timingMode={preview.timingMode}
                           humanLag={preview.humanLag}
+                          showAuraMarkers={preview.showAuraMarkers}
                           onSelectPlacement={() => {}}
                           readOnly
                           compactLayout
