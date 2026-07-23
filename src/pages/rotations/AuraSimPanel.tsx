@@ -112,15 +112,19 @@ export function AuraSimPanel({ placements }: AuraSimPanelProps) {
           <header className="aura-sim-head">
             <div className="aura-sim-titles">
               <p className="field-note">
-                Gauge applications from combo hitmarks + ICD. Reactions include
-                coexistence ticks
-                {convertEc ? ' (Lunar-Charged via Ineffa/Flins)' : ''}
+                On-field hitmarks plus off-field aura appliers (e.g. Columbina
+                Ripple, Oz, Guoba, Birgitta) with ICD. Coexistence ticks
+                {convertEc ? ' (Lunar-Charged via Ineffa/Flins/Columbina)' : ''}
                 {convertBloom ? ' (Lunar-Bloom via Lauma/Nefer)' : ''}.
               </p>
             </div>
             <div className="aura-sim-meta">
               <span className="aura-sim-stat">
-                {hits.length} hits · {result.skippedByIcd} ICD-blocked
+                {hits.length} hits
+                {hits.filter((h) => h.offField).length
+                  ? ` · ${hits.filter((h) => h.offField).length} off-field`
+                  : ''}{' '}
+                · {result.skippedByIcd} ICD-blocked
               </span>
             </div>
           </header>

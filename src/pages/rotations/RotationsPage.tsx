@@ -1,15 +1,18 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type FormEvent,
+  type PointerEvent as ReactPointerEvent,
   type SetStateAction,
 } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/react";
 import { ClearPageButton } from "../../components/ClearPageButton.tsx";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle.ts";
+import { useLocalStorage } from "../../hooks/useLocalStorage.ts";
 import { useUndoableLocalStorage } from "../../hooks/useUndoableLocalStorage.ts";
 import { CharacterPalette } from "./CharacterPalette";
 import {
@@ -154,8 +157,11 @@ const RotationsEditorInner = () => {
   );
 
   const [metaOpen, setMetaOpen] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const metaDialogRef = useRef<HTMLDialogElement>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState(false);
@@ -166,7 +172,17 @@ const RotationsEditorInner = () => {
     null,
   );
   const loadedRemoteRef = useRef<string | null>(null);
-  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const dialog = metaDialogRef.current;
+    if (!dialog) return;
+    if (metaOpen) {
+      if (!dialog.open) dialog.showModal();
+      requestAnimationFrame(() => titleInputRef.current?.focus());
+    } else if (dialog.open) {
+      dialog.close();
+    }
+  }, [metaOpen]);
 
   const isOwnRotation = Boolean(
     editingId && sourceAuthorId && userId && sourceAuthorId === userId,
@@ -191,10 +207,17 @@ const RotationsEditorInner = () => {
         setSourceTitle(item.title);
         setTitle(item.title);
         setDescription(item.description || "");
+        setIsPublic(item.isPublic !== false);
         skipNextHistory();
         setDoc(item.doc as RotationDoc);
-      } catch {
-        if (!cancelled) setSaveError("Could not load that rotation.");
+      } catch (err) {
+        if (!cancelled) {
+          const detail =
+            err instanceof Error && err.message
+              ? err.message
+              : "Could not load that rotation.";
+          setSaveError(detail);
+        }
       }
     })();
     return () => {
@@ -221,6 +244,20 @@ const RotationsEditorInner = () => {
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
     null,
   );
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
+  const [mobileHintDismissed, setMobileHintDismissed] = useState(false);
+  const [rightPanelWidth, setRightPanelWidth] = useLocalStorage(
+    "gc:rotations:rightPanelWidth:v2",
+    380,
+  );
+  const rightResizeRef = useRef<{
+    startX: number;
+    startWidth: number;
+    pointerId: number;
+  } | null>(null);
+  const leftPanelId = useId();
+  const rightPanelId = useId();
   const selectedPlacement =
     placements.find((p) => p.id === selectedPlacementId) ?? null;
   const clipboardRef = useRef<TimelinePlacement | null>(null);
@@ -325,6 +362,46 @@ const RotationsEditorInner = () => {
     setSelectedPlacementId(id);
     const placement = placements.find((x) => x.id === id);
     if (placement) setSelectedCharacterId(placement.characterId);
+  };
+
+  const clampRightPanelWidth = useCallback((width: number) => {
+    const max = Math.max(240, Math.floor(window.innerWidth * 0.55));
+    return Math.min(max, Math.max(240, Math.round(width)));
+  }, []);
+
+  const onRightResizePointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (event.button !== 0 || !rightOpen) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    rightResizeRef.current = {
+      startX: event.clientX,
+      startWidth: rightPanelWidth,
+      pointerId: event.pointerId,
+    };
+    document.body.classList.add("rotation-editor-resizing");
+  };
+
+  const onRightResizePointerMove = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    const drag = rightResizeRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    // Dragging the left edge: move left → wider panel.
+    setRightPanelWidth(
+      clampRightPanelWidth(drag.startWidth + (drag.startX - event.clientX)),
+    );
+  };
+
+  const endRightResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = rightResizeRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    rightResizeRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    document.body.classList.remove("rotation-editor-resizing");
   };
 
   const updateSwitchBuffer = (raw: number) => {
@@ -436,6 +513,7 @@ const RotationsEditorInner = () => {
         description,
         doc,
         authorName,
+        isPublic,
       };
       // Own posts update in place; anyone else's becomes a new published copy.
       const item = isOwnRotation
@@ -446,6 +524,7 @@ const RotationsEditorInner = () => {
       setSourceTitle(item.title);
       setTitle(item.title);
       setDescription(item.description || "");
+      setIsPublic(item.isPublic !== false);
       setMetaOpen(false);
       setSaveOk(true);
       window.setTimeout(() => setSaveOk(false), 2000);
@@ -463,202 +542,332 @@ const RotationsEditorInner = () => {
   };
 
   return (
-    <>
-      <header className="hero">
-        <div className="hero-top">
-          <h1>Rotation editor</h1>
-          <div className="hero-actions">
-            <Link to="/rotations" className="chip compact">
-              All rotations
-            </Link>
-            <RotationSettingsMenu
-              switchBuffer={switchBuffer}
-              onSwitchBufferChange={updateSwitchBuffer}
-              timingMode={timingMode}
-              onTimingModeChange={(mode) =>
-                setDoc((prev) => ({ ...prev, timingMode: mode }))
-              }
-              humanLag={humanLag}
-              onHumanLagChange={(value) =>
-                setDoc((prev) => ({ ...prev, humanLag: value }))
-              }
-            />
-            <ClearPageButton prefix="gc:rotations:" />
-            <button
-              type="button"
-              className="chip compact"
-              onClick={() => {
-                setMetaOpen((open) => !open);
-                setSaveError(null);
-              }}
-              aria-expanded={metaOpen}
-            >
-              Details
-            </button>
-            <button
-              type="button"
-              className="chip filled"
-              disabled={saving}
-              onClick={() => {
-                void saveRotation();
-              }}
-            >
-              {!isSignedIn
-                ? "Sign in to save"
-                : saving
-                  ? "Saving…"
-                  : saveOk
-                    ? "Saved"
-                    : isForking
-                      ? "Save copy"
-                      : isOwnRotation
-                        ? "Save"
-                        : "Publish"}
-            </button>
+    <div className="rotation-editor-page">
+      <header className="rotation-editor-bar">
+        <div className="rotation-editor-bar-leading">
+          <Link to="/rotations" className="chip compact">
+            Return to rotations
+          </Link>
+          <div className="rotation-editor-bar-titles">
+            <h1>Editor</h1>
+            {title.trim() ? (
+              <p className="rotation-editor-bar-sub">
+                <span className="rotation-editor-title">{title.trim()}</span>
+                {description.trim()
+                  ? ` — ${description.trim().slice(0, 80)}${description.trim().length > 80 ? "…" : ""}`
+                  : null}
+              </p>
+            ) : (
+              <p className="rotation-editor-bar-sub">
+                Sketch field time and buffs
+                {isForking ? " · saving publishes your copy" : null}
+              </p>
+            )}
           </div>
         </div>
-        <p className="lede">
-          {title.trim() ? (
-            <>
-              <span className="rotation-editor-title">{title.trim()}</span>
-              {description.trim()
-                ? ` — ${description.trim().slice(0, 120)}${description.trim().length > 120 ? "…" : ""}`
-                : null}
-            </>
-          ) : (
-            <>
-              Sketch field time and buff overlays, then save when you&apos;re
-              signed in.
-            </>
-          )}
-          {isForking
-            ? " This rotation belongs to someone else; saving publishes your own copy."
-            : null}
-        </p>
+        <div className="rotation-editor-bar-actions">
+          <RotationSettingsMenu
+            switchBuffer={switchBuffer}
+            onSwitchBufferChange={updateSwitchBuffer}
+            timingMode={timingMode}
+            onTimingModeChange={(mode) =>
+              setDoc((prev) => ({ ...prev, timingMode: mode }))
+            }
+            humanLag={humanLag}
+            onHumanLagChange={(value) =>
+              setDoc((prev) => ({ ...prev, humanLag: value }))
+            }
+          />
+          <ClearPageButton prefix="gc:rotations:" />
+          <button
+            type="button"
+            className="chip compact"
+            onClick={() => {
+              setMetaOpen((open) => !open);
+              setSaveError(null);
+            }}
+            aria-expanded={metaOpen}
+          >
+            Details
+          </button>
+          <button
+            type="button"
+            className="chip filled"
+            disabled={saving}
+            onClick={() => {
+              void saveRotation();
+            }}
+          >
+            {!isSignedIn
+              ? "Sign in"
+              : saving
+                ? "Saving…"
+                : saveOk
+                  ? "Saved"
+                  : isForking
+                    ? "Save copy"
+                    : isOwnRotation
+                      ? "Save"
+                      : "Publish"}
+          </button>
+        </div>
       </header>
 
       {metaOpen ? (
-        <form className="rotation-meta-fields" onSubmit={onSaveMeta}>
-          <p className="field-note">
-            Title and description are metadata for the published post — not part
-            of the timeline.
-          </p>
-          <label className="field">
-            <span className="label">Name</span>
-            <input
-              ref={titleInputRef}
-              type="text"
-              maxLength={120}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Hyperbloom Neuvillette"
-              aria-label="Rotation name"
-            />
-          </label>
-          <label className="field">
-            <span className="label">Description</span>
-            <textarea
-              rows={2}
-              maxLength={500}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional notes for the community"
-              aria-label="Rotation description"
-            />
-          </label>
-          <div className="chip-row">
-            <button
-              type="button"
-              className="chip compact"
-              onClick={() => setMetaOpen(false)}
-            >
-              Done
-            </button>
-            <button
-              type="button"
-              className="chip filled"
-              disabled={saving || !title.trim()}
-              onClick={() => {
-                void saveRotation();
-              }}
-            >
-              {saving
-                ? "Saving…"
-                : isOwnRotation
-                  ? "Save now"
-                  : isForking
-                    ? "Publish copy"
-                    : "Publish"}
-            </button>
-          </div>
-        </form>
+        <dialog
+          ref={metaDialogRef}
+          className="rotation-meta-dialog"
+          aria-labelledby="rotation-meta-dialog-title"
+          onCancel={(e) => {
+            e.preventDefault();
+            setMetaOpen(false);
+          }}
+          onClick={(e) => {
+            if (e.target === metaDialogRef.current) setMetaOpen(false);
+          }}
+        >
+          <form
+            className="rotation-meta-fields rotation-meta-dialog-body"
+            onSubmit={onSaveMeta}
+          >
+            <div className="rotation-meta-dialog-head">
+              <h2 id="rotation-meta-dialog-title" className="rotation-section-title">
+                Details
+              </h2>
+              <button
+                type="button"
+                className="chip compact"
+                onClick={() => setMetaOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+            <p className="field-note">
+              Title and description are metadata for the published post — not
+              part of the timeline.
+            </p>
+            <label className="field">
+              <span className="label">Name</span>
+              <input
+                ref={titleInputRef}
+                type="text"
+                maxLength={120}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Hyperbloom Neuvillette"
+                aria-label="Rotation name"
+              />
+            </label>
+            <label className="field">
+              <span className="label">Description</span>
+              <textarea
+                rows={3}
+                maxLength={500}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Optional notes for the community"
+                aria-label="Rotation description"
+              />
+            </label>
+            <label className="rotation-meta-public">
+              <input
+                type="checkbox"
+                checked={isPublic}
+                onChange={(e) => setIsPublic(e.target.checked)}
+              />
+              <span>
+                <strong>Public</strong>
+                <span className="field-note">
+                  Listed on community Rotations. Uncheck to keep it only on My
+                  rotations.
+                </span>
+              </span>
+            </label>
+            <div className="chip-row">
+              <button
+                type="button"
+                className="chip compact"
+                onClick={() => setMetaOpen(false)}
+              >
+                Done
+              </button>
+              <button
+                type="button"
+                className="chip filled"
+                disabled={saving || !title.trim()}
+                onClick={() => {
+                  void saveRotation();
+                }}
+              >
+                {saving
+                  ? "Saving…"
+                  : isOwnRotation
+                    ? "Save now"
+                    : isForking
+                      ? "Publish copy"
+                      : "Publish"}
+              </button>
+            </div>
+          </form>
+        </dialog>
       ) : null}
 
-      {saveError ? <p className="auth-error">{saveError}</p> : null}
+      {saveError ? <p className="auth-error rotation-editor-error">{saveError}</p> : null}
 
-      <div className="rotation-workspace">
-        <RotationTimeline
-          placements={placements}
-          onChange={setPlacements}
-          selectedId={selectedPlacementId}
-          switchBuffer={switchBuffer}
-          timingMode={timingMode}
-          humanLag={humanLag}
-          onSelectPlacement={selectPlacement}
-          onHistoryGestureStart={beginHistoryGesture}
-          onHistoryGestureEnd={endHistoryGesture}
-        />
+      {mobileHintDismissed ? null : (
+        <aside className="rotation-editor-mobile-hint" role="note">
+          <p>
+            This editor is built for a larger screen. For dragging onto the
+            timeline and using both side panels, open it on a computer or tablet.
+          </p>
+          <button
+            type="button"
+            className="chip compact"
+            onClick={() => setMobileHintDismissed(true)}
+          >
+            Dismiss
+          </button>
+        </aside>
+      )}
 
-        {selectedPlacement ? (
-          <ComboInspectPanel
-            placement={selectedPlacement}
-            switchBuffer={switchBuffer}
-            onChange={setPlacements}
-          />
-        ) : null}
+      <div className="rotation-editor-shell">
+        <aside
+          className={
+            leftOpen
+              ? "rotation-editor-sidebar left"
+              : "rotation-editor-sidebar left collapsed"
+          }
+        >
+          <div
+            className="rotation-editor-sidebar-body"
+            id={leftPanelId}
+            hidden={!leftOpen}
+          >
+            <CharacterPalette
+              selectedId={selectedCharacterId}
+              onSelect={(c) => {
+                setSelectedCharacterId(c.id);
+                const match = placements
+                  .filter((p) => p.characterId === c.id)
+                  .sort((a, b) => a.start - b.start)[0];
+                if (match) setSelectedPlacementId(match.id);
+              }}
+              onAdd={addCharacterToRotation}
+              insertHint={
+                insertAtIndexState == null
+                  ? null
+                  : `Inserting at position ${insertAtIndexState + 1} — tap + on a character`
+              }
+            />
+          </div>
+          <button
+            type="button"
+            className="rotation-editor-sidebar-fab"
+            aria-expanded={leftOpen}
+            aria-controls={leftPanelId}
+            title={leftOpen ? "Hide characters" : "Show characters"}
+            onClick={() => setLeftOpen((v) => !v)}
+          >
+            <span className="visually-hidden">
+              {leftOpen ? "Hide" : "Show"} character list
+            </span>
+            <span aria-hidden>{leftOpen ? "‹" : "›"}</span>
+          </button>
+        </aside>
 
-        <AuraSimPanel placements={placements} />
-
-        <div className="rotation-below">
-          <CharacterPalette
-            selectedId={selectedCharacterId}
-            onSelect={(c) => {
-              setSelectedCharacterId(c.id);
-              const match = placements
-                .filter((p) => p.characterId === c.id)
-                .sort((a, b) => a.start - b.start)[0];
-              if (match) setSelectedPlacementId(match.id);
-            }}
-            onAdd={addCharacterToRotation}
-            insertHint={
-              insertAtIndexState == null
-                ? null
-                : `Inserting at position ${insertAtIndexState + 1} — tap + on a character`
-            }
-          />
-
-          <PlacementRoster
+        <main className="rotation-editor-main">
+          <RotationTimeline
             placements={placements}
+            onChange={setPlacements}
             selectedId={selectedPlacementId}
             switchBuffer={switchBuffer}
             timingMode={timingMode}
             humanLag={humanLag}
-            onSelect={selectPlacement}
-            onChange={setPlacements}
-            insertAtIndex={insertAtIndexState}
-            onRequestInsertAt={setInsertAtIndexState}
-            onRemove={(id) => {
-              setPlacements((prev) =>
-                removeAndCloseGaps(prev, id, switchBuffer),
-              );
-              if (selectedPlacementId === id) {
-                setSelectedPlacementId(null);
-              }
-            }}
+            onSelectPlacement={selectPlacement}
+            onHistoryGestureStart={beginHistoryGesture}
+            onHistoryGestureEnd={endHistoryGesture}
           />
-        </div>
+
+          {selectedPlacement ? (
+            <ComboInspectPanel
+              placement={selectedPlacement}
+              switchBuffer={switchBuffer}
+              onChange={setPlacements}
+            />
+          ) : null}
+
+          <AuraSimPanel placements={placements} />
+        </main>
+
+        <aside
+          className={
+            rightOpen
+              ? "rotation-editor-sidebar right"
+              : "rotation-editor-sidebar right collapsed"
+          }
+        >
+          {rightOpen ? (
+            <div
+              className="rotation-editor-sidebar-resize"
+              role="separator"
+              aria-orientation="vertical"
+              aria-controls={rightPanelId}
+              aria-valuenow={rightPanelWidth}
+              aria-valuemin={240}
+              aria-label="Resize roster panel"
+              title="Drag to resize"
+              onPointerDown={onRightResizePointerDown}
+              onPointerMove={onRightResizePointerMove}
+              onPointerUp={endRightResize}
+              onPointerCancel={endRightResize}
+            />
+          ) : null}
+          <div
+            className="rotation-editor-sidebar-body"
+            id={rightPanelId}
+            hidden={!rightOpen}
+            style={
+              rightOpen
+                ? { width: rightPanelWidth, maxWidth: "none" }
+                : undefined
+            }
+          >
+            <PlacementRoster
+              placements={placements}
+              selectedId={selectedPlacementId}
+              switchBuffer={switchBuffer}
+              timingMode={timingMode}
+              humanLag={humanLag}
+              onSelect={selectPlacement}
+              onChange={setPlacements}
+              insertAtIndex={insertAtIndexState}
+              onRequestInsertAt={setInsertAtIndexState}
+              onRemove={(id) => {
+                setPlacements((prev) =>
+                  removeAndCloseGaps(prev, id, switchBuffer),
+                );
+                if (selectedPlacementId === id) {
+                  setSelectedPlacementId(null);
+                }
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="rotation-editor-sidebar-fab"
+            aria-expanded={rightOpen}
+            aria-controls={rightPanelId}
+            title={rightOpen ? "Hide roster" : "Show roster"}
+            onClick={() => setRightOpen((v) => !v)}
+          >
+            <span className="visually-hidden">
+              {rightOpen ? "Hide" : "Show"} placement roster
+            </span>
+            <span aria-hidden>{rightOpen ? "›" : "‹"}</span>
+          </button>
+        </aside>
       </div>
-    </>
+    </div>
   );
 };
 

@@ -18,6 +18,7 @@ import SSOCallbackPage from './pages/auth/SSOCallbackPage.tsx'
 import './styles/main.scss'
 
 const RotationsHubPage = lazy(() => import('./pages/rotations/RotationsHubPage.tsx'))
+const MyRotationsPage = lazy(() => import('./pages/rotations/MyRotationsPage.tsx'))
 const RotationEditorPage = lazy(() => import('./pages/RotationsPage.tsx'))
 const RotationDetailPage = lazy(
   () => import('./pages/rotations/RotationDetailPage.tsx'),
@@ -28,6 +29,14 @@ function RotationsHubRoute() {
   return (
     <Suspense fallback={<p className="field-note">Loading rotations…</p>}>
       <RotationsHubPage />
+    </Suspense>
+  )
+}
+
+function MyRotationsRoute() {
+  return (
+    <Suspense fallback={<p className="field-note">Loading your rotations…</p>}>
+      <MyRotationsPage />
     </Suspense>
   )
 }
@@ -68,6 +77,7 @@ export default function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route index element={<Navigate to="/rotations" replace />} />
           <Route path="rotations" element={<RotationsHubRoute />} />
+          <Route path="rotations/mine" element={<MyRotationsRoute />} />
           <Route path="rotations/editor" element={<RotationEditorRoute />} />
           <Route
             path="rotations/editor/:rotationId"

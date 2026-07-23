@@ -8,6 +8,7 @@ export type CommunityRotation = {
   characterIds: string[]
   likesCount: number
   commentsCount: number
+  isPublic: boolean
   createdAt: string
   updatedAt?: string
   likedByMe?: boolean
@@ -37,15 +38,25 @@ const withAuth = async (
 }
 
 export const listCommunityRotations = async (
-  opts: { page?: number; sort?: 'popular' | 'new'; getToken?: TokenFn } = {},
+  opts: {
+    page?: number
+    sort?: 'popular' | 'new'
+    mine?: boolean
+    getToken?: TokenFn
+  } = {},
 ) => {
   const page = opts.page ?? 1
   const sort = opts.sort ?? 'popular'
-  const headers = await withAuth(opts.getToken, false)
-  const response = await fetch(
-    `/api/community-rotations?page=${page}&sort=${sort}`,
-    { headers },
-  )
+  const mine = Boolean(opts.mine)
+  const headers = await withAuth(opts.getToken, mine)
+  const params = new URLSearchParams({
+    page: String(page),
+    sort,
+  })
+  if (mine) params.set('mine', '1')
+  const response = await fetch(`/api/community-rotations?${params}`, {
+    headers,
+  })
   const body = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(body.error || 'Failed to load rotations')
   return {
@@ -54,7 +65,13 @@ export const listCommunityRotations = async (
     total: Number(body.total) || 0,
     totalPages: Math.max(1, Number(body.totalPages) || 1),
     sort: typeof body.sort === 'string' ? body.sort : sort,
-    items: Array.isArray(body.items) ? (body.items as CommunityRotation[]) : [],
+    mine: Boolean(body.mine),
+    items: Array.isArray(body.items)
+      ? (body.items as CommunityRotation[]).map((item) => ({
+          ...item,
+          isPublic: item.isPublic !== false,
+        }))
+      : [],
   }
 }
 
@@ -69,11 +86,18 @@ export const getCommunityRotation = async (
   )
   const body = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(body.error || 'Failed to load rotation')
-  return body.item as CommunityRotation
+  const item = body.item as CommunityRotation
+  return { ...item, isPublic: item.isPublic !== false }
 }
 
 export const createCommunityRotation = async (
-  input: { title: string; description?: string; doc: unknown; authorName?: string },
+  input: {
+    title: string
+    description?: string
+    doc: unknown
+    authorName?: string
+    isPublic?: boolean
+  },
   getToken: TokenFn,
 ) => {
   const headers = await withAuth(getToken, true)
@@ -84,12 +108,19 @@ export const createCommunityRotation = async (
   })
   const body = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(body.error || 'Failed to save rotation')
-  return body.item as CommunityRotation
+  const item = body.item as CommunityRotation
+  return { ...item, isPublic: item.isPublic !== false }
 }
 
 export const updateCommunityRotation = async (
   id: string,
-  input: { title?: string; description?: string; doc?: unknown; authorName?: string },
+  input: {
+    title?: string
+    description?: string
+    doc?: unknown
+    authorName?: string
+    isPublic?: boolean
+  },
   getToken: TokenFn,
 ) => {
   const headers = await withAuth(getToken, true)
@@ -103,7 +134,8 @@ export const updateCommunityRotation = async (
   )
   const body = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(body.error || 'Failed to update rotation')
-  return body.item as CommunityRotation
+  const item = body.item as CommunityRotation
+  return { ...item, isPublic: item.isPublic !== false }
 }
 
 export const toggleCommunityRotationLike = async (

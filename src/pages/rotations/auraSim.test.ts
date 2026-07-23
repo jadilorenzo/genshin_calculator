@@ -63,4 +63,51 @@ describe('simulateAura', () => {
     expect(result.applicationCounts.Pyro).toBe(2)
     expect(result.skippedByIcd).toBe(2)
   })
+
+  it('shows Anemo briefly on swirl then recovers to lasting auras', () => {
+    const result = simulateAura(
+      [
+        hit({ time: 0, element: 'Hydro', gaugeUnits: 1 }),
+        hit({ time: 0.2, element: 'Electro', gaugeUnits: 1 }),
+        hit({ time: 0.5, element: 'Anemo', gaugeUnits: 1, characterId: 'sucrose' }),
+      ],
+      { endTime: 3, convertElectroCharged: true },
+    )
+    expect(result.reactionCounts.swirl).toBe(1)
+    const swirlMark = result.transitions.find(
+      (t) =>
+        Math.abs(t.time - 0.5) < 1e-6 &&
+        t.flash?.some((a) => a.element === 'Anemo'),
+    )
+    expect(swirlMark).toBeTruthy()
+    expect(swirlMark!.auras.some((a) => a.element === 'Anemo')).toBe(false)
+    expect(swirlMark!.auras.some((a) => a.element === 'Hydro')).toBe(true)
+    expect(swirlMark!.auras.some((a) => a.element === 'Electro')).toBe(true)
+    const lastingAnemo = result.transitions.some((t) =>
+      t.auras.some((a) => a.element === 'Anemo'),
+    )
+    expect(lastingAnemo).toBe(false)
+  })
+
+  it('does not apply Anemo aura when swirling nothing', () => {
+    const result = simulateAura(
+      [hit({ time: 0, element: 'Anemo', gaugeUnits: 1, characterId: 'sucrose' })],
+      { endTime: 2 },
+    )
+    expect(result.transitions.every((t) => t.auras.length === 0)).toBe(true)
+  })
+
+  it('emits a cleared transition when aura fully decays', () => {
+    const result = simulateAura(
+      [hit({ time: 0, element: 'Hydro', gaugeUnits: 1 })],
+      { endTime: 12, sampleInterval: 0.5 },
+    )
+    const cleared = result.transitions.find(
+      (t) => t.time > 0 && t.auras.length === 0,
+    )
+    expect(cleared).toBeTruthy()
+    // 1U after tax lasts ~9.5s
+    expect(cleared!.time).toBeGreaterThan(8)
+    expect(cleared!.time).toBeLessThan(11)
+  })
 })

@@ -1,15 +1,17 @@
 import {
   characterIdsFromDoc,
+  hasIsPublicColumn,
   json,
   mapRotationRow,
   optionalUserId,
   requireUserId,
+  resolveRotationSelect,
   supabaseAdmin,
 } from './_authDb.js'
 
 const PAGE_SIZE = 12
 
-/** GET list (page, sort) · POST create */
+/** GET list (page, sort, mine) · POST create */
 export async function GET(request) {
   const db = supabaseAdmin()
   if (!db) return json({ error: 'Cloud sync is not configured' }, 503)
@@ -17,15 +19,27 @@ export async function GET(request) {
   const url = new URL(request.url)
   const page = Math.max(1, Number(url.searchParams.get('page') || '1') || 1)
   const sort = url.searchParams.get('sort') === 'new' ? 'new' : 'popular'
+  const mine = url.searchParams.get('mine') === '1'
   const from = (page - 1) * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
 
-  let query = db
-    .from('community_rotations')
-    .select(
-      'id, author_id, author_name, title, description, doc, character_ids, likes_count, comments_count, created_at, updated_at',
-      { count: 'exact' },
-    )
+  let userId = null
+  if (mine) {
+    const auth = await requireUserId(request)
+    if (auth.error) return auth.error
+    userId = auth.userId
+  } else {
+    userId = await optionalUserId(request)
+  }
+
+  const select = await resolveRotationSelect(db)
+  let query = db.from('community_rotations').select(select, { count: 'exact' })
+
+  if (mine) {
+    query = query.eq('author_id', userId)
+  } else if (hasIsPublicColumn()) {
+    query = query.eq('is_public', true)
+  }
 
   if (sort === 'new') {
     query = query.order('created_at', { ascending: false })
@@ -38,7 +52,6 @@ export async function GET(request) {
   const { data, error, count } = await query.range(from, to)
   if (error) return json({ error: error.message }, 500)
 
-  const userId = await optionalUserId(request)
   let liked = new Set()
   if (userId && data?.length) {
     const ids = data.map((r) => r.id)
@@ -56,6 +69,7 @@ export async function GET(request) {
     total: count ?? 0,
     totalPages: Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE)),
     sort,
+    mine,
     items: (data || []).map((row) =>
       mapRotationRow(row, { likedByMe: liked.has(row.id) }),
     ),
@@ -82,6 +96,7 @@ export async function POST(request) {
   const authorName =
     typeof body?.authorName === 'string' ? body.authorName.trim() : ''
   const doc = body?.doc
+  const isPublic = body?.isPublic !== false
 
   if (!title) return json({ error: 'Title is required' }, 400)
   if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
@@ -91,6 +106,7 @@ export async function POST(request) {
     return json({ error: 'Add at least one character before saving' }, 400)
   }
 
+  const select = await resolveRotationSelect(db)
   const now = new Date().toISOString()
   const row = {
     author_id: auth.userId,
@@ -101,13 +117,12 @@ export async function POST(request) {
     character_ids: characterIdsFromDoc(doc),
     updated_at: now,
   }
+  if (hasIsPublicColumn()) row.is_public = Boolean(isPublic)
 
   const { data, error } = await db
     .from('community_rotations')
     .insert(row)
-    .select(
-      'id, author_id, author_name, title, description, doc, character_ids, likes_count, comments_count, created_at, updated_at',
-    )
+    .select(select)
     .single()
 
   if (error) return json({ error: error.message }, 500)

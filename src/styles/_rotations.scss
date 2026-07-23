@@ -12,6 +12,421 @@
   border: 0;
 }
 
+/* —— Full-page rotation editor —— */
+
+.rotation-editor-page {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rotation-editor-bar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem 1rem;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.rotation-editor-bar-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  min-width: 0;
+  flex: 1 1 14rem;
+}
+
+.rotation-editor-bar-titles {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem 0.85rem;
+  flex: 1 1 auto;
+}
+
+.rotation-editor-bar-titles h1 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fog);
+  flex: 0 0 auto;
+}
+
+.rotation-editor-bar-sub {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.rotation-editor-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 1 auto;
+}
+
+.rotation-editor-meta {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+  max-width: none;
+  border-radius: 0;
+  background: var(--panel);
+}
+
+.rotation-meta-dialog {
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--panel-shadow);
+  width: min(28rem, calc(100vw - 2rem));
+}
+
+.rotation-meta-dialog::backdrop {
+  background: rgba(8, 10, 16, 0.62);
+}
+
+[data-theme='light'] .rotation-meta-dialog::backdrop {
+  background: rgba(30, 40, 55, 0.35);
+}
+
+.rotation-meta-dialog-body {
+  margin: 0;
+  max-width: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.rotation-meta-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.rotation-meta-public {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin: 0.15rem 0 0;
+  cursor: pointer;
+}
+
+.rotation-meta-public input {
+  margin-top: 0.2rem;
+  flex: 0 0 auto;
+}
+
+.rotation-meta-public strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.rotation-meta-public .field-note {
+  display: block;
+  margin: 0.2rem 0 0;
+}
+
+.rotation-editor-error {
+  margin: 0;
+  padding: 0.45rem 0.85rem;
+}
+
+.rotation-editor-mobile-hint {
+  display: none;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--gold) 12%, var(--panel));
+  color: var(--fog);
+}
+
+.rotation-editor-mobile-hint p {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.rotation-editor-mobile-hint .chip {
+  flex: 0 0 auto;
+}
+
+.rotation-editor-shell {
+  flex: 1 1 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  min-width: 0;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.rotation-editor-sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  z-index: 2;
+  overflow: visible;
+}
+
+.rotation-editor-sidebar.right {
+  border-right: none;
+  border-left: 1px solid var(--line);
+}
+
+.rotation-editor-sidebar-body {
+  width: 17.5rem;
+  max-width: min(17.5rem, 42vw);
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 0.75rem 0;
+}
+
+.rotation-editor-sidebar.right .rotation-editor-sidebar-body {
+  width: 23.75rem;
+  max-width: min(23.75rem, 55vw);
+}
+
+.rotation-editor-sidebar-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  width: 7px;
+  z-index: 7;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.rotation-editor-sidebar-resize::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: transparent;
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.rotation-editor-sidebar-resize:hover::after,
+.rotation-editor-sidebar-resize:focus-visible::after,
+body.rotation-editor-resizing .rotation-editor-sidebar-resize::after {
+  background: var(--gold);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 35%, transparent);
+}
+
+body.rotation-editor-resizing {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+.rotation-editor-sidebar.collapsed {
+  width: 0;
+  border-color: transparent;
+  overflow: visible;
+}
+
+.rotation-editor-sidebar.collapsed .rotation-editor-sidebar-body {
+  display: none;
+  width: 0;
+  padding: 0;
+  max-width: 0;
+}
+
+.rotation-editor-sidebar-fab {
+  position: absolute;
+  bottom: 1rem;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--panel);
+  color: var(--muted);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--panel) 80%, transparent),
+    0 6px 18px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  padding: 0;
+  font-size: 1.05rem;
+  line-height: 1;
+  pointer-events: auto;
+}
+
+.rotation-editor-sidebar.left .rotation-editor-sidebar-fab {
+  right: 0;
+  transform: translate(50%, 0);
+}
+
+.rotation-editor-sidebar.right .rotation-editor-sidebar-fab {
+  left: 0;
+  transform: translate(-50%, 0);
+}
+
+.rotation-editor-sidebar.left.collapsed .rotation-editor-sidebar-fab {
+  right: auto;
+  left: 0;
+  transform: translateX(0.35rem);
+}
+
+.rotation-editor-sidebar.right.collapsed .rotation-editor-sidebar-fab {
+  left: auto;
+  right: 0;
+  transform: translateX(-0.35rem);
+}
+
+.rotation-editor-sidebar-fab:hover {
+  color: var(--gold-bright);
+  border-color: color-mix(in srgb, var(--gold) 50%, var(--line));
+  background: var(--active-wash);
+}
+
+.rotation-editor-main {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.75rem 0.85rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  background: var(--row-surface);
+}
+
+.rotation-editor-page .rotation-palette,
+.rotation-editor-page .rotation-roster {
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+  max-height: none;
+  height: auto;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  position: static;
+}
+
+.rotation-editor-page .rotation-palette {
+  overflow: hidden;
+}
+
+.rotation-editor-page .rotation-char-list {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 0.35rem;
+}
+
+.rotation-editor-page .rotation-roster {
+  overflow: auto;
+  padding-bottom: 3rem;
+}
+
+.rotation-editor-page .rotation-timeline,
+.rotation-editor-page .combo-inspect,
+.rotation-editor-page .aura-sim-panel {
+  margin-bottom: 0;
+}
+
+@media (max-width: 960px) {
+  .rotation-editor-mobile-hint {
+    display: flex;
+  }
+
+  .rotation-editor-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .rotation-editor-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    max-height: 42vh;
+  }
+
+  .rotation-editor-sidebar.right {
+    border-left: none;
+    border-top: 1px solid var(--line);
+    border-bottom: none;
+  }
+
+  .rotation-editor-sidebar-body,
+  .rotation-editor-sidebar.right .rotation-editor-sidebar-body {
+    width: 100%;
+    max-width: none;
+  }
+
+  .rotation-editor-sidebar-resize {
+    display: none;
+  }
+
+  .rotation-editor-sidebar.collapsed {
+    width: auto;
+    max-height: none;
+    border-bottom: none;
+  }
+
+  .rotation-editor-sidebar.right.collapsed {
+    border-top: none;
+  }
+
+  .rotation-editor-sidebar.left .rotation-editor-sidebar-fab,
+  .rotation-editor-sidebar.right .rotation-editor-sidebar-fab,
+  .rotation-editor-sidebar.left.collapsed .rotation-editor-sidebar-fab,
+  .rotation-editor-sidebar.right.collapsed .rotation-editor-sidebar-fab {
+    right: 0.75rem;
+    left: auto;
+    bottom: 0.65rem;
+    transform: none;
+  }
+
+  .rotation-editor-sidebar.right .rotation-editor-sidebar-fab,
+  .rotation-editor-sidebar.right.collapsed .rotation-editor-sidebar-fab {
+    right: auto;
+    left: 0.75rem;
+  }
+}
+
 .rotation-workspace {
   display: grid;
   gap: 1.25rem;
@@ -544,31 +959,42 @@
 .rotation-aura-lane {
   position: relative;
   z-index: 4;
-  height: 1.85rem;
-  margin: 0.45rem 0 0.1rem;
+  height: 2.85rem;
+  margin: 0.2rem 0 0;
   pointer-events: none;
 }
 
 .rotation-aura-empty {
   margin: 0;
-  padding: 0.35rem 0.5rem;
+  padding: 0.2rem 0.5rem;
   font-size: 0.72rem;
   color: var(--muted);
 }
 
 .rotation-aura-mark {
   position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
+  gap: 0.08rem;
   pointer-events: auto;
   cursor: default;
 }
 
 .rotation-aura-mark.loop {
   opacity: 0.45;
+}
+
+.rotation-aura-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.rotation-aura-row.flash {
+  opacity: 0.95;
 }
 
 .rotation-aura-icon {
@@ -584,8 +1010,13 @@
   margin-left: -0.35rem;
 }
 
-.rotation-aura-mark > .rotation-aura-icon:first-child {
+.rotation-aura-row > .rotation-aura-icon:first-child {
   margin-left: 0;
+}
+
+.rotation-aura-icon.flash {
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .rotation-aura-icon.fallback {
@@ -598,19 +1029,23 @@
 
 .rotation-aura-icon.empty {
   background: transparent;
-  border-color: rgba(150, 180, 220, 0.55);
-  border-style: dashed;
+  border: 1.5px dashed rgba(150, 180, 220, 0.55);
   box-shadow: none;
 }
 
 .rotation-timeline.preview .rotation-aura-lane {
-  height: 1.6rem;
+  height: 2.6rem;
 }
 
 .rotation-timeline.preview .rotation-aura-icon {
   width: 1.15rem;
   height: 1.15rem;
   margin-left: -0.3rem;
+}
+
+.rotation-timeline.preview .rotation-aura-icon.flash {
+  width: 1rem;
+  height: 1rem;
 }
 
 .rotation-tick {
@@ -2230,6 +2665,28 @@
   text-transform: uppercase;
   color: var(--gold-bright);
   white-space: nowrap;
+}
+
+.rotation-card-visibility {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.rotation-card-visibility.public {
+  color: var(--gold-bright);
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--line));
+}
+
+.rotation-card-visibility.private {
+  color: var(--fog);
 }
 
 .rotation-card-desc {

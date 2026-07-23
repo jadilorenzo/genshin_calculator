@@ -11,7 +11,6 @@ import type { AnimationAction, AnimationCancelMap } from './animationTimingsType
 import {
   defaultOnFieldDuration,
   isComboFieldStyle,
-  prefersSupportCastPrefill,
   resolveSkillCasts,
   type SkillCastVariant,
   type TimingMode,
@@ -335,7 +334,16 @@ export function packComboSteps(
 function skillActionId(
   characterId: string,
   skillVariant: SkillCastVariant,
-): string {
+): string | null {
+  // Combo DPS: never seed the coarse "expected on-field" skill blob from fieldTimings.
+  if (isComboFieldStyle(characterId)) {
+    const skill = getAnimationAction(characterId, 'skill', 'default')
+    if (skill && skill.source === 'gcsim') return 'skill'
+    // Prefer any real short skill variant over the estimated field window
+    const hold = getAnimationAction(characterId, 'skill_hold', 'default')
+    if (hold && hold.source === 'gcsim') return 'skill_hold'
+    return null
+  }
   if (skillVariant === 'hold') {
     const hold = getAnimationAction(characterId, 'skill_hold', 'default')
     if (hold) return 'skill_hold'
@@ -343,8 +351,22 @@ function skillActionId(
   return 'skill'
 }
 
+function isGenericOnFieldSkillAction(
+  characterId: string,
+  actionId: string,
+): boolean {
+  if (!isComboFieldStyle(characterId)) return false
+  const action = getAnimationAction(characterId, actionId, 'default')
+  if (!action) return false
+  return (
+    action.source === 'estimated' &&
+    /fieldTimings|coarse cast/i.test(action.notes ?? '')
+  )
+}
+
 /**
  * Seed inspect steps from coarse Skill/Burst cast presets (E×N + Q order).
+ * Excludes Normals filler and combo "expected on-field" generic windows.
  */
 export function seedComboStepsFromCasts(
   characterId: string,
@@ -367,6 +389,8 @@ export function seedComboStepsFromCasts(
   const skillId = skillActionId(characterId, variant)
   const steps: ComboStep[] = []
   const pushSkills = () => {
+    if (!skillId || skillCasts <= 0) return
+    if (isGenericOnFieldSkillAction(characterId, skillId)) return
     for (let i = 0; i < skillCasts; i += 1) {
       steps.push(createComboStep(skillId, 'default'))
     }
@@ -385,8 +409,8 @@ export function seedComboStepsFromCasts(
 }
 
 /**
- * Prefill combo steps only for supports (Sucrose EE, etc.).
- * Combo DPS start empty so expected on-field is not assumed.
+ * Prefill inspect from cast options (E/Q order).
+ * Always seeds relative cast actions — never Normals or expected-on-field filler.
  */
 export function initialComboStepsForPlacement(
   characterId: string,
@@ -399,9 +423,6 @@ export function initialComboStepsForPlacement(
     kitHoldSeconds?: number | null
   },
 ): ComboStep[] {
-  if (!prefersSupportCastPrefill(characterId, opts.kitHoldSeconds ?? null)) {
-    return []
-  }
   if (!opts.skill && !opts.burst) return []
   return seedComboStepsFromCasts(characterId, opts)
 }

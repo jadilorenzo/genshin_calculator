@@ -33,6 +33,7 @@ import {
 import {
   comboStepsTotalSeconds,
   placementUsesComboSteps,
+  seedComboStepsFromCasts,
 } from "./comboSequence";
 import {
   MIN_ON_FIELD,
@@ -141,7 +142,17 @@ export const PlacementRoster = ({
       const current = withCastDefaults(
         prev.find((item) => item.id === id) ?? selected!,
       );
-      const next = withCastDefaults({ ...current, ...patch });
+      const nextBase = withCastDefaults({ ...current, ...patch });
+      const kitHold = kitHoldFor(nextBase.characterId);
+      const comboSteps = seedComboStepsFromCasts(nextBase.characterId, {
+        skill: nextBase.castSkill,
+        burst: nextBase.castBurst,
+        castOrder: nextBase.castOrder,
+        skillVariant: nextBase.skillVariant,
+        skillCasts: nextBase.skillCasts,
+        kitHoldSeconds: kitHold,
+      });
+      const next = { ...nextBase, comboSteps };
       const duration = defaultOnFieldDuration(
         next.characterId,
         durationOpts(next, timingMode, humanLag),
@@ -154,6 +165,16 @@ export const PlacementRoster = ({
       );
     });
     onSelect(id);
+  };
+
+  const handleToggleCast = (key: "castSkill" | "castBurst", value: boolean) => {
+    if (!selected) return;
+    applyCastPatch(selected.id, { [key]: value });
+  };
+
+  const handleCastOrder = (castOrder: CastOrder) => {
+    if (!selected) return;
+    applyCastPatch(selected.id, { castOrder });
   };
 
   const resetDuration = (p: TimelinePlacement) => {
@@ -228,17 +249,6 @@ export const PlacementRoster = ({
     if (seconds == null) delete next[optionId];
     else next[optionId] = seconds;
     updatePlacement(selected.id, { durationOverrides: next });
-    onSelect(selected.id);
-  };
-
-  const handleToggleCast = (key: "castSkill" | "castBurst", value: boolean) => {
-    if (!selected) return;
-    applyCastPatch(selected.id, { [key]: value });
-  };
-
-  const handleCastOrder = (castOrder: CastOrder) => {
-    if (!selected) return;
-    updatePlacement(selected.id, { castOrder });
     onSelect(selected.id);
   };
 

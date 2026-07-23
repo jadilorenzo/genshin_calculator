@@ -10,6 +10,7 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
+import { useLocalStorage } from "../../hooks/useLocalStorage.ts";
 import { getCharacter } from "./characters";
 import { readCastDrag, readCharacterDrag } from "./CharacterPalette";
 import { CharacterIcon } from "./CharacterIcon";
@@ -287,7 +288,10 @@ export const RotationTimeline = ({
   const [movingId, setMovingId] = useState<string | null>(null);
   const [moveGhost, setMoveGhost] = useState<MoveGhost | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [showAuraMarkers, setShowAuraMarkers] = useState(false);
+  const [showAuraMarkers, setShowAuraMarkers] = useLocalStorage(
+    "gc:rotations:showAuraMarkers",
+    true,
+  );
   const dragRef = useRef<DragState | null>(null);
   const suppressClickRef = useRef(false);
   const selectedIdRef = useRef(selectedId);
@@ -452,16 +456,22 @@ export const RotationTimeline = ({
   const durationsHeight = Math.max(durationLaneCount * DURATION_ROW_HEIGHT, 0);
   const previewLayout = compactLayout || hideDurationOverlays;
   const laneHeight = previewLayout ? PREVIEW_LANE_HEIGHT : LANE_HEIGHT;
+  // Aura lane: lasting row + optional flash row (~2.85rem) + small margins.
+  const auraLaneReserve = showAuraMarkers ? 3.05 : 0;
   const trackMinHeight = previewLayout
     ? 1.45 +
       laneHeight +
-      0.45 +
-      (showAuraMarkers ? 2 : 0) +
+      0.25 +
+      auraLaneReserve +
       (durationLaneCount ? 0.55 + durationsHeight * 0.85 : 0)
-    : 3.5 +
+    : 1.35 +
       LANE_HEIGHT +
-      (showAuraMarkers ? 2.4 : 0) +
-      (durationLaneCount ? 0.85 + durationsHeight : 1.5);
+      auraLaneReserve +
+      (durationLaneCount
+        ? 0.85 + durationsHeight
+        : showAuraMarkers
+          ? 0.2
+          : 1.5);
 
   const timeFromClientX = useCallback((clientX: number) => {
     const scroll = scrollRef.current;
@@ -984,35 +994,53 @@ const AuraMarkerLane = ({
 }) => {
   const renderMark = (tr: AuraTransition, loop: boolean) => {
     const left = (tr.time + (loop ? cycleLength : 0)) * pxPerSec;
-    const label =
+    const lastingLabel =
       tr.auras.length === 0
         ? "Aura cleared"
         : tr.auras
             .map((a) => `${a.element} ${a.gauge.toFixed(2)}U`)
             .join(" · ");
+    const flashLabel = tr.flash?.length
+      ? ` · flash ${tr.flash.map((a) => a.element).join("+")}`
+      : "";
     return (
       <div
-        key={`${loop ? "loop-" : ""}${tr.time}-${tr.auras.map((a) => a.element).join("-")}`}
+        key={`${loop ? "loop-" : ""}${tr.time}-${tr.auras.map((a) => a.element).join("-")}-${tr.flash?.map((a) => a.element).join("-") ?? ""}`}
         className={joinClassNames(
           "rotation-aura-mark",
           loop && "loop",
           tr.auras.length === 0 && "cleared",
+          tr.flash?.length ? "has-flash" : false,
         )}
         style={{ left }}
-        title={`${tr.time.toFixed(2)}s — ${label}`}
+        title={`${tr.time.toFixed(2)}s — ${lastingLabel}${flashLabel}`}
       >
-        {tr.auras.length === 0 ? (
-          <span className="rotation-aura-icon empty" aria-hidden />
-        ) : (
-          tr.auras.map((a) => (
-            <ElementIcon
-              key={a.element}
-              element={a.element}
-              className="rotation-aura-icon"
-              title={`${a.element} ${a.gauge.toFixed(2)}U`}
-            />
-          ))
-        )}
+        <div className="rotation-aura-row lasting">
+          {tr.auras.length === 0 ? (
+            <span className="rotation-aura-icon empty" aria-hidden />
+          ) : (
+            tr.auras.map((a) => (
+              <ElementIcon
+                key={a.element}
+                element={a.element}
+                className="rotation-aura-icon"
+                title={`${a.element} ${a.gauge.toFixed(2)}U`}
+              />
+            ))
+          )}
+        </div>
+        {tr.flash?.length ? (
+          <div className="rotation-aura-row flash" aria-label="Reaction flash">
+            {tr.flash.map((a) => (
+              <ElementIcon
+                key={`flash-${a.element}`}
+                element={a.element}
+                className="rotation-aura-icon flash"
+                title={`${a.element} flash`}
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
     );
   };

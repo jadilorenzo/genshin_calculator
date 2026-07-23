@@ -129,8 +129,17 @@ export function vercelApiDev(apiRoot = path.resolve('api')): Plugin {
             return
           }
 
+          // Bust Node ESM cache for shared api/_*.js helpers (route imports
+          // resolve bare paths; without this, stale helper modules linger).
+          const bust = Date.now()
+          for (const name of fs.readdirSync(apiRoot)) {
+            if (!name.startsWith('_') || !name.endsWith('.js')) continue
+            const helper = path.join(apiRoot, name)
+            await import(`${pathToFileURL(helper).href}?t=${bust}`)
+          }
+
           const mod = (await import(
-            `${pathToFileURL(file).href}?t=${Date.now()}`
+            `${pathToFileURL(file).href}?t=${bust}`
           )) as ApiModule
           const method = (req.method || 'GET').toUpperCase()
           const handler =

@@ -83,8 +83,45 @@ export function mapRotationRow(row, { likedByMe = false } = {}) {
     characterIds: row.character_ids || [],
     likesCount: row.likes_count ?? 0,
     commentsCount: row.comments_count ?? 0,
+    isPublic: row.is_public !== false,
     createdAt: row.updated_at || row.created_at,
     updatedAt: row.updated_at,
     likedByMe,
   }
+}
+
+export const ROTATION_SELECT_WITH_PUBLIC =
+  'id, author_id, author_name, title, description, doc, character_ids, likes_count, comments_count, is_public, created_at, updated_at'
+
+export const ROTATION_SELECT_LEGACY =
+  'id, author_id, author_name, title, description, doc, character_ids, likes_count, comments_count, created_at, updated_at'
+
+/** Cached probe: whether community_rotations.is_public exists. */
+let isPublicColumnCache = null
+
+function isMissingIsPublicError(error) {
+  const msg = String(error?.message || error || '')
+  return /is_public/i.test(msg) && /does not exist|Could not find/i.test(msg)
+}
+
+/** Resolve select list; falls back if migration not applied yet. */
+export async function resolveRotationSelect(db) {
+  if (isPublicColumnCache === true) return ROTATION_SELECT_WITH_PUBLIC
+  if (isPublicColumnCache === false) return ROTATION_SELECT_LEGACY
+
+  const { error } = await db
+    .from('community_rotations')
+    .select('is_public')
+    .limit(1)
+  if (error && isMissingIsPublicError(error)) {
+    isPublicColumnCache = false
+    return ROTATION_SELECT_LEGACY
+  }
+  // Other errors (empty table, RLS, etc.) still mean the column is queryable.
+  isPublicColumnCache = true
+  return ROTATION_SELECT_WITH_PUBLIC
+}
+
+export function hasIsPublicColumn() {
+  return isPublicColumnCache !== false
 }

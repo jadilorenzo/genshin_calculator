@@ -1,9 +1,11 @@
 import {
   characterIdsFromDoc,
+  hasIsPublicColumn,
   json,
   mapRotationRow,
   optionalUserId,
   requireUserId,
+  resolveRotationSelect,
   supabaseAdmin,
 } from './_authDb.js'
 
@@ -19,11 +21,10 @@ export async function GET(request) {
   const rotationId = idFrom(request)
   if (!rotationId) return json({ error: 'Missing id' }, 400)
 
+  const select = await resolveRotationSelect(db)
   const { data, error } = await db
     .from('community_rotations')
-    .select(
-      'id, author_id, author_name, title, description, doc, character_ids, likes_count, comments_count, created_at, updated_at',
-    )
+    .select(select)
     .eq('id', rotationId)
     .maybeSingle()
 
@@ -31,6 +32,14 @@ export async function GET(request) {
   if (!data) return json({ error: 'Not found' }, 404)
 
   const userId = await optionalUserId(request)
+  if (
+    hasIsPublicColumn() &&
+    data.is_public === false &&
+    data.author_id !== userId
+  ) {
+    return json({ error: 'Not found' }, 404)
+  }
+
   let likedByMe = false
   if (userId) {
     const { data: like } = await db
@@ -74,6 +83,7 @@ export async function PUT(request) {
     return json({ error: 'Forbidden' }, 403)
   }
 
+  const select = await resolveRotationSelect(db)
   const patch = { updated_at: new Date().toISOString() }
   if (typeof body?.title === 'string') {
     const title = body.title.trim()
@@ -85,6 +95,9 @@ export async function PUT(request) {
   }
   if (typeof body?.authorName === 'string') {
     patch.author_name = body.authorName.trim().slice(0, 80) || 'Traveler'
+  }
+  if (typeof body?.isPublic === 'boolean' && hasIsPublicColumn()) {
+    patch.is_public = body.isPublic
   }
   if (body?.doc && typeof body.doc === 'object' && !Array.isArray(body.doc)) {
     if (!Array.isArray(body.doc.placements) || body.doc.placements.length === 0) {
@@ -98,9 +111,7 @@ export async function PUT(request) {
     .from('community_rotations')
     .update(patch)
     .eq('id', rotationId)
-    .select(
-      'id, author_id, author_name, title, description, doc, character_ids, likes_count, comments_count, created_at, updated_at',
-    )
+    .select(select)
     .single()
 
   if (error) return json({ error: error.message }, 500)

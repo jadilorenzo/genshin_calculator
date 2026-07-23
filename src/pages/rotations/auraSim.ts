@@ -64,8 +64,10 @@ export type SimOptions = {
 
 export type AuraTransition = {
   time: number
-  /** Aura elements present after the change (empty = cleared). */
+  /** Lasting aura elements after the change (empty = cleared). */
   auras: Array<{ element: AuraElement; gauge: number }>
+  /** Brief swirl/crystallize icons rendered under the lasting aura row. */
+  flash?: Array<{ element: AuraElement; gauge: number }>
 }
 
 export type AuraSimResult = {
@@ -109,13 +111,25 @@ function normalizeElement(el: string | null | undefined): string | null {
 }
 
 function decayAuras(auras: AuraSlot[], dt: number) {
+  if (dt <= 0) return
   for (const a of auras) {
     a.gauge = Math.max(0, a.gauge - a.decayPerSec * dt)
   }
-  // drop emptied
   for (let i = auras.length - 1; i >= 0; i--) {
     if (auras[i].gauge < 0.01) auras.splice(i, 1)
   }
+}
+
+/** Seconds until the next aura fully decays (null if none decaying). */
+function timeToNextExpiry(auras: AuraSlot[]): number | null {
+  let soonest: number | null = null
+  for (const a of auras) {
+    if (a.decayPerSec <= 1e-9) continue
+    const tte = a.gauge / a.decayPerSec
+    if (tte < 1e-6) continue
+    if (soonest == null || tte < soonest) soonest = tte
+  }
+  return soonest
 }
 
 function snapshot(time: number, auras: AuraSlot[]): AuraSnapshot {
@@ -147,9 +161,9 @@ function applyAura(
   const decayPerSec = taxed / duration
   const existing = auras.find((a) => a.element === element)
   if (existing) {
-    // Refresh / add gauge (cap roughly at taxed amount if already higher)
-    existing.gauge = Math.max(existing.gauge, taxed) + Math.min(taxed, 0.4)
-    existing.decayPerSec = Math.max(existing.decayPerSec, decayPerSec)
+    // Refresh gauge and reset decay from the new application strength
+    existing.gauge = Math.min(existing.gauge + taxed, taxed * 2)
+    existing.decayPerSec = taxed / duration
   } else {
     auras.push({ element, gauge: taxed, decayPerSec })
   }
@@ -557,52 +571,67 @@ export function simulateAura(
     })
   }
 
+  /** Swirl/crystallize: lasting auras stay on the main row; Anemo/Geo flash below. */
+  const noteFlashTransition = (
+    at: number,
+    flash: AuraElement,
+    flashGauge = 0.15,
+  ) => {
+    transitions.push({
+      time: roundTime(at),
+      auras: snapshot(at, auras).auras,
+      flash: [{ element: flash, gauge: flashGauge }],
+    })
+    lastComposition = auraCompositionKey(auras)
+  }
+
   auraTimeline.push(snapshot(0, auras))
 
   const advanceTo = (target: number) => {
-    const dt = target - time
-    if (dt > 0) {
-      // EC ticks while both auras present during [time, target]
-      if (hasAura(auras, 'Hydro') && hasAura(auras, 'Electro')) {
-        // decay in small steps with ticks
-        let cursor = time
-        while (cursor < target - 1e-9) {
-          const nextTickAt = ecTick.time + EC_TICK_INTERVAL
-          const stepTo = Math.min(target, nextTickAt)
-          decayAuras(auras, stepTo - cursor)
-          noteTransition(stepTo)
-          cursor = stepTo
-          if (
-            Math.abs(cursor - nextTickAt) < 1e-6 &&
-            hasAura(auras, 'Hydro') &&
-            hasAura(auras, 'Electro')
-          ) {
-            consumeAura(auras, 'Hydro', EC_TICK_CONSUME)
-            consumeAura(auras, 'Electro', EC_TICK_CONSUME)
-            noteTransition(cursor)
-            const reaction: ReactionId = opts.convertElectroCharged
-              ? 'lunar-charged'
-              : 'electro-charged'
-            events.push({
-              time: roundTime(cursor),
-              reaction,
-              triggerElement: 'tick',
-              auraElement: 'Hydro+Electro',
-              characterId: '',
-              actionId: 'ec-tick',
-              note: 'aura tick',
-            })
-            bumpCount(reactionCounts, reaction)
-            ecTick.time = cursor
-          }
-        }
-      } else {
-        decayAuras(auras, dt)
-        noteTransition(target)
-        ecTick.time = target - EC_TICK_INTERVAL
+    if (target <= time + 1e-12) return
+    let cursor = time
+    while (cursor < target - 1e-9) {
+      const expiry = timeToNextExpiry(auras)
+      const ecActive = hasAura(auras, 'Hydro') && hasAura(auras, 'Electro')
+      const nextTickAt = ecActive ? ecTick.time + EC_TICK_INTERVAL : Infinity
+      let stepTo = target
+      if (expiry != null) stepTo = Math.min(stepTo, cursor + expiry)
+      if (ecActive) stepTo = Math.min(stepTo, nextTickAt)
+
+      const dt = stepTo - cursor
+      decayAuras(auras, dt)
+      cursor = roundTime(stepTo)
+      noteTransition(cursor)
+
+      if (
+        ecActive &&
+        Math.abs(cursor - nextTickAt) < 1e-6 &&
+        hasAura(auras, 'Hydro') &&
+        hasAura(auras, 'Electro')
+      ) {
+        consumeAura(auras, 'Hydro', EC_TICK_CONSUME)
+        consumeAura(auras, 'Electro', EC_TICK_CONSUME)
+        noteTransition(cursor)
+        const reaction: ReactionId = opts.convertElectroCharged
+          ? 'lunar-charged'
+          : 'electro-charged'
+        events.push({
+          time: cursor,
+          reaction,
+          triggerElement: 'tick',
+          auraElement: 'Hydro+Electro',
+          characterId: '',
+          actionId: 'ec-tick',
+          note: 'aura tick',
+        })
+        bumpCount(reactionCounts, reaction)
+        ecTick.time = cursor
       }
-      time = target
     }
+    if (!(hasAura(auras, 'Hydro') && hasAura(auras, 'Electro'))) {
+      ecTick.time = target - EC_TICK_INTERVAL
+    }
+    time = target
   }
 
   while (hitIdx < hits.length || time < endTime - 1e-9) {
@@ -612,6 +641,11 @@ export function simulateAura(
     let nextEventTime = Math.min(nextSample, endTime)
     if (nextHit && nextHit.time <= endTime + 1e-9) {
       nextEventTime = Math.min(nextEventTime, nextHit.time)
+    }
+    // Step to aura expiry so decay clearances become timeline markers
+    const expiry = timeToNextExpiry(auras)
+    if (expiry != null) {
+      nextEventTime = Math.min(nextEventTime, time + expiry)
     }
 
     if (time >= endTime - 1e-9 && (!nextHit || nextHit.time > endTime + 1e-9)) {
@@ -656,6 +690,33 @@ export function simulateAura(
       }
 
       bumpCount(applicationCounts, element)
+
+      // Anemo / Geo: swirl / crystallize only — flash on marker, no lasting aura
+      if (element === 'Anemo' || element === 'Geo') {
+        const outcome = resolveReaction(
+          auras,
+          element,
+          nextHit.gaugeUnits,
+          opts,
+        )
+        if (outcome) {
+          if (outcome.auraConsume > 0) {
+            consumeAura(auras, outcome.auraElement, outcome.auraConsume)
+          }
+          events.push({
+            time: nextHit.time,
+            reaction: outcome.reaction,
+            triggerElement: element,
+            auraElement: outcome.auraElement,
+            characterId: nextHit.characterId,
+            actionId: nextHit.actionId,
+          })
+          bumpCount(reactionCounts, outcome.reaction)
+          noteFlashTransition(nextHit.time, element as AuraElement)
+        }
+        hitIdx++
+        continue
+      }
 
       const outcome = resolveReaction(
         auras,

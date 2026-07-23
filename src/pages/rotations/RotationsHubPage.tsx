@@ -129,6 +129,11 @@ function RotationsHubInner({
         <div className="hero-top">
           <h1>Rotations</h1>
           <div className="hero-actions">
+            {isSignedIn ? (
+              <Link to="/rotations/mine" className="chip compact">
+                My rotations
+              </Link>
+            ) : null}
             <Link to="/rotations/editor" className="chip filled">
               New rotation
             </Link>

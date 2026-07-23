@@ -44,6 +44,20 @@ export type VerdantDewResource = {
   usesTeamVerdantDew?: boolean
 }
 
+export type OffFieldApplier = {
+  id: string
+  label: string
+  source: 'skill' | 'burst'
+  element: string | null
+  gaugeUnits: number | null
+  intervalSeconds: number | null
+  durationSeconds: number | null
+  firstTickDelaySeconds?: number | null
+  icdTag?: string | null
+  icdGroup?: string | null
+  note?: string
+}
+
 export type CombatCharacterMechanics = {
   id: string
   name: string
@@ -51,6 +65,8 @@ export type CombatCharacterMechanics = {
   gcsimPackage: string | null
   gcsimPr?: { number: number | null; repo: string | null; branch: string | null }
   elementApps: ElementApp[]
+  /** Timer-based off-field aura appliers (companions, DoTs, fields). */
+  offFieldAppliers?: OffFieldApplier[]
   resources?: {
     nightsoul?: NightsoulResource
     verdantDew?: VerdantDewResource
