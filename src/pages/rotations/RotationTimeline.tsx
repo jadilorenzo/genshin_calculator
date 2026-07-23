@@ -57,7 +57,7 @@ import {
 } from "./combatMechanicsData";
 import { simulateAura, type AuraTransition } from "./auraSim";
 import { ElementIcon } from "./ElementIcon";
-import { expandRotationHits } from "./rotationHits";
+import { expandRotationHits, type TimedHit } from "./rotationHits";
 import type { CharacterData, TimelinePlacement } from "./types";
 
 const DEFAULT_PX_PER_SEC = 48;
@@ -458,6 +458,26 @@ export const RotationTimeline = ({
     }).transitions;
   }, [showAuraMarkers, placements, sorted, coverageEnd]);
 
+  const offFieldApps = useMemo(() => {
+    if (placements.length === 0) return [];
+    const enabledIds = new Set(
+      placements
+        .filter((p) => p.showOffFieldApplications === true)
+        .map((p) => p.id),
+    );
+    if (enabledIds.size === 0) return [];
+    return expandRotationHits(placements).filter(
+      (h) =>
+        h.offField &&
+        h.element &&
+        h.gaugeUnits > 0 &&
+        !h.directReaction &&
+        enabledIds.has(h.placementId),
+    );
+  }, [placements]);
+
+  const showOffFieldLane = offFieldApps.length > 0;
+
   const width = displayEnd * pxPerSec;
   const majorEvery = majorTickStep(pxPerSec);
   const durationsHeight = Math.max(durationLaneCount * DURATION_ROW_HEIGHT, 0);
@@ -465,18 +485,21 @@ export const RotationTimeline = ({
   const laneHeight = previewLayout ? PREVIEW_LANE_HEIGHT : LANE_HEIGHT;
   // Aura lane: lasting row + optional flash row (~2.85rem) + small margins.
   const auraLaneReserve = showAuraMarkers ? 3.05 : 0;
+  const offFieldLaneReserve = showOffFieldLane ? 1.55 : 0;
   const trackMinHeight = previewLayout
     ? 1.45 +
       laneHeight +
       0.25 +
       auraLaneReserve +
+      offFieldLaneReserve +
       (durationLaneCount ? 0.55 + durationsHeight * 0.85 : 0)
     : 1.35 +
       LANE_HEIGHT +
       auraLaneReserve +
+      offFieldLaneReserve +
       (durationLaneCount
         ? 0.85 + durationsHeight
-        : showAuraMarkers
+        : showAuraMarkers || showOffFieldLane
           ? 0.2
           : 1.5);
 
@@ -582,6 +605,7 @@ export const RotationTimeline = ({
       comboSteps,
       activeDurations: [],
       durationOverrides: {},
+      showOffFieldApplications: false,
     };
     onChange((prev) => insertOnField(prev, next, at, switchBufferRef.current));
     onSelectPlacement(next.id);
@@ -884,6 +908,15 @@ export const RotationTimeline = ({
             />
           )}
 
+          {showOffFieldLane ? (
+            <OffFieldAppLane
+              hits={offFieldApps}
+              pxPerSec={pxPerSec}
+              showLoop={showLoop}
+              cycleLength={cycleLength}
+            />
+          ) : null}
+
           {showAuraMarkers ? (
             <AuraMarkerLane
               transitions={auraTransitions}
@@ -952,10 +985,10 @@ const TimelineToolbar = ({
       <h2 className="rotation-section-title">Timeline</h2>
       <div className="rotation-timeline-actions">
         {readOnly ? null : (
-          <label
-            className="rotation-aura-toggle"
-            title="Show enemy aura changes on the timeline"
-          >
+            <label
+              className="chip compact rotation-aura-toggle"
+              title="Show enemy aura changes on the timeline"
+            >
             <input
               type="checkbox"
               checked={showAuraMarkers}
@@ -1003,6 +1036,72 @@ const TimelineToolbar = ({
           </>
         )}
       </div>
+    </div>
+  );
+};
+
+const OFF_FIELD_ELEMENT_COLORS: Record<string, string> = {
+  Pyro: "rgba(230, 120, 90, 0.95)",
+  Hydro: "rgba(90, 150, 230, 0.95)",
+  Electro: "rgba(170, 130, 230, 0.95)",
+  Cryo: "rgba(140, 200, 230, 0.95)",
+  Dendro: "rgba(120, 190, 90, 0.95)",
+  Anemo: "rgba(110, 200, 180, 0.95)",
+  Geo: "rgba(210, 170, 80, 0.95)",
+};
+
+const OffFieldAppLane = ({
+  hits,
+  pxPerSec,
+  showLoop,
+  cycleLength,
+}: {
+  hits: TimedHit[];
+  pxPerSec: number;
+  showLoop: boolean;
+  cycleLength: number;
+}) => {
+  const renderMark = (hit: TimedHit, loop: boolean, index: number) => {
+    const left = (hit.time + (loop ? cycleLength : 0)) * pxPerSec;
+    const character = getCharacter(hit.characterId);
+    const name = character?.name ?? hit.characterId;
+    const label = hit.abil ?? hit.actionId;
+    const color =
+      OFF_FIELD_ELEMENT_COLORS[hit.element ?? ""] ?? "rgba(160, 160, 160, 0.95)";
+    return (
+      <div
+        key={`${loop ? "loop-" : ""}${hit.time}-${hit.characterId}-${hit.abil}-${index}`}
+        className={joinClassNames(
+          "rotation-aura-mark rotation-offfield-mark",
+          loop && "loop",
+        )}
+        style={{ left }}
+        title={`${hit.time.toFixed(2)}s — ${name} · ${label} · ${hit.element} ${hit.gaugeUnits}U`}
+      >
+        <span
+          className="rotation-offfield-dot"
+          style={{ background: color }}
+          aria-hidden
+        />
+      </div>
+    );
+  };
+
+  return (
+    <div
+      className="rotation-aura-lane rotation-offfield-lane"
+      aria-label="Off-field elemental applications"
+    >
+      {hits.length === 0 ? (
+        <p className="rotation-aura-empty">No off-field applications yet</p>
+      ) : (
+        <>
+          {hits.map((hit, i) => renderMark(hit, false, i))}
+          {showLoop
+            ? hits.map((hit, i) => renderMark(hit, true, i))
+            : null}
+        </>
+      )}
     </div>
   );
 };

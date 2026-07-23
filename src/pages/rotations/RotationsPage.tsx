@@ -260,8 +260,13 @@ const RotationsEditorInner = () => {
     };
   }, [getToken, rotationId, setDoc, skipNextHistory]);
 
-  const { placements, switchBuffer, timingMode, humanLag, showAuraMarkers } =
-    doc;
+  const {
+    placements,
+    switchBuffer,
+    timingMode,
+    humanLag,
+    showAuraMarkers,
+  } = doc;
 
   const setPlacements = useCallback(
     (update: SetStateAction<TimelinePlacement[]>) => {
@@ -514,6 +519,7 @@ const RotationsEditorInner = () => {
       comboSteps,
       activeDurations: [],
       durationOverrides: {},
+      showOffFieldApplications: false,
     };
   };
 

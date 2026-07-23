@@ -15,6 +15,7 @@ import {
   resolveOverlaySeconds,
   type DurationOption,
 } from "./durationOptions";
+import { hasOffFieldAppliers } from "./offFieldAppliers";
 import {
   defaultOnFieldDuration,
   effectiveCastTimes,
@@ -71,6 +72,7 @@ const withCastDefaults = (p: TimelinePlacement): TimelinePlacement => {
     comboSteps: Array.isArray(p.comboSteps) ? p.comboSteps : [],
     activeDurations: p.activeDurations ?? [],
     durationOverrides: p.durationOverrides ?? {},
+    showOffFieldApplications: p.showOffFieldApplications === true,
   };
 };
 
@@ -330,6 +332,11 @@ export const PlacementRoster = ({
           onCastOrder={handleCastOrder}
           onSkillVariant={handleSkillVariant}
           onSkillCasts={handleSkillCasts}
+          onToggleOffFieldApplications={(value) =>
+            updatePlacement(selected.id, {
+              showOffFieldApplications: value,
+            })
+          }
         />
       ) : (
         <p className="field-note rotation-roster-hint">
@@ -446,6 +453,7 @@ const SelectedPlacementDetail = ({
   onCastOrder,
   onSkillVariant,
   onSkillCasts,
+  onToggleOffFieldApplications,
 }: {
   placement: TimelinePlacement;
   timingMode: TimingMode;
@@ -460,6 +468,7 @@ const SelectedPlacementDetail = ({
   onCastOrder: (order: CastOrder) => void;
   onSkillVariant: (variant: SkillCastVariant) => void;
   onSkillCasts: (casts: number) => void;
+  onToggleOffFieldApplications: (value: boolean) => void;
 }) => {
   const char = getCharacter(placement.characterId);
   if (!char) return null;
@@ -605,29 +614,35 @@ const SelectedPlacementDetail = ({
           </div>
         </div>
 
-        {kitOptions.length > 0 ? (
+        {hasOffFieldAppliers(char.id) ? (
           <div className="rotation-selected-row">
-            <span className="label" id={`dur-kit-${placement.id}`}>
-              Kit
-            </span>
-            <div
-              className="chip-row wrap"
-              role="group"
-              aria-labelledby={`dur-kit-${placement.id}`}
+            <span className="label rotation-offfield-label">Off-field</span>
+            <label
+              className="chip compact rotation-aura-toggle"
+              title="Show this character's off-field elemental applications on the timeline (Ripple, Oz, Guoba, …)"
             >
-              {kitOptions.map((opt) => (
-                <KitOverlayRow
-                  key={opt.id}
-                  option={opt}
-                  character={char}
-                  active={placement.activeDurations.includes(opt.id)}
-                  durationOverrides={placement.durationOverrides}
-                  onToggle={onToggleDurationOverlay}
-                  onSetDurationOverride={onSetDurationOverride}
-                />
-              ))}
-            </div>
+              <input
+                type="checkbox"
+                checked={placement.showOffFieldApplications === true}
+                onChange={(e) =>
+                  onToggleOffFieldApplications(e.target.checked)
+                }
+              />
+              <span>Applications on timeline</span>
+            </label>
           </div>
+        ) : null}
+
+        {kitOptions.length > 0 ? (
+          <KitEffectsRow
+            placementId={placement.id}
+            character={char}
+            options={kitOptions}
+            activeIds={placement.activeDurations}
+            durationOverrides={placement.durationOverrides}
+            onToggle={onToggleDurationOverlay}
+            onSetDurationOverride={onSetDurationOverride}
+          />
         ) : null}
 
         {cooldownOptions.length > 0 ? (
@@ -1003,6 +1018,77 @@ const OverlaySecondsInput = ({
   );
 };
 
+const KitEffectsRow = ({
+  placementId,
+  character,
+  options,
+  activeIds,
+  durationOverrides,
+  onToggle,
+  onSetDurationOverride,
+}: {
+  placementId: string;
+  character: CharacterData;
+  options: DurationOption[];
+  activeIds: string[];
+  durationOverrides: Record<string, number>;
+  onToggle: (optionId: string) => void;
+  onSetDurationOverride: (optionId: string, seconds: number | null) => void;
+}) => {
+  const active = options.filter((o) => activeIds.includes(o.id));
+  const inactive = options.filter((o) => !activeIds.includes(o.id));
+
+  return (
+    <div className="rotation-selected-row">
+      <span className="label" id={`dur-kit-${placementId}`}>
+        Kit
+      </span>
+      <div className="rotation-kit-effects" aria-labelledby={`dur-kit-${placementId}`}>
+        {active.length > 0 ? (
+          <div className="rotation-kit-active" role="group" aria-label="Active kit effects">
+            {active.map((opt) => (
+              <KitOverlayRow
+                key={opt.id}
+                option={opt}
+                character={character}
+                active
+                durationOverrides={durationOverrides}
+                onToggle={onToggle}
+                onSetDurationOverride={onSetDurationOverride}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="field-note rotation-kit-empty">No kit effects on the timeline</p>
+        )}
+        {inactive.length > 0 ? (
+          <select
+            className="rotation-kit-add"
+            aria-label="Add kit effect"
+            value=""
+            onChange={(e) => {
+              const id = e.target.value;
+              if (id) onToggle(id);
+            }}
+          >
+            <option value="">
+              {active.length === 0 ? "Add kit effect…" : "Add another…"}
+            </option>
+            {inactive.map((opt) => {
+              const secs = defaultOverlaySeconds(opt, character);
+              return (
+                <option key={opt.id} value={opt.id} title={opt.skillName}>
+                  {opt.label} · {secs}s
+                </option>
+              );
+            })}
+          </select>
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
 const KitOverlayRow = ({
   option,
   character,
@@ -1032,13 +1118,13 @@ const KitOverlayRow = ({
         className={joinClassNames("chip compact", active && "active")}
         title={`${option.skillName} · after ${option.trigger ?? option.source}${
           adjusted ? ` · kit ${defaultSeconds}s` : ""
-        }`}
+        } — click to remove`}
         onClick={() => onToggle(option.id)}
       >
         {option.label}
-        {!active ? (
-          <span className="rotation-dur-chip-secs">{defaultSeconds}s</span>
-        ) : null}
+        <span className="rotation-dur-chip-secs" aria-hidden>
+          ×
+        </span>
       </button>
       {active ? (
         <OverlaySecondsInput

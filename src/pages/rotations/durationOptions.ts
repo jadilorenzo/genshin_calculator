@@ -196,6 +196,30 @@ function cooldownLabel(source: 'skill' | 'burst', attrName: string): string {
   return attrName
 }
 
+/** Drop intervals / modifiers that aren't useful timeline bars. */
+function isUsefulEffectAttr(name: string): boolean {
+  if (isCooldownAttrName(name)) return false
+  if (
+    /interval|decrease|increase|extension|delay|stamina|consumption|\bcd\b/i.test(
+      name,
+    )
+  ) {
+    return false
+  }
+  return /duration|uptime|shield|sanctuary|domain|field|seed|song|hymn|petrification|ward|blessing|clarity|dance|moon|bubble|presence|curtain|salon|oz|guoba/i.test(
+    name,
+  )
+}
+
+function effectLabel(source: 'skill' | 'burst', attrName: string): string {
+  const trimmed = attrName.replace(/\s*Duration\s*$/i, '').trim() || attrName
+  const prefix = source === 'burst' ? 'Q' : 'E'
+  if (/^duration$/i.test(trimmed)) {
+    return source === 'burst' ? 'Q Duration' : 'E Duration'
+  }
+  return `${prefix} · ${trimmed}`
+}
+
 function optionsFromSkill(
   source: 'skill' | 'burst',
   skill: KitSkill | null,
@@ -209,12 +233,16 @@ function optionsFromSkill(
     if (typeof attr.raw !== 'number' || !(attr.raw > 0)) continue
 
     const cooldown = isCooldownAttrName(attr.name)
+    if (!cooldown && !isUsefulEffectAttr(attr.name)) continue
+
     const id = `${source}:${attr.name}`
     if (seen.has(id)) continue
     seen.add(id)
     out.push({
       id,
-      label: cooldown ? cooldownLabel(source, attr.name) : attr.name,
+      label: cooldown
+        ? cooldownLabel(source, attr.name)
+        : effectLabel(source, attr.name),
       source,
       skillName: skill.name,
       seconds: attr.raw,
@@ -247,11 +275,11 @@ function optionsFromSkill(
   if (
     skill.duration != null &&
     skill.duration > 0 &&
-    !out.some((o) => o.kind !== 'cooldown' && o.label === 'Duration')
+    !out.some((o) => o.kind !== 'cooldown' && o.source === source)
   ) {
     out.push({
       id: `${source}:Duration`,
-      label: 'Duration',
+      label: effectLabel(source, 'Duration'),
       source,
       skillName: skill.name,
       seconds: skill.duration,

@@ -129,5 +129,10 @@ export interface TimelinePlacement {
    * longer before a normal attack pops it.
    */
   durationOverrides: Record<string, number>
+  /**
+   * Show this character's off-field elemental application ticks on the
+   * timeline (Ripple, Oz, Guoba, …). Default off when unset.
+   */
+  showOffFieldApplications?: boolean
 }
 

@@ -1023,32 +1023,43 @@ body.rotation-editor-resizing {
 }
 
 .rotation-aura-toggle {
-  display: inline-flex;
-  align-items: center;
   gap: 0.4rem;
   margin: 0;
-  padding: 0.2rem 0.45rem 0.2rem 0.35rem;
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  background: var(--input-surface);
-  color: var(--text);
-  font-size: 0.8rem;
-  line-height: 1.2;
-  cursor: pointer;
+  line-height: 1;
   user-select: none;
 
   input[type='checkbox'] {
+    appearance: none;
     margin: 0;
     flex: 0 0 auto;
-    width: 0.9rem;
-    height: 0.9rem;
-    accent-color: var(--gold);
+    box-sizing: border-box;
+    width: 0.75em;
+    height: 0.75em;
+    border: 1px solid color-mix(in srgb, var(--line) 70%, var(--mist));
+    border-radius: 2px;
+    background: var(--input-surface);
     cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease;
+
+    &:checked {
+      border-color: var(--gold);
+      background-color: var(--gold);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%230b0d12' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M2.4 6.2 4.9 8.7 9.6 3.3'/%3E%3C/svg%3E");
+      background-size: 0.65em 0.65em;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 1px;
+    }
   }
 
   &:has(input:checked) {
-    border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
-    background: color-mix(in srgb, var(--gold) 12%, var(--input-surface));
+    background: var(--gold-soft);
+    border-color: var(--gold);
+    color: var(--gold-bright);
   }
 }
 
@@ -1091,6 +1102,19 @@ body.rotation-editor-resizing {
   height: 2.85rem;
   margin: 0.2rem 0 0;
   pointer-events: none;
+}
+
+.rotation-offfield-lane {
+  height: 1.1rem;
+  margin: 0.15rem 0 0;
+}
+
+.rotation-offfield-dot {
+  display: block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.28);
 }
 
 .rotation-aura-empty {
@@ -2448,13 +2472,30 @@ body.rotation-editor-resizing {
 
 .rotation-selected-row {
   display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
+  grid-template-columns: 5.75rem minmax(0, 1fr);
   gap: 0.55rem 0.75rem;
   align-items: start;
 }
 
 .rotation-selected-row > .label {
   padding-top: 0.45rem;
+}
+
+.rotation-offfield-label {
+  width: fit-content;
+  box-sizing: border-box;
+  padding: 0.28rem 0.4rem;
+  margin: 0;
+  border-radius: 2px;
+  background: var(--gold-soft);
+  color: var(--gold);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.rotation-selected-row > .label.rotation-offfield-label {
+  padding-top: 0.28rem;
 }
 
 .rotation-artifact-select {
@@ -2479,6 +2520,42 @@ body.rotation-editor-resizing {
   align-items: center;
   gap: 0.45rem;
   min-width: 0;
+}
+
+.rotation-kit-effects {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.rotation-kit-active {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.rotation-kit-empty {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.rotation-kit-add {
+  width: 100%;
+  max-width: 22rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--input-surface);
+  color: var(--text);
+  padding: 0.4rem 0.55rem;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.rotation-kit-add:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
 }
 
 .rotation-artifact-row .rotation-artifact-select {
