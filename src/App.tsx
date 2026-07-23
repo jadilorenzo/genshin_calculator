@@ -15,6 +15,7 @@ import BannerCountdownPage from './pages/pulls/BannerCountdownPage.tsx'
 import AuthPage from './pages/auth/AuthPage.tsx'
 import ProfilePage from './pages/auth/ProfilePage.tsx'
 import SSOCallbackPage from './pages/auth/SSOCallbackPage.tsx'
+import { LandingPage } from './pages/LandingPage.tsx'
 import './styles/main.scss'
 
 const RotationsHubPage = lazy(() => import('./pages/rotations/RotationsHubPage.tsx'))
@@ -75,7 +76,7 @@ export default function App() {
 
         <Route element={<AppLayout />}>
           <Route path="profile" element={<ProfilePage />} />
-          <Route index element={<Navigate to="/rotations" replace />} />
+          <Route index element={<LandingPage />} />
           <Route path="rotations" element={<RotationsHubRoute />} />
           <Route path="rotations/mine" element={<MyRotationsRoute />} />
           <Route path="rotations/editor" element={<RotationEditorRoute />} />
@@ -126,7 +127,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/banners/odds" replace />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/rotations" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
       <Analytics />

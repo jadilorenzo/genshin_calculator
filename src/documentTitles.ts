@@ -1,6 +1,7 @@
 export const SITE_NAME = "False Moon's Reckoning"
 
 export const PAGE_TITLES = {
+  home: SITE_NAME,
   rotations: `Genshin Rotations · ${SITE_NAME}`,
   myRotations: `My Rotations · ${SITE_NAME}`,
   rotationEditor: `Rotation Editor · ${SITE_NAME}`,

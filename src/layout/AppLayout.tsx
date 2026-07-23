@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AuthControls } from '../components/AuthControls.tsx'
 import { BannerPullingDayNotice } from '../components/BannerPullingDayNotice.tsx'
 import { BrandMoonLogo } from '../components/icons.tsx'
@@ -17,21 +17,29 @@ const GITHUB_URL = 'https://github.com/jadilorenzo/genshin_calculator'
 export function AppLayout() {
   const { pathname } = useLocation()
   const isRotationEditor = pathname.startsWith('/rotations/editor')
+  const isLanding = pathname === '/'
+  const appClass = [
+    'app',
+    isRotationEditor ? 'app--rotation-editor' : '',
+    isLanding ? 'app--landing' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
-    <div className={isRotationEditor ? 'app app--rotation-editor' : 'app'}>
+    <div className={appClass}>
       <header className="site-header">
         <div className="site-header-inner">
           <div className="site-masthead">
-            <div className="brand-block">
+            <Link to="/" className="brand-block" aria-label="False Moon's Reckoning home">
               <div className="brand-mark" aria-hidden="true">
                 <BrandMoonLogo />
               </div>
               <div className="brand-copy">
                 <p className="brand-eyebrow">Genshin Impact tools</p>
-                <h1 className="brand">False Moon's Reckoning</h1>
+                <p className="brand">False Moon's Reckoning</p>
               </div>
-            </div>
+            </Link>
             <div className="site-masthead-actions">
               <AuthControls />
               <SiteSettingsMenu />

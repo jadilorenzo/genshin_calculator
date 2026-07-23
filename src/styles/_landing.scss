@@ -1,0 +1,353 @@
+.app--landing {
+  .app-body {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 0 3rem;
+  }
+
+  .brand-block {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .site-footnote {
+    width: min(72rem, calc(100% - 2.5rem));
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+.landing {
+  width: 100%;
+}
+
+.landing-shell {
+  position: relative;
+  width: min(72rem, 100%);
+  margin: 0 auto;
+  padding-left: clamp(1.25rem, 4vw, 2.5rem);
+  padding-right: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+.landing-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: clamp(1.75rem, 4vw, 2.75rem) 0 clamp(1.5rem, 3.5vw, 2.25rem);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 90% 70% at 78% 18%, rgba(110, 170, 220, 0.16), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 12% 88%, rgba(70, 150, 170, 0.1), transparent 50%),
+    linear-gradient(165deg, rgba(14, 18, 28, 0.2) 0%, transparent 45%),
+    var(--bg);
+  border-bottom: 1px solid var(--line);
+  animation: landing-hero-in 0.9s ease-out both;
+}
+
+[data-theme='light'] .landing-hero {
+  background:
+    radial-gradient(ellipse 90% 70% at 78% 18%, rgba(120, 160, 200, 0.22), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 12% 88%, rgba(90, 140, 170, 0.12), transparent 50%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.55) 0%, transparent 50%),
+    var(--bg);
+}
+
+.landing-hero-glow {
+  position: absolute;
+  inset: auto -10% -30% 40%;
+  height: 70%;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, var(--header-glow), transparent 68%);
+  opacity: 0.85;
+  animation: landing-glow-drift 12s ease-in-out infinite alternate;
+}
+
+.landing-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.92fr) minmax(0, 1.25fr);
+  gap: clamp(1.25rem, 3.5vw, 2.5rem);
+  align-items: center;
+}
+
+.landing-hero-copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  z-index: 1;
+}
+
+.landing-hero-preview {
+  position: relative;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: rgba(8, 11, 18, 0.55);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  text-decoration: none;
+  animation: landing-copy-in 0.85s ease-out 0.32s both;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+[data-theme='light'] .landing-hero-preview {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 14px 36px rgba(40, 60, 90, 0.12);
+}
+
+.landing-hero-preview:hover,
+.landing-hero-preview:focus-visible {
+  border-color: var(--gold-hover);
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.42);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.landing-hero-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.landing-eyebrow {
+  position: relative;
+  margin: 0 0 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  animation: landing-copy-in 0.7s ease-out 0.2s both;
+}
+
+.landing-title {
+  position: relative;
+  margin: 0;
+  max-width: 12ch;
+  font-family: 'Avenir Next', Avenir, Roboto, sans-serif;
+  font-size: clamp(2.35rem, 6vw, 3.85rem);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: 0.01em;
+  color: var(--gold-bright);
+  text-shadow: var(--brand-glow);
+  animation: landing-copy-in 0.75s ease-out 0.28s both;
+}
+
+.landing-lede {
+  position: relative;
+  margin: 0.75rem 0 0;
+  max-width: 28rem;
+  font-size: clamp(0.95rem, 1.8vw, 1.08rem);
+  line-height: 1.5;
+  color: var(--text);
+  animation: landing-copy-in 0.75s ease-out 0.38s both;
+}
+
+.landing-cta {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.15rem;
+  animation: landing-copy-in 0.75s ease-out 0.48s both;
+}
+
+.landing-paths {
+  padding: clamp(2.5rem, 5vw, 3.75rem) 0 1rem;
+}
+
+.landing-paths-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.15rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.landing-paths-title {
+  margin: 0;
+  font-family: 'Avenir Next', Avenir, Roboto, sans-serif;
+  font-size: clamp(1.35rem, 3vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--gold-bright);
+}
+
+.landing-paths-lede {
+  margin: 0;
+  max-width: 28rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.landing-path-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.landing-path-list > li {
+  border-bottom: 1px solid var(--line);
+}
+
+.landing-path-list > li:nth-child(odd) {
+  border-right: 1px solid var(--line);
+}
+
+.landing-path {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.9rem 1rem;
+  align-items: start;
+  min-height: 8.5rem;
+  padding: 1.35rem 1.25rem 1.35rem 1rem;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.18s ease;
+}
+
+.landing-path:hover,
+.landing-path:focus-visible {
+  background: var(--mist-soft);
+  outline: none;
+}
+
+.landing-path-index {
+  font-family: 'Avenir Next', Avenir, Roboto, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  padding-top: 0.2rem;
+}
+
+.landing-path-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.landing-path-label {
+  font-family: 'Avenir Next', Avenir, Roboto, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--gold-bright);
+}
+
+.landing-path-detail {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.landing-path-arrow {
+  color: var(--gold);
+  font-size: 1.15rem;
+  padding-top: 0.15rem;
+  transition: transform 0.18s ease;
+}
+
+.landing-path:hover .landing-path-arrow,
+.landing-path:focus-visible .landing-path-arrow {
+  transform: translateX(0.25rem);
+}
+
+@keyframes landing-hero-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes landing-copy-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.65rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-glow-drift {
+  from {
+    opacity: 0.55;
+    transform: translate(0, 0);
+  }
+  to {
+    opacity: 0.9;
+    transform: translate(-3%, -2%);
+  }
+}
+
+@media (max-width: 900px) {
+  .landing-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 1.35rem;
+  }
+
+  .landing-title {
+    max-width: 14ch;
+    font-size: clamp(2.4rem, 9vw, 3.6rem);
+  }
+}
+
+@media (max-width: 780px) {
+  .landing-path-list {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-path-list > li:nth-child(odd) {
+    border-right: none;
+  }
+
+  .landing-path {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-paths-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero,
+  .landing-eyebrow,
+  .landing-title,
+  .landing-lede,
+  .landing-cta,
+  .landing-hero-preview,
+  .landing-hero-glow {
+    animation: none !important;
+  }
+
+  .landing-hero-preview:hover,
+  .landing-hero-preview:focus-visible {
+    transform: none;
+  }
+}
