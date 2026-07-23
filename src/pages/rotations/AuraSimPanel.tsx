@@ -112,8 +112,9 @@ export function AuraSimPanel({ placements }: AuraSimPanelProps) {
           <header className="aura-sim-head">
             <div className="aura-sim-titles">
               <p className="field-note">
-                On-field hitmarks plus off-field aura appliers (e.g. Columbina
-                Ripple, Oz, Guoba, Birgitta) with ICD. Coexistence ticks
+                On-field hit marks plus off-field aura appliers (e.g. Columbina
+                Ripple, Oz, Guoba, Birgitta) with internal cooldown. Coexistence
+                ticks
                 {convertEc ? ' (Lunar-Charged via Ineffa/Flins/Columbina)' : ''}
                 {convertBloom ? ' (Lunar-Bloom via Lauma/Nefer)' : ''}.
               </p>
@@ -124,7 +125,7 @@ export function AuraSimPanel({ placements }: AuraSimPanelProps) {
                 {hits.filter((h) => h.offField).length
                   ? ` · ${hits.filter((h) => h.offField).length} off-field`
                   : ''}{' '}
-                · {result.skippedByIcd} ICD-blocked
+                · {result.skippedByIcd} blocked by internal cooldown
               </span>
             </div>
           </header>
@@ -149,7 +150,7 @@ export function AuraSimPanel({ placements }: AuraSimPanelProps) {
                 )}
               </div>
               <div>
-                <h3>Element apps</h3>
+                <h3>Elemental applications</h3>
                 {appEntries.length === 0 ? (
                   <p className="field-note">No elemental applications.</p>
                 ) : (

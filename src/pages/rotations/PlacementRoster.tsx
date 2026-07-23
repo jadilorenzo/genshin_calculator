@@ -10,6 +10,7 @@ import { getCharacter } from "./characters";
 import {
   getKitCooldownOptions,
   getKitEffectOptions,
+  defaultOverlaySeconds,
   isOverlayDurationAdjusted,
   resolveOverlaySeconds,
   type DurationOption,
@@ -488,7 +489,7 @@ const SelectedPlacementDetail = ({
     ...artifactOptions.filter((o) => o.id === selectedArtifactId),
   ];
   const adjustedOverlays = adjustableOptions.filter((o) =>
-    isOverlayDurationAdjusted(o, placement.durationOverrides),
+    isOverlayDurationAdjusted(o, placement.durationOverrides, char),
   );
   const defaultDur = defaultOnFieldDuration(
     char.id,
@@ -618,6 +619,7 @@ const SelectedPlacementDetail = ({
                 <KitOverlayRow
                   key={opt.id}
                   option={opt}
+                  character={char}
                   active={placement.activeDurations.includes(opt.id)}
                   durationOverrides={placement.durationOverrides}
                   onToggle={onToggleDurationOverlay}
@@ -653,6 +655,7 @@ const SelectedPlacementDetail = ({
         {artifactOptions.length > 0 ? (
           <ArtifactOverlayRow
             placementId={placement.id}
+            character={char}
             options={artifactOptions}
             selectedArtifactId={selectedArtifactId}
             durationOverrides={placement.durationOverrides}
@@ -666,7 +669,10 @@ const SelectedPlacementDetail = ({
             Custom duration
             {adjustedOverlays.length > 1 ? "s" : ""} — kit/set lists{" "}
             {adjustedOverlays
-              .map((o) => `${o.label} at ${o.seconds}s`)
+              .map(
+                (o) =>
+                  `${o.label} at ${defaultOverlaySeconds(o, char).toFixed(o.seconds % 1 ? 1 : 0)}s`,
+              )
               .join("; ")}
             . Only change these when something extends or delays the effect
             (e.g. holding Mona’s bubble until a normal attack pops it).
@@ -938,29 +944,42 @@ const CastControls = ({
 
 const OverlaySecondsInput = ({
   option,
+  character,
   durationOverrides,
   warnKind,
   ariaLabel,
   onSetDurationOverride,
 }: {
   option: DurationOption;
+  character: CharacterData;
   durationOverrides: Record<string, number>;
   warnKind: "kit" | "set";
   ariaLabel: string;
   onSetDurationOverride: (optionId: string, seconds: number | null) => void;
 }) => {
-  const seconds = resolveOverlaySeconds(option, durationOverrides);
-  const adjusted = isOverlayDurationAdjusted(option, durationOverrides);
+  const defaultSeconds = defaultOverlaySeconds(option, character);
+  const seconds = resolveOverlaySeconds(
+    option,
+    durationOverrides,
+    character,
+  );
+  const adjusted = isOverlayDurationAdjusted(
+    option,
+    durationOverrides,
+    character,
+  );
   const defaultTitle =
     warnKind === "kit"
-      ? `Kit default ${option.seconds}s`
-      : `Set default ${option.seconds}s`;
+      ? `Kit default ${defaultSeconds}s`
+      : option.lengthMode === "skill-uptime"
+        ? `Skill Duration + ${option.seconds}s after last trigger (= ${defaultSeconds}s)`
+        : `Set default ${defaultSeconds}s`;
 
   const handleChange = (raw: number) => {
     if (!Number.isFinite(raw)) return;
     onSetDurationOverride(
       option.id,
-      Math.abs(raw - option.seconds) < 0.001 ? null : raw,
+      Math.abs(raw - defaultSeconds) < 0.001 ? null : raw,
     );
   };
 
@@ -968,7 +987,7 @@ const OverlaySecondsInput = ({
     <label className={joinClassNames("rotation-overlay-secs", adjusted && "adjusted")}>
       <DeferredNumberInput
         min={0.5}
-        max={60}
+        max={90}
         step={0.5}
         aria-label={ariaLabel}
         value={seconds}
@@ -977,7 +996,7 @@ const OverlaySecondsInput = ({
       <span>s</span>
       {adjusted ? (
         <span className="rotation-overlay-warn-tag" title={defaultTitle}>
-          {warnKind} {option.seconds}s
+          {warnKind} {defaultSeconds}s
         </span>
       ) : null}
     </label>
@@ -986,18 +1005,25 @@ const OverlaySecondsInput = ({
 
 const KitOverlayRow = ({
   option,
+  character,
   active,
   durationOverrides,
   onToggle,
   onSetDurationOverride,
 }: {
   option: DurationOption;
+  character: CharacterData;
   active: boolean;
   durationOverrides: Record<string, number>;
   onToggle: (optionId: string) => void;
   onSetDurationOverride: (optionId: string, seconds: number | null) => void;
 }) => {
-  const adjusted = isOverlayDurationAdjusted(option, durationOverrides);
+  const defaultSeconds = defaultOverlaySeconds(option, character);
+  const adjusted = isOverlayDurationAdjusted(
+    option,
+    durationOverrides,
+    character,
+  );
 
   return (
     <div className="rotation-overlay-ctrl">
@@ -1005,18 +1031,19 @@ const KitOverlayRow = ({
         type="button"
         className={joinClassNames("chip compact", active && "active")}
         title={`${option.skillName} · after ${option.trigger ?? option.source}${
-          adjusted ? ` · kit ${option.seconds}s` : ""
+          adjusted ? ` · kit ${defaultSeconds}s` : ""
         }`}
         onClick={() => onToggle(option.id)}
       >
         {option.label}
         {!active ? (
-          <span className="rotation-dur-chip-secs">{option.seconds}s</span>
+          <span className="rotation-dur-chip-secs">{defaultSeconds}s</span>
         ) : null}
       </button>
       {active ? (
         <OverlaySecondsInput
           option={option}
+          character={character}
           durationOverrides={durationOverrides}
           warnKind="kit"
           ariaLabel={`${option.label} duration`}
@@ -1051,6 +1078,7 @@ const CooldownOverlayRow = ({
 
 const ArtifactOverlayRow = ({
   placementId,
+  character,
   options,
   selectedArtifactId,
   durationOverrides,
@@ -1058,6 +1086,7 @@ const ArtifactOverlayRow = ({
   onSetDurationOverride,
 }: {
   placementId: string;
+  character: CharacterData;
   options: DurationOption[];
   selectedArtifactId: string;
   durationOverrides: Record<string, number>;
@@ -1079,15 +1108,26 @@ const ArtifactOverlayRow = ({
           onChange={(e) => onSelectArtifact(e.target.value)}
         >
           <option value="">None</option>
-          {options.map((opt) => (
-            <option key={opt.id} value={opt.id} title={opt.skillName}>
-              {opt.skillName} · {opt.seconds}s
-            </option>
-          ))}
+          {options.map((opt) => {
+            const secs = defaultOverlaySeconds(opt, character);
+            const skillLinked = opt.lengthMode === "skill-uptime";
+            const uptime = skillLinked
+              ? Math.max(0, secs - opt.seconds)
+              : null;
+            return (
+              <option key={opt.id} value={opt.id} title={opt.skillName}>
+                {opt.skillName} · {secs}s
+                {skillLinked && uptime != null && uptime > 0
+                  ? ` (${uptime}+${opt.seconds})`
+                  : ""}
+              </option>
+            );
+          })}
         </select>
         {selectedOption ? (
           <OverlaySecondsInput
             option={selectedOption}
+            character={character}
             durationOverrides={durationOverrides}
             warnKind="set"
             ariaLabel={`${selectedOption.skillName} duration`}

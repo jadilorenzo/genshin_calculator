@@ -6,7 +6,7 @@ const PATHS = [
     to: '/rotations',
     label: 'Rotations',
     detail:
-      'Aura and buff timelines, community shares, and an editor for sequencing skills, swaps, and off-field apps.',
+      'Aura and buff timelines, community shares, and an editor for sequencing skills, swaps, and off-field applications.',
   },
   {
     to: '/banners/countdown',

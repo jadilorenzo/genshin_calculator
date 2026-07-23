@@ -110,11 +110,13 @@
 
 .site-header {
   position: relative;
+  z-index: 40;
   border-bottom: 1px solid var(--line);
   background:
     linear-gradient(180deg, var(--header-wash) 0%, transparent 100%),
     var(--header-surface);
-  overflow: hidden;
+  // Allow settings / theme dropdown to paint above the editor (do not clip).
+  overflow: visible;
 }
 
 .site-header::before {

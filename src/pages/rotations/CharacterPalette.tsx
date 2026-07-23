@@ -177,16 +177,18 @@ export const CharacterPalette = ({
                   </span>
                 )}
                 <span className="rotation-char-meta">
-                  <span className="rotation-char-name">{c.name}</span>
+                  <span className="rotation-char-name-row">
+                    <span className="rotation-char-name">{c.name}</span>
+                    <span
+                      className={`rotation-rarity r${c.rarity}`}
+                      aria-label={`${c.rarity} star`}
+                    >
+                      {c.rarity}★
+                    </span>
+                  </span>
                   <span className="rotation-char-sub">
                     {c.element} · {c.weapon}
                   </span>
-                </span>
-                <span
-                  className={`rotation-rarity r${c.rarity}`}
-                  aria-label={`${c.rarity} star`}
-                >
-                  {c.rarity}★
                 </span>
               </button>
               {onAdd ? (

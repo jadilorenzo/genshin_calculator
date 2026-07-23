@@ -746,143 +746,151 @@ const RotationsEditorInner = () => {
                   className="rotation-meta-dialog-body"
                   onSubmit={onSaveMeta}
                 >
-                  <div className="rotation-meta-dialog-head">
-                    <h2
-                      id="rotation-meta-dialog-title"
-                      className="rotation-section-title"
-                    >
-                      Rotation details
-                    </h2>
-                    <button
-                      type="button"
-                      className="chip compact"
-                      onClick={() => setMetaOpen(false)}
-                    >
-                      Close
-                    </button>
-                  </div>
-                  <p className="field-note">
-                    Title and description are metadata for the published post.
-                  </p>
-                  <label className="field">
-                    <span className="label">Name</span>
-                    <input
-                      ref={titleInputRef}
-                      type="text"
-                      maxLength={120}
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g. Hyperbloom Neuvillette"
-                      aria-label="Rotation name"
-                    />
-                  </label>
-                  <label className="field">
-                    <span className="label">Description</span>
-                    <textarea
-                      rows={3}
-                      maxLength={500}
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Optional notes for the community"
-                      aria-label="Rotation description"
-                    />
-                  </label>
-
-                  <div className="rotation-meta-section">
-                    <p className="rotation-meta-section-title">Timing</p>
+                  <div className="rotation-meta-dialog-scroll">
+                    <div className="rotation-meta-dialog-head">
+                      <h2
+                        id="rotation-meta-dialog-title"
+                        className="rotation-section-title"
+                      >
+                        Rotation details
+                      </h2>
+                      <button
+                        type="button"
+                        className="chip compact"
+                        onClick={() => setMetaOpen(false)}
+                      >
+                        Close
+                      </button>
+                    </div>
+                    <p className="field-note">
+                      Title and description are metadata for the published post.
+                    </p>
                     <label className="field">
-                      <span className="label">Switch buffer (s)</span>
-                      <DeferredNumberInput
-                        min={0}
-                        max={1.5}
-                        step={0.01}
-                        value={switchBuffer}
-                        onCommit={updateSwitchBuffer}
-                        aria-label="Switch buffer in seconds"
+                      <span className="label">Name</span>
+                      <input
+                        ref={titleInputRef}
+                        type="text"
+                        maxLength={120}
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. Hyperbloom Neuvillette"
+                        aria-label="Rotation name"
                       />
                     </label>
-                    <div
-                      className="field"
-                      role="group"
-                      aria-label="Cast timing mode"
-                    >
-                      <span className="label">Cast timings</span>
-                      <div className="chip-row">
-                        <button
-                          type="button"
-                          className={
-                            timingMode === "frame"
-                              ? "chip compact active"
-                              : "chip compact"
-                          }
-                          onClick={() =>
-                            setDoc((prev) => ({ ...prev, timingMode: "frame" }))
-                          }
-                        >
-                          Frame
-                        </button>
-                        <button
-                          type="button"
-                          className={
-                            timingMode === "human"
-                              ? "chip compact active"
-                              : "chip compact"
-                          }
-                          onClick={() =>
-                            setDoc((prev) => ({ ...prev, timingMode: "human" }))
-                          }
-                        >
-                          Human
-                        </button>
-                      </div>
-                    </div>
-                    {timingMode === "human" ? (
+                    <label className="field">
+                      <span className="label">Description</span>
+                      <textarea
+                        rows={3}
+                        maxLength={500}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Optional notes for the community"
+                        aria-label="Rotation description"
+                      />
+                    </label>
+
+                    <div className="rotation-meta-section">
+                      <p className="rotation-meta-section-title">Timing</p>
                       <label className="field">
-                        <span className="label">Human lag / cast (s)</span>
+                        <span className="label">Switch buffer (s)</span>
                         <DeferredNumberInput
-                          min={MIN_HUMAN_LAG}
-                          max={MAX_HUMAN_LAG}
+                          min={0}
+                          max={1.5}
                           step={0.01}
-                          value={humanLag}
-                          onCommit={(n) =>
-                            setDoc((prev) => ({
-                              ...prev,
-                              humanLag: clampHumanLag(n),
-                            }))
-                          }
-                          aria-label="Human lag per cast in seconds"
+                          value={switchBuffer}
+                          onCommit={updateSwitchBuffer}
+                          aria-label="Switch buffer in seconds"
                         />
                       </label>
-                    ) : null}
-                  </div>
+                      <div
+                        className="field"
+                        role="group"
+                        aria-label="Cast timing mode"
+                      >
+                        <span className="label">Cast timings</span>
+                        <div className="chip-row">
+                          <button
+                            type="button"
+                            className={
+                              timingMode === "frame"
+                                ? "chip compact active"
+                                : "chip compact"
+                            }
+                            onClick={() =>
+                              setDoc((prev) => ({
+                                ...prev,
+                                timingMode: "frame",
+                              }))
+                            }
+                          >
+                            Frame
+                          </button>
+                          <button
+                            type="button"
+                            className={
+                              timingMode === "human"
+                                ? "chip compact active"
+                                : "chip compact"
+                            }
+                            onClick={() =>
+                              setDoc((prev) => ({
+                                ...prev,
+                                timingMode: "human",
+                              }))
+                            }
+                          >
+                            Human
+                          </button>
+                        </div>
+                      </div>
+                      {timingMode === "human" ? (
+                        <label className="field">
+                          <span className="label">Human lag / cast (s)</span>
+                          <DeferredNumberInput
+                            min={MIN_HUMAN_LAG}
+                            max={MAX_HUMAN_LAG}
+                            step={0.01}
+                            value={humanLag}
+                            onCommit={(n) =>
+                              setDoc((prev) => ({
+                                ...prev,
+                                humanLag: clampHumanLag(n),
+                              }))
+                            }
+                            aria-label="Human lag per cast in seconds"
+                          />
+                        </label>
+                      ) : null}
+                    </div>
 
-                  <label className="rotation-meta-public">
-                    <input
-                      type="checkbox"
-                      checked={isPublic}
-                      onChange={(e) => setIsPublic(e.target.checked)}
-                    />
-                    <span>
-                      <strong>Public</strong>
-                      <span className="field-note">
-                        Listed on community Rotations. Uncheck to keep it only
-                        on My rotations.
+                    <label className="rotation-meta-public">
+                      <input
+                        type="checkbox"
+                        checked={isPublic}
+                        onChange={(e) => setIsPublic(e.target.checked)}
+                      />
+                      <span>
+                        <strong>Public</strong>
+                        <span className="field-note">
+                          Listed on community Rotations. Uncheck to keep it only
+                          on My rotations.
+                        </span>
                       </span>
-                    </span>
-                  </label>
-                  <label className="rotation-meta-public">
-                    <input
-                      type="checkbox"
-                      checked={autoSave}
-                      onChange={(e) => setAutoSave(e.target.checked)}
-                    />
-                    <span>
-                      <strong>Auto-save</strong>
-                      <span className="field-note">
-                        Save edits to your published rotation automatically.
+                    </label>
+                    <label className="rotation-meta-public">
+                      <input
+                        type="checkbox"
+                        checked={autoSave}
+                        onChange={(e) => setAutoSave(e.target.checked)}
+                      />
+                      <span>
+                        <strong>Auto-save</strong>
+                        <span className="field-note">
+                          Save edits to your published rotation automatically.
+                        </span>
                       </span>
-                    </span>
-                  </label>
+                    </label>
+                  </div>
                   <div className="chip-row rotation-meta-actions">
                     <button
                       type="button"

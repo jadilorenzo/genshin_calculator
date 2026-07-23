@@ -112,21 +112,29 @@
   background: var(--panel);
   color: var(--text);
   box-shadow: var(--panel-shadow);
-  width: min(28rem, 100%);
+  width: min(24rem, 100%);
   max-height: min(92vh, 44rem);
-  overflow: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   box-sizing: border-box;
+  align-self: center;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .rotation-meta-dialog-body {
-  display: grid;
-  gap: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   margin: 0;
-  padding: 1rem 1.15rem 1.1rem;
+  padding: 0;
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 
   .field {
     display: grid;
@@ -134,11 +142,13 @@
     min-width: 0;
   }
 
+  .field > input,
+  .field > textarea,
   input:not([type='checkbox']),
   textarea {
     display: block;
     width: 100%;
-    max-width: 100%;
+    max-width: none;
     box-sizing: border-box;
     appearance: none;
     border: 1px solid var(--line);
@@ -155,10 +165,38 @@
     min-height: 3rem;
   }
 
+  .field > input:focus-visible,
+  .field > textarea:focus-visible,
   input:not([type='checkbox']):focus-visible,
   textarea:focus-visible {
     outline: 2px solid var(--gold);
     outline-offset: 1px;
+  }
+}
+
+.rotation-meta-dialog-scroll {
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 1rem 0.75rem 0.85rem 1.15rem;
+  scrollbar-gutter: stable;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-track {
+    margin: 0.35rem 0;
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    background-clip: padding-box;
   }
 }
 
@@ -231,8 +269,14 @@
 }
 
 .rotation-meta-actions {
+  flex: 0 0 auto;
   justify-content: flex-start;
   flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.75rem 1.15rem 1rem;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
 }
 
 .rotation-meta-delete {
@@ -313,8 +357,8 @@
 }
 
 .rotation-editor-sidebar-body {
-  width: 17.5rem;
-  max-width: min(17.5rem, 42vw);
+  width: 22rem;
+  max-width: min(22rem, 42vw);
   flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
@@ -704,7 +748,7 @@ body.rotation-editor-resizing {
 
 .rotation-char-card-main {
   display: grid;
-  grid-template-columns: auto 2.25rem 1fr auto;
+  grid-template-columns: auto 2.25rem minmax(0, 1fr);
   gap: 0.45rem;
   align-items: center;
   min-width: 0;
@@ -916,6 +960,21 @@ body.rotation-editor-resizing {
   min-width: 0;
 }
 
+.rotation-char-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.rotation-char-name-row .rotation-char-name {
+  min-width: 0;
+}
+
+.rotation-char-name-row .rotation-rarity {
+  flex: 0 0 auto;
+}
+
 .rotation-char-name {
   font-size: 0.9rem;
   font-weight: 600;
@@ -958,8 +1017,39 @@ body.rotation-editor-resizing {
 
 .rotation-timeline-actions {
   display: flex;
+  align-items: center;
   gap: 0.45rem;
   flex-wrap: wrap;
+}
+
+.rotation-aura-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.2rem 0.45rem 0.2rem 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--input-surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+
+  input[type='checkbox'] {
+    margin: 0;
+    flex: 0 0 auto;
+    width: 0.9rem;
+    height: 0.9rem;
+    accent-color: var(--gold);
+    cursor: pointer;
+  }
+
+  &:has(input:checked) {
+    border-color: color-mix(in srgb, var(--gold) 55%, var(--line));
+    background: color-mix(in srgb, var(--gold) 12%, var(--input-surface));
+  }
 }
 
 .rotation-timeline-scroll {

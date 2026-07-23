@@ -9,6 +9,15 @@ export type DurationTrigger = 'skill' | 'burst' | 'first' | 'last'
 
 export type DurationKind = 'effect' | 'cooldown'
 
+/**
+ * How overlay length is chosen when no manual override is set.
+ * - fixed: use `seconds`
+ * - skill-uptime: skill Duration (kit) + `seconds` linger after the last
+ *   refresh (e.g. Deepwood covering the whole E, then 8s after). Falls back
+ *   to `seconds` when the kit has no Duration.
+ */
+export type DurationLengthMode = 'fixed' | 'skill-uptime'
+
 export interface DurationOption {
   id: string
   label: string
@@ -24,6 +33,12 @@ export interface DurationOption {
   trigger?: DurationTrigger
   /** Cooldown bars render muted; effects use element tint. */
   kind?: DurationKind
+  /**
+   * When `skill-uptime`, bar covers skill Duration plus `seconds` after the
+   * last trigger (refreshed shred for the whole E, then the set timer).
+   * Falls back to `seconds` alone if the kit has no Duration.
+   */
+  lengthMode?: DurationLengthMode
 }
 
 export function optionTrigger(opt: DurationOption): DurationTrigger {
@@ -38,25 +53,89 @@ export function isCooldownOption(opt: DurationOption): boolean {
 }
 
 const MIN_OVERLAY_SECONDS = 0.5
-const MAX_OVERLAY_SECONDS = 60
+const MAX_OVERLAY_SECONDS = 90
+
+function clampOverlaySeconds(n: number): number {
+  return Math.min(MAX_OVERLAY_SECONDS, Math.max(MIN_OVERLAY_SECONDS, n))
+}
+
+function isCooldownAttrName(name: string): boolean {
+  return /^cd$/i.test(name) || /\bcd\b/i.test(name) || /cooldown/i.test(name)
+}
+
+/** Wearer's Elemental Skill Duration from kit attributes (seconds), if any. */
+export function kitSkillUptimeSeconds(
+  character: CharacterData | null | undefined,
+): number | null {
+  const skill = character?.kit.elementalSkill
+  if (!skill) return null
+
+  const durationAttr = skill.attributes.find(
+    (attr) =>
+      attr.unit === 's' &&
+      typeof attr.raw === 'number' &&
+      attr.raw > 0 &&
+      /^duration$/i.test(attr.name),
+  )
+  if (typeof durationAttr?.raw === 'number') return durationAttr.raw
+
+  const softAttr = skill.attributes.find(
+    (attr) =>
+      attr.unit === 's' &&
+      typeof attr.raw === 'number' &&
+      attr.raw > 0 &&
+      !isCooldownAttrName(attr.name) &&
+      /duration|uptime|field time|sanctuary|domain|skill duration/i.test(
+        attr.name,
+      ),
+  )
+  if (typeof softAttr?.raw === 'number') return softAttr.raw
+
+  if (typeof skill.duration === 'number' && skill.duration > 0) {
+    return skill.duration
+  }
+  return null
+}
+
+/** Default overlay length before manual overrides (may use skill Duration). */
+export function defaultOverlaySeconds(
+  opt: DurationOption,
+  character?: CharacterData | null,
+): number {
+  if (opt.lengthMode === 'skill-uptime') {
+    const uptime = kitSkillUptimeSeconds(character)
+    if (uptime != null) {
+      // Skill application window + set linger after the last trigger.
+      return clampOverlaySeconds(uptime + opt.seconds)
+    }
+  }
+  return clampOverlaySeconds(opt.seconds)
+}
 
 /** Kit default duration, or a placement override when set. */
 export function resolveOverlaySeconds(
   opt: DurationOption,
   overrides?: Record<string, number> | null,
+  character?: CharacterData | null,
 ): number {
   const raw = overrides?.[opt.id]
   if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
-    return Math.min(MAX_OVERLAY_SECONDS, Math.max(MIN_OVERLAY_SECONDS, raw))
+    return clampOverlaySeconds(raw)
   }
-  return opt.seconds
+  return defaultOverlaySeconds(opt, character)
 }
 
 export function isOverlayDurationAdjusted(
   opt: DurationOption,
   overrides?: Record<string, number> | null,
+  character?: CharacterData | null,
 ): boolean {
-  return Math.abs(resolveOverlaySeconds(opt, overrides) - opt.seconds) > 0.001
+  return (
+    Math.abs(
+      resolveOverlaySeconds(opt, overrides, character) -
+        defaultOverlaySeconds(opt, character),
+    ) > 0.001
+  )
 }
 
 export function sanitizeDurationOverrides(
@@ -108,10 +187,6 @@ export function effectStartOffset(
       : Math.min(...candidates)
   }
   return timing.skillEnd
-}
-
-function isCooldownAttrName(name: string): boolean {
-  return /^cd$/i.test(name) || /\bcd\b/i.test(name) || /cooldown/i.test(name)
 }
 
 function cooldownLabel(source: 'skill' | 'burst', attrName: string): string {

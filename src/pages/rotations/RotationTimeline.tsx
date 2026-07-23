@@ -221,6 +221,7 @@ const buildDurationRows = (
       const seconds = resolveOverlaySeconds(
         option,
         placement.durationOverrides,
+        character,
       );
       const label = `${character.name} · ${option.label}`;
       const base = {
@@ -951,17 +952,17 @@ const TimelineToolbar = ({
       <h2 className="rotation-section-title">Timeline</h2>
       <div className="rotation-timeline-actions">
         {readOnly ? null : (
-          <button
-            type="button"
-            className={
-              showAuraMarkers ? "chip compact active" : "chip compact"
-            }
+          <label
+            className="rotation-aura-toggle"
             title="Show enemy aura changes on the timeline"
-            aria-pressed={showAuraMarkers}
-            onClick={onToggleAuraMarkers}
           >
-            Aura
-          </button>
+            <input
+              type="checkbox"
+              checked={showAuraMarkers}
+              onChange={onToggleAuraMarkers}
+            />
+            <span>Aura</span>
+          </label>
         )}
         {lockZoom ? null : (
           <>

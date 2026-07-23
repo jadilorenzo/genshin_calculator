@@ -12,7 +12,9 @@ export const ARTIFACT_DURATION_OPTIONS: DurationOption[] = [
     source: 'artifact',
     skillName: 'Viridescent Venerer',
     seconds: 10,
-    trigger: 'last',
+    // Swirl refreshes the 10s shred; multi-hit E ≈ skill Duration + 10s.
+    trigger: 'skill',
+    lengthMode: 'skill-uptime',
   },
   {
     id: 'artifact:noblesse',
@@ -36,7 +38,9 @@ export const ARTIFACT_DURATION_OPTIONS: DurationOption[] = [
     source: 'artifact',
     skillName: 'Tenacity of the Millelith',
     seconds: 3,
+    // Skill hits refresh every 0.5s → skill Duration + 3s after last hit.
     trigger: 'skill',
+    lengthMode: 'skill-uptime',
   },
   {
     id: 'artifact:deepwood',
@@ -44,7 +48,9 @@ export const ARTIFACT_DURATION_OPTIONS: DurationOption[] = [
     source: 'artifact',
     skillName: 'Deepwood Memories',
     seconds: 8,
-    trigger: 'first',
+    // Skill/Burst hits refresh → skill Duration + 8s after last hit.
+    trigger: 'skill',
+    lengthMode: 'skill-uptime',
   },
   {
     id: 'artifact:petra',
