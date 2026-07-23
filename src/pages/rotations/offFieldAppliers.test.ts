@@ -70,6 +70,32 @@ describe('off-field aura appliers', () => {
     expect(dots[dots.length - 1].time).toBeGreaterThanOrEqual(14)
   })
 
+  it('catalogues Citlali Itzpapa Frostfall Cryo ticks', () => {
+    const apps = listOffFieldAppliers('citlali')
+    expect(apps.some((a) => a.id === 'itzpapa-frostfall')).toBe(true)
+    expect(apps[0].element).toBe('Cryo')
+    expect(apps[0].intervalSeconds).toBe(1)
+    const hits = expandPlacementHits(
+      placement({ id: 'p-cit', characterId: 'citlali', start: 0 }),
+    )
+    const dots = hits.filter((h) => h.offField)
+    expect(dots.length).toBeGreaterThanOrEqual(10)
+    expect(dots.every((h) => h.element === 'Cryo')).toBe(true)
+  })
+
+  it('catalogues Mavuika Ring of Searing Radiance Pyro ticks', () => {
+    const apps = listOffFieldAppliers('mavuika')
+    expect(apps.some((a) => a.id === 'ring-of-searing-radiance')).toBe(true)
+    expect(apps[0].element).toBe('Pyro')
+    expect(apps[0].intervalSeconds).toBe(2)
+    const hits = expandPlacementHits(
+      placement({ id: 'p-mav', characterId: 'mavuika', start: 0 }),
+    )
+    const dots = hits.filter((h) => h.offField)
+    expect(dots.length).toBeGreaterThanOrEqual(5)
+    expect(dots.every((h) => h.element === 'Pyro')).toBe(true)
+  })
+
   it('emits Nefer skill + phantasm Dendro gauge apps', () => {
     const hits = expandPlacementHits({
       id: 'p4',

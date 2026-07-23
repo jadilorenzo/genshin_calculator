@@ -57,7 +57,14 @@ import {
 } from "./combatMechanicsData";
 import { simulateAura, type AuraTransition } from "./auraSim";
 import { ElementIcon } from "./ElementIcon";
-import { expandRotationHits, type TimedHit } from "./rotationHits";
+import { expandRotationHits, isElementalApplicationHit, type TimedHit } from "./rotationHits";
+import {
+  hasNightsoulResource,
+  nightsoulActiveSpan,
+  nightsoulFillGradient,
+  nightsoulSummaryLabel,
+  sampleNightsoulAcrossRotation,
+} from "./nightsoulSim";
 import type { CharacterData, TimelinePlacement } from "./types";
 
 const DEFAULT_PX_PER_SEC = 48;
@@ -126,6 +133,8 @@ type DurationRow = {
   lane: number;
   loop: boolean;
   cooldown: boolean;
+  /** Approximate Nightsoul fill strip (gradient intensity). */
+  nightsoulGradient?: string;
 };
 
 type SwitchGap = {
@@ -240,6 +249,63 @@ const buildDurationRows = (
       }
       lane += 1;
     }
+  }
+
+  // Nightsoul: one strip per character, continuing through off-field drain
+  // (e.g. Mavuika Ring of Searing Radiance after swap).
+  const nightsoulChars = new Set<string>();
+  for (const placement of placements) {
+    if (
+      placement.showNightsoulFill === true &&
+      hasNightsoulResource(placement.characterId)
+    ) {
+      nightsoulChars.add(placement.characterId);
+    }
+  }
+  for (const characterId of nightsoulChars) {
+    const character = getCharacter(characterId);
+    if (!character) continue;
+    const samples = sampleNightsoulAcrossRotation(
+      characterId,
+      placements,
+      0.2,
+    );
+    if (!samples?.length) continue;
+    const span = nightsoulActiveSpan(samples);
+    if (!span) continue;
+    const duration = Math.max(0.25, span.end - span.start);
+    const relative = samples.map((s) => ({
+      ...s,
+      time: Math.max(0, s.time - span.start),
+    }));
+    const gradient = nightsoulFillGradient(
+      relative,
+      duration,
+      character.element,
+    );
+    const summary = nightsoulSummaryLabel(samples);
+    const anchor = placements.find(
+      (p) => p.characterId === characterId && p.showNightsoulFill,
+    );
+    const base = {
+      placementId: anchor?.id ?? characterId,
+      optionId: "resource:nightsoul",
+      label: `${character.name} · NS · ${summary}`,
+      seconds: duration,
+      element: character.element,
+      lane,
+      cooldown: false,
+      nightsoulGradient: gradient,
+    };
+    rows.push({ ...base, start: span.start, loop: false });
+    if (showLoop) {
+      rows.push({
+        ...base,
+        start: span.start + cycleLength,
+        loop: true,
+      });
+    }
+    lane += 1;
   }
 
   return rows;
@@ -467,12 +533,7 @@ export const RotationTimeline = ({
     );
     if (enabledIds.size === 0) return [];
     return expandRotationHits(placements).filter(
-      (h) =>
-        h.offField &&
-        h.element &&
-        h.gaugeUnits > 0 &&
-        !h.directReaction &&
-        enabledIds.has(h.placementId),
+      (h) => isElementalApplicationHit(h) && enabledIds.has(h.placementId),
     );
   }, [placements]);
 
@@ -606,6 +667,7 @@ export const RotationTimeline = ({
       activeDurations: [],
       durationOverrides: {},
       showOffFieldApplications: false,
+      showNightsoulFill: false,
     };
     onChange((prev) => insertOnField(prev, next, at, switchBufferRef.current));
     onSelectPlacement(next.id);
@@ -1073,10 +1135,11 @@ const OffFieldAppLane = ({
         key={`${loop ? "loop-" : ""}${hit.time}-${hit.characterId}-${hit.abil}-${index}`}
         className={joinClassNames(
           "rotation-aura-mark rotation-offfield-mark",
+          hit.offField && "off-field",
           loop && "loop",
         )}
         style={{ left }}
-        title={`${hit.time.toFixed(2)}s — ${name} · ${label} · ${hit.element} ${hit.gaugeUnits}U`}
+        title={`${hit.time.toFixed(2)}s — ${name} · ${label} · ${hit.element} ${hit.gaugeUnits}U${hit.offField ? " (off-field)" : ""}`}
       >
         <span
           className="rotation-offfield-dot"
@@ -1090,10 +1153,10 @@ const OffFieldAppLane = ({
   return (
     <div
       className="rotation-aura-lane rotation-offfield-lane"
-      aria-label="Off-field elemental applications"
+      aria-label="Elemental applications"
     >
       {hits.length === 0 ? (
-        <p className="rotation-aura-empty">No off-field applications yet</p>
+        <p className="rotation-aura-empty">No applications yet</p>
       ) : (
         <>
           {hits.map((hit, i) => renderMark(hit, false, i))}
@@ -1483,6 +1546,7 @@ const DurationLanes = ({
             "rotation-duration-line",
             row.loop && "loop",
             row.cooldown && "cooldown",
+            row.nightsoulGradient && "nightsoul",
           )}
           data-element={row.cooldown ? undefined : row.element}
           title={row.label}
@@ -1490,10 +1554,19 @@ const DurationLanes = ({
             top: `${row.lane * rowHeight + 0.15}rem`,
             left: row.start * pxPerSec,
             width: Math.max(row.seconds * pxPerSec, 12),
+            ...(row.nightsoulGradient
+              ? {
+                  backgroundImage: row.nightsoulGradient,
+                  backgroundColor:
+                    "color-mix(in srgb, var(--row-surface) 75%, transparent)",
+                }
+              : null),
           }}
         >
           <span>{row.label}</span>
-          <span className="rotation-duration-secs">{row.seconds}s</span>
+          <span className="rotation-duration-secs">
+            {Number(row.seconds.toFixed(2))}s
+          </span>
         </div>
       ))}
     </div>

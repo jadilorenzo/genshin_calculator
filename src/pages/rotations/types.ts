@@ -94,6 +94,12 @@ export type ComboStep = {
    * When set, replaces the timing from characterAnimationTimings.
    */
   durationSeconds?: number
+  /**
+   * How to resolve duration into the following step:
+   * - auto (default): use cancel-into-next frames when available
+   * - full: always use the full animation length
+   */
+  cancelMode?: 'auto' | 'full'
 }
 
 /** A character placement on the rotation timeline. */
@@ -130,9 +136,14 @@ export interface TimelinePlacement {
    */
   durationOverrides: Record<string, number>
   /**
-   * Show this character's off-field elemental application ticks on the
-   * timeline (Ripple, Oz, Guoba, …). Default off when unset.
+   * Show this character's elemental application ticks on the timeline
+   * (on-field hitmarks, infused NAs, Ripple/Oz/Guoba, …). Default off when unset.
    */
   showOffFieldApplications?: boolean
+  /**
+   * Show approximate Nightsoul fill intensity on the timeline alongside
+   * kit/effect duration overlays. Default off when unset.
+   */
+  showNightsoulFill?: boolean
 }
 

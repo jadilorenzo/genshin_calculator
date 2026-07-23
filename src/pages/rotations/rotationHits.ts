@@ -1,6 +1,6 @@
 /**
  * Expand a rotation into timed elemental application attempts
- * (on-field hitmarks + off-field aura appliers + ICD metadata).
+ * (on-field hitmarks + infused normals + off-field aura appliers + ICD metadata).
  */
 import { getAnimationAction, framesToSeconds } from './animationTimings'
 import {
@@ -8,8 +8,14 @@ import {
   comboActionFamily,
   packComboSteps,
   seedComboStepsFromCasts,
+  type PackedComboSegment,
 } from './comboSequence'
-import { matchElementApp, listPhantasmGaugeApps } from './combatMechanicsData'
+import {
+  hasSkillInfusedNormalApp,
+  matchElementApp,
+  listPhantasmGaugeApps,
+  getCombatCharacter,
+} from './combatMechanicsData'
 import { kitHoldChannelSeconds } from './fieldTimings'
 import { listOffFieldAppliers } from './offFieldAppliers'
 import { getCharacter } from './characters'
@@ -31,6 +37,21 @@ export type TimedHit = {
   attackTag: string | null
   /** True when this hit comes from an off-field applier (Ripple, Oz, …). */
   offField?: boolean
+}
+
+/** Approximate NA cadence when expanding synthetic Normals filler. */
+const NORMALS_HIT_INTERVAL_FALLBACK = 0.4
+
+/**
+ * Skill-form infusion windows (Manifest Flame, Paramita, …) after the
+ * skill that enters the state. Recasts like Spearstorm do not restart.
+ */
+const SKILL_INFUSION_SECONDS: Record<string, number> = {
+  flins: 10,
+  'hu-tao': 9,
+  skirk: 9,
+  diluc: 12,
+  keqing: 5,
 }
 
 function resolveSteps(placement: TimelinePlacement) {
@@ -63,6 +84,64 @@ function directReactionFromTag(tag: string | null): string | null {
     return 'lunar-crystallize'
   }
   return null
+}
+
+function resolveSkillInfusionDuration(characterId: string): number {
+  const mapped = SKILL_INFUSION_SECONDS[characterId]
+  if (mapped != null && mapped > 0) return mapped
+
+  const hints = getCombatCharacter(characterId)?.kitHints?.attributes ?? []
+  const hit = hints.find((a) => {
+    const name = a.name || ''
+    return (
+      /duration/i.test(name) &&
+      /manifest|paramita|infusion|nightsoul blessing|seven-phase|skill.?state/i.test(
+        name,
+      )
+    )
+  })
+  const n = typeof hit?.raw === 'number' ? hit.raw : Number(hit?.raw)
+  if (Number.isFinite(n) && n > 0 && n < 60) return n
+
+  return hasSkillInfusedNormalApp(characterId) ? 10 : 0
+}
+
+/** First skill that enters the infused form (not spearstorm / DoT recasts). */
+function skillStartsInfusion(actionId: string): boolean {
+  const fam = comboActionFamily(actionId)
+  if (fam !== 'skill') return false
+  const id = actionId.toLowerCase()
+  if (/spearstorm|recast|dot|tick|hold_end|plunge/i.test(id)) return false
+  return id === 'skill' || id.startsWith('skill')
+}
+
+function isInfusedAt(
+  characterId: string,
+  segments: PackedComboSegment[],
+  localTime: number,
+): boolean {
+  if (!hasSkillInfusedNormalApp(characterId)) return false
+  const duration = resolveSkillInfusionDuration(characterId)
+  if (duration <= 0) return false
+
+  let infusionUntil = -1
+  for (const seg of segments) {
+    if (seg.start > localTime + 1e-6) break
+    if (skillStartsInfusion(seg.actionId)) {
+      infusionUntil = seg.start + duration
+    }
+  }
+  return localTime < infusionUntil - 1e-6
+}
+
+function normalsHitInterval(characterId: string): number {
+  const na1 = getAnimationAction(characterId, 'na1', 'default')
+  const cancelFrames = na1?.cancels?.attack
+  if (typeof cancelFrames === 'number' && cancelFrames > 0) {
+    return framesToSeconds(cancelFrames) ?? NORMALS_HIT_INTERVAL_FALLBACK
+  }
+  if (na1?.seconds != null && na1.seconds > 0) return na1.seconds
+  return NORMALS_HIT_INTERVAL_FALLBACK
 }
 
 /**
@@ -116,9 +195,125 @@ function expandOffFieldHits(placement: TimelinePlacement): TimedHit[] {
   return hits
 }
 
+function pushHitFromApp(
+  hits: TimedHit[],
+  placement: TimelinePlacement,
+  actionId: string,
+  label: string | null,
+  localOffset: number,
+  app: ReturnType<typeof matchElementApp>,
+  infused: boolean,
+): void {
+  const direct = directReactionFromTag(app?.attackTag ?? null)
+  if (direct) {
+    hits.push({
+      time: roundTime(placement.start + localOffset),
+      characterId: placement.characterId,
+      placementId: placement.id,
+      actionId,
+      abil: app?.abil ?? label,
+      element: null,
+      gaugeUnits: 0,
+      icdTag: app?.icdTag ?? null,
+      icdGroup: app?.icdGroup ?? 'Default',
+      directReaction: direct,
+      attackTag: app?.attackTag ?? null,
+    })
+    return
+  }
+
+  // Explicit null/0U kit markers (e.g. Flins Arcane Light activation knockback):
+  // still emit as a 0U elemental application so the initial skill cast is visible.
+  if (
+    app &&
+    (app.gaugeUnits == null || app.gaugeUnits <= 0) &&
+    !app.elementDynamic
+  ) {
+    const element =
+      app.element && app.element !== 'Physical'
+        ? app.element
+        : inferElementFromCharacter(placement.characterId, actionId, infused)
+    if (!element || element === 'Physical') return
+    hits.push({
+      time: roundTime(placement.start + localOffset),
+      characterId: placement.characterId,
+      placementId: placement.id,
+      actionId,
+      abil: app.abil ?? label,
+      element,
+      gaugeUnits: 0,
+      icdTag: app.icdTag ?? null,
+      icdGroup: app.icdGroup ?? 'Default',
+      directReaction: null,
+      attackTag: app.attackTag ?? null,
+    })
+    return
+  }
+
+  const element =
+    app?.element && !app.elementDynamic
+      ? app.element
+      : inferElementFromCharacter(placement.characterId, actionId, infused)
+
+  const gauge =
+    app?.gaugeUnits != null && app.gaugeUnits > 0
+      ? app.gaugeUnits
+      : element && element !== 'Physical'
+        ? 1
+        : 0
+
+  hits.push({
+    time: roundTime(placement.start + localOffset),
+    characterId: placement.characterId,
+    placementId: placement.id,
+    actionId,
+    abil: app?.abil ?? label,
+    element,
+    gaugeUnits: gauge,
+    icdTag: app?.icdTag ?? null,
+    icdGroup: app?.icdGroup ?? 'Default',
+    directReaction: null,
+    attackTag: app?.attackTag ?? null,
+  })
+}
+
+/**
+ * Approximate applications across a Normals (general) filler block.
+ */
+function expandNormalsSegmentHits(
+  placement: TimelinePlacement,
+  seg: PackedComboSegment,
+  segments: PackedComboSegment[],
+  hits: TimedHit[],
+): void {
+  const interval = Math.max(0.2, normalsHitInterval(placement.characterId))
+  const firstOffset = Math.min(0.12, seg.duration * 0.25)
+  for (
+    let local = seg.start + firstOffset;
+    local < seg.start + seg.duration - 1e-6;
+    local = roundTime(local + interval)
+  ) {
+    const infused = isInfusedAt(
+      placement.characterId,
+      segments,
+      local,
+    )
+    const app = matchElementApp(placement.characterId, 'na1', { infused })
+    pushHitFromApp(
+      hits,
+      placement,
+      NORMALS_ACTION_ID,
+      infused ? 'Normals (Skill)' : 'Normals',
+      local,
+      app,
+      infused,
+    )
+  }
+}
+
 /**
  * Expand one placement into absolute-time hit attempts.
- * Synthetic "normals" filler is skipped (no real hitmarks).
+ * Synthetic "normals" filler emits approximate NA applications (infusion-aware).
  */
 export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
   const steps = resolveSteps(placement)
@@ -128,7 +323,21 @@ export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
   const hits: TimedHit[] = []
 
   for (const seg of packed.segments) {
-    if (seg.actionId === NORMALS_ACTION_ID) continue
+    if (seg.actionId === NORMALS_ACTION_ID) {
+      expandNormalsSegmentHits(
+        placement,
+        seg,
+        packed.segments,
+        hits,
+      )
+      continue
+    }
+
+    const infused = isInfusedAt(
+      placement.characterId,
+      packed.segments,
+      seg.start,
+    )
 
     const anim = getAnimationAction(
       placement.characterId,
@@ -147,7 +356,9 @@ export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
         phantasmApps.length > 0
           ? phantasmApps
           : [
-              matchElementApp(placement.characterId, seg.actionId),
+              matchElementApp(placement.characterId, seg.actionId, {
+                infused,
+              }),
             ].filter(Boolean)
       for (let i = 0; i < apps.length; i++) {
         const app = apps[i]!
@@ -156,7 +367,11 @@ export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
         const element =
           app.element && !app.elementDynamic
             ? app.element
-            : inferElementFromCharacter(placement.characterId, seg.actionId)
+            : inferElementFromCharacter(
+                placement.characterId,
+                seg.actionId,
+                infused,
+              )
         const gauge =
           app.gaugeUnits != null && app.gaugeUnits > 0
             ? app.gaugeUnits
@@ -181,41 +396,37 @@ export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
       continue
     }
 
-    const app = matchElementApp(placement.characterId, seg.actionId)
+    const app = matchElementApp(placement.characterId, seg.actionId, {
+      infused,
+    })
     const hitmarks =
       anim?.hitmarks?.length && anim.hitmarks.some((n) => n != null)
         ? (anim.hitmarks as number[])
         : [0]
 
-    const element =
-      app?.element && !app.elementDynamic
-        ? app.element
-        : inferElementFromCharacter(placement.characterId, seg.actionId)
-
-    const gauge =
-      app?.gaugeUnits != null && app.gaugeUnits > 0
-        ? app.gaugeUnits
-        : element && element !== 'Physical'
-          ? 1
-          : 0
-
-    const direct = directReactionFromTag(app?.attackTag ?? null)
-
     for (const frame of hitmarks) {
       const offset = framesToSeconds(frame) ?? 0
-      hits.push({
-        time: roundTime(placement.start + seg.start + offset),
-        characterId: placement.characterId,
-        placementId: placement.id,
-        actionId: seg.actionId,
-        abil: app?.abil ?? seg.label,
-        element: direct ? null : element,
-        gaugeUnits: direct ? 0 : gauge,
-        icdTag: app?.icdTag ?? null,
-        icdGroup: app?.icdGroup ?? 'Default',
-        directReaction: direct,
-        attackTag: app?.attackTag ?? null,
-      })
+      const local = seg.start + offset
+      const hitInfused = isInfusedAt(
+        placement.characterId,
+        packed.segments,
+        local,
+      )
+      const hitApp =
+        hitInfused === infused
+          ? app
+          : matchElementApp(placement.characterId, seg.actionId, {
+              infused: hitInfused,
+            })
+      pushHitFromApp(
+        hits,
+        placement,
+        seg.actionId,
+        seg.label,
+        local,
+        hitApp,
+        hitInfused,
+      )
     }
   }
 
@@ -226,17 +437,29 @@ export function expandPlacementHits(placement: TimelinePlacement): TimedHit[] {
 function inferElementFromCharacter(
   characterId: string,
   actionId: string,
+  infused = false,
 ): string | null {
   const character = getCharacter(characterId)
   if (!character) return null
   const family = comboActionFamily(actionId)
   if (
-    (family === 'na' || family === 'ca') &&
+    (family === 'na' || family === 'ca' || actionId === NORMALS_ACTION_ID) &&
     character.weapon !== 'Catalyst'
   ) {
+    if (infused) return String(character.element)
     return 'Physical'
   }
   return String(character.element)
+}
+
+/** Elemental application attempts (excludes Physical / direct reactions). Includes 0U skill activations. */
+export function isElementalApplicationHit(hit: TimedHit): boolean {
+  return Boolean(
+    hit.element &&
+      hit.element !== 'Physical' &&
+      !hit.directReaction &&
+      hit.gaugeUnits >= 0,
+  )
 }
 
 export function expandRotationHits(

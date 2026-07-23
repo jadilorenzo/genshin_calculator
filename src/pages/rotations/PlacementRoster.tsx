@@ -16,6 +16,7 @@ import {
   type DurationOption,
 } from "./durationOptions";
 import { hasOffFieldAppliers } from "./offFieldAppliers";
+import { hasNightsoulResource } from "./nightsoulSim";
 import {
   defaultOnFieldDuration,
   effectiveCastTimes,
@@ -73,6 +74,7 @@ const withCastDefaults = (p: TimelinePlacement): TimelinePlacement => {
     activeDurations: p.activeDurations ?? [],
     durationOverrides: p.durationOverrides ?? {},
     showOffFieldApplications: p.showOffFieldApplications === true,
+    showNightsoulFill: p.showNightsoulFill === true,
   };
 };
 
@@ -337,6 +339,11 @@ export const PlacementRoster = ({
               showOffFieldApplications: value,
             })
           }
+          onToggleNightsoulFill={(value) =>
+            updatePlacement(selected.id, {
+              showNightsoulFill: value,
+            })
+          }
         />
       ) : (
         <p className="field-note rotation-roster-hint">
@@ -454,6 +461,7 @@ const SelectedPlacementDetail = ({
   onSkillVariant,
   onSkillCasts,
   onToggleOffFieldApplications,
+  onToggleNightsoulFill,
 }: {
   placement: TimelinePlacement;
   timingMode: TimingMode;
@@ -469,6 +477,7 @@ const SelectedPlacementDetail = ({
   onSkillVariant: (variant: SkillCastVariant) => void;
   onSkillCasts: (casts: number) => void;
   onToggleOffFieldApplications: (value: boolean) => void;
+  onToggleNightsoulFill: (value: boolean) => void;
 }) => {
   const char = getCharacter(placement.characterId);
   if (!char) return null;
@@ -614,21 +623,40 @@ const SelectedPlacementDetail = ({
           </div>
         </div>
 
-        {hasOffFieldAppliers(char.id) ? (
+        <div className="rotation-selected-row">
+          <span className="label rotation-offfield-label">Applications</span>
+          <label
+            className="chip compact rotation-aura-toggle"
+            title={
+              hasOffFieldAppliers(char.id)
+                ? 'Show elemental applications on the timeline (skills, infused NAs, Ripple/Oz/Guoba, …)'
+                : 'Show elemental applications on the timeline (skills, bursts, infused NAs, …)'
+            }
+          >
+            <input
+              type="checkbox"
+              checked={placement.showOffFieldApplications === true}
+              onChange={(e) =>
+                onToggleOffFieldApplications(e.target.checked)
+              }
+            />
+            <span>Show on timeline</span>
+          </label>
+        </div>
+
+        {hasNightsoulResource(char.id) ? (
           <div className="rotation-selected-row">
-            <span className="label rotation-offfield-label">Off-field</span>
+            <span className="label">Nightsoul</span>
             <label
               className="chip compact rotation-aura-toggle"
-              title="Show this character's off-field elemental applications on the timeline (Ripple, Oz, Guoba, …)"
+              title="Show approximate Nightsoul fill on the timeline (continues off-field while blessing/Ring lasts)"
             >
               <input
                 type="checkbox"
-                checked={placement.showOffFieldApplications === true}
-                onChange={(e) =>
-                  onToggleOffFieldApplications(e.target.checked)
-                }
+                checked={placement.showNightsoulFill === true}
+                onChange={(e) => onToggleNightsoulFill(e.target.checked)}
               />
-              <span>Applications on timeline</span>
+              <span>Show on timeline</span>
             </label>
           </div>
         ) : null}

@@ -53,6 +53,14 @@ export function partyConvertsBloom(characterIds: string[]): boolean {
   return characterIds.some((id) => id === 'lauma' || id === 'nefer')
 }
 
+export type MatchElementAppOptions = {
+  /**
+   * Prefer skill-form Normal/Charge apps (e.g. Flins Manifest Flame,
+   * Skirk skill-state NAs) over Physical / uninfused rows.
+   */
+  infused?: boolean
+}
+
 /**
  * Pick the best ElementApp for a combo action id.
  * Prefers matching attackTag / sourceFile over noisy abil strings.
@@ -60,6 +68,7 @@ export function partyConvertsBloom(characterIds: string[]): boolean {
 export function matchElementApp(
   characterId: string,
   actionId: string,
+  opts?: MatchElementAppOptions,
 ): ElementApp | null {
   const character = getCombatCharacter(characterId)
   if (!character?.elementApps?.length) return null
@@ -68,11 +77,27 @@ export function matchElementApp(
   const apps = character.elementApps.filter((a) => a.icdTag || a.icdGroup)
 
   const scored = apps
-    .map((app) => ({ app, score: scoreApp(app, family, actionId) }))
+    .map((app) => ({
+      app,
+      score: scoreApp(app, family, actionId, opts),
+    }))
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score)
 
   return scored[0]?.app ?? null
+}
+
+/** True when this character has a distinct skill-infused Normal app row. */
+export function hasSkillInfusedNormalApp(characterId: string): boolean {
+  const apps = getCombatCharacter(characterId)?.elementApps ?? []
+  return apps.some(
+    (a) =>
+      isSkillInfusedAbil(a.abil) &&
+      (a.attackTag || '').toLowerCase().includes('normal') &&
+      (a.gaugeUnits ?? 0) > 0 &&
+      a.element &&
+      a.element !== 'Physical',
+  )
 }
 
 function actionFamily(actionId: string): string {
@@ -85,15 +110,33 @@ function actionFamily(actionId: string): string {
   return 'other'
 }
 
-function scoreApp(app: ElementApp, family: string, actionId: string): number {
+function isSkillInfusedAbil(abil: string | null | undefined): boolean {
+  return /\(\s*skill\s*\)/i.test(abil || '')
+}
+
+function scoreApp(
+  app: ElementApp,
+  family: string,
+  actionId: string,
+  opts?: MatchElementAppOptions,
+): number {
   let score = 0
   const tag = (app.attackTag || '').toLowerCase()
   const file = (app.sourceFile || '').toLowerCase()
   const abil = (app.abil || '').toLowerCase()
   const aid = actionId.toLowerCase()
+  const infused = opts?.infused === true
+  const wantsMiniBurst =
+    aid.includes('mini') ||
+    aid.includes('symphony') ||
+    aid.includes('thunderous')
 
-  // Direct lunar hits are reaction DMG — never prefer them for aura gauge matching.
+  // Direct lunar hits are reaction DMG — only match when the action is a
+  // mini-burst / symphony-style cast (not the full 80-cost burst).
   if (tag.includes('directlunar') || tag.includes('direct_lunar')) {
+    if (wantsMiniBurst && (abil.includes('symphony') || abil.includes('thunderous') || family === 'burst')) {
+      return 40
+    }
     return 0
   }
   // Shade coordinated phantasm hits are 0U lunar-bloom.
@@ -107,6 +150,13 @@ function scoreApp(app: ElementApp, family: string, actionId: string): number {
   if (family === 'na') {
     if (tag === 'normal' || tag.includes('normal')) score += 5
     if (file === 'attack.go') score += 3
+    if (infused) {
+      if (isSkillInfusedAbil(app.abil)) score += 8
+      else if ((app.element || '') === 'Physical') score -= 6
+    } else {
+      if (isSkillInfusedAbil(app.abil)) score -= 8
+      if ((app.element || '') === 'Physical') score += 4
+    }
   } else if (family === 'ca') {
     if (tag === 'extra' || tag.includes('extra')) score += 5
     if (file === 'charge.go' || file === 'aimed.go') score += 3
@@ -117,16 +167,44 @@ function scoreApp(app: ElementApp, family: string, actionId: string): number {
     }
     if (abil.includes('moondew') && aid.includes('moondew')) score += 8
     if (abil === 'charge attack' && aid.includes('phantasm')) score -= 4
+    if (infused) {
+      if (isSkillInfusedAbil(app.abil)) score += 8
+      else if ((app.element || '') === 'Physical' && !abil.includes('phantasm')) {
+        score -= 4
+      }
+    } else if (isSkillInfusedAbil(app.abil)) {
+      score -= 8
+    }
   } else if (family === 'skill') {
     if (tag.includes('elementalart') || tag.includes('art')) score += 5
     if (file === 'skill.go') score += 3
     if (/hold/i.test(abil) && /hold/i.test(aid)) score += 2
+    // Prefer Spearstorm / form recasts only for matching action ids.
+    if (abil.includes('spearstorm')) {
+      score += aid.includes('spearstorm') ? 12 : -10
+    }
+    if (aid.includes('spearstorm') && !abil.includes('spearstorm')) {
+      score -= 6
+    }
+    // Prefer entry / 0-dmg skill markers for plain skill casts.
+    if (
+      !aid.includes('spearstorm') &&
+      (abil.includes('0 dmg') || abil.includes('arcane light'))
+    ) {
+      score += 4
+    }
   } else if (family === 'burst') {
     if (tag.includes('burst')) score += 5
     if (file === 'burst.go') score += 3
+    if (wantsMiniBurst) {
+      if (abil.includes('symphony') || abil.includes('thunderous')) score += 12
+      if (abil.includes('cometh') || abil.includes('initial')) score -= 8
+    } else if (abil.includes('symphony') || abil.includes('thunderous')) {
+      score -= 6
+    }
   }
 
-  // Prefer apps that actually apply gauge
+  // Prefer apps that actually apply gauge (unless we already ranked DirectLunar).
   if ((app.gaugeUnits ?? 0) > 0) score += 3
   // Prefer non-dynamic elements
   if (app.element && !app.elementDynamic) score += 1

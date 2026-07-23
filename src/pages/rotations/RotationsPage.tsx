@@ -520,6 +520,7 @@ const RotationsEditorInner = () => {
       activeDurations: [],
       durationOverrides: {},
       showOffFieldApplications: false,
+      showNightsoulFill: false,
     };
   };
 

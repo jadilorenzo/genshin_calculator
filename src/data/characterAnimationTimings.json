@@ -7,7 +7,7 @@
     "hitmarks are frame offsets from action start.",
     "cancels are earliest queue frames into the listed next action.",
     "States separate default kit from skill/burst-modified kits (e.g. Mavuika Flamestrider).",
-    "null frames mean not yet sourced — fill via GCSIM_CHARS, open PRs (fetchGcsimPrChars), or manual edits.",
+    "null frames mean not yet sourced \u2014 fill via GCSIM_CHARS, open PRs (fetchGcsimPrChars), or manual edits.",
     "ca_cycle / ca_final cover charged loops such as Mavuika donut spinning.",
     "Claymore charged-attack frames are intentionally left null (flexible / rarely simmed)."
   ],
@@ -12624,7 +12624,12 @@
               "hitmarks": [
                 45
               ],
-              "cancels": {},
+              "cancels": {
+                "dash": 50,
+                "jump": 50,
+                "skill": 50,
+                "attack": 50
+              },
               "source": "gcsim",
               "gcsimVar": "bikeChargeFinalFrames"
             },
@@ -12640,9 +12645,15 @@
                 35
               ],
               "spinFrames": 45,
-              "cancels": {},
+              "cancels": {
+                "charge": 45,
+                "dash": 38,
+                "jump": 38,
+                "skill": 38,
+                "attack": 38
+              },
               "source": "gcsim",
-              "notes": "Flamestrider CA: hold spins; release into CA final. Duration clamped between min and max frames."
+              "notes": "Flamestrider CA: hold spins; release into CA final. Duration clamped between min and max frames. Cancel into next CA uses one spin (spinFrames)."
             },
             {
               "id": "skill_skillrecastframestobike",
@@ -12697,7 +12708,12 @@
               "hitmarks": [
                 106
               ],
-              "cancels": {},
+              "cancels": {
+                "charge": 28,
+                "attack": 28,
+                "dash": 24,
+                "skill": 28
+              },
               "source": "gcsim",
               "gcsimVar": "bikeJumpFrames"
             }

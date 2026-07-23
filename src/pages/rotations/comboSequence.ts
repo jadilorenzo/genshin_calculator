@@ -35,6 +35,17 @@ export type PackedComboSegment = {
   durationOverridden: boolean
   incomplete: boolean
   gapAfter: number
+  /** Cancel mode used for this segment. */
+  cancelMode: 'auto' | 'full'
+  /** Full animation length before cancel (seconds), when known. */
+  fullDuration: number | null
+  /**
+   * When duration used cancel frames into the next action, the cancel key
+   * (charge, dash, jump, …). Null when full anim / override / no cancel.
+   */
+  cancelledInto: keyof AnimationCancelMap | null
+  /** True when cancel frames exist into the following step. */
+  canCancel: boolean
 }
 
 export type PackedCombo = {
@@ -49,6 +60,7 @@ export function createComboStep(
   stateId = 'default',
   gapAfter = 0,
   durationSeconds?: number,
+  cancelMode?: 'auto' | 'full',
 ): ComboStep {
   const isNormals = actionId === NORMALS_ACTION_ID
   const duration =
@@ -63,6 +75,7 @@ export function createComboStep(
     stateId,
     gapAfter: gapAfter > 0 ? gapAfter : undefined,
     durationSeconds: duration,
+    cancelMode: cancelMode === 'full' ? 'full' : undefined,
   }
 }
 
@@ -94,7 +107,8 @@ export function sanitizeComboSteps(raw: unknown): ComboStep[] {
       Number.isFinite(durRaw) && durRaw > 0
         ? Math.min(30, Math.round(durRaw * 1000) / 1000)
         : undefined
-    out.push({ id, actionId, stateId, gapAfter, durationSeconds })
+    const cancelMode = e.cancelMode === 'full' ? 'full' : undefined
+    out.push({ id, actionId, stateId, gapAfter, durationSeconds, cancelMode })
   }
   return out
 }
@@ -115,6 +129,7 @@ export function comboActionFamily(kindOrId: string): string {
   if (x === 'skill' || x.startsWith('skill')) return 'skill'
   if (x === 'burst' || x.startsWith('burst')) return 'burst'
   if (x === 'dash' || x.startsWith('dash')) return 'dash'
+  if (x === 'jump' || x.startsWith('jump')) return 'jump'
   return 'other'
 }
 
@@ -126,6 +141,8 @@ export function shortActionLabel(label: string, kindOrId: string): string {
   if (fam === 'ca') {
     if (id.includes('phantasm')) return 'CA·P'
     if (id.includes('aim')) return 'Aim'
+    if (id.includes('bikechargefinal') || /final/i.test(label)) return 'F'
+    if (id.includes('ca_cycle') || /cycle|donut|spin/i.test(label)) return 'C'
     return 'CA'
   }
   if (fam === 'na') {
@@ -143,6 +160,7 @@ export function shortActionLabel(label: string, kindOrId: string): string {
     return 'Q'
   }
   if (fam === 'dash') return 'D'
+  if (fam === 'jump' || id.includes('jump')) return 'J'
   if (label.length <= 5) return label
   return label.slice(0, 4)
 }
@@ -152,36 +170,45 @@ function isIndividualNormal(action: AnimationAction): boolean {
   return /^na\d/.test(id) || id.startsWith('na_')
 }
 
-function isPaletteAction(action: AnimationAction): boolean {
+/** Individual NAs + charged / special CA variants for the attack-string fold. */
+export function isAttackStringAction(action: AnimationAction): boolean {
+  const id = action.id.toLowerCase()
+  if (isIndividualNormal(action)) return true
+  if (id === 'ca' || id.startsWith('ca_') || id.startsWith('aim')) return true
+  return comboActionFamily(action.kind || action.id) === 'ca'
+}
+
+function isExcludedMovementAction(action: AnimationAction): boolean {
   const id = action.id.toLowerCase()
   const kind = action.kind.toLowerCase()
-  if (
-    id === 'jump' ||
+  // Jump / dash are allowed — used as animation cancels in combos (Mavuika C4 J C4F).
+  return (
     id === 'swap' ||
     id === 'walk' ||
-    id.startsWith('jump_') ||
     id.startsWith('swap_') ||
     id.startsWith('walk_') ||
     id.includes('plunge') ||
     kind.includes('plunge') ||
-    kind === 'jump' ||
     kind === 'swap' ||
     kind === 'walk'
-  ) {
-    return false
-  }
-  // Individual NAs are replaced by the synthetic Normals block in the palette.
-  if (isIndividualNormal(action)) return false
+  )
+}
+
+/** Skill / burst / dash / jump chips (attack string lives in its own fold). */
+function isAbilityPaletteAction(action: AnimationAction): boolean {
+  if (isExcludedMovementAction(action)) return false
+  if (isAttackStringAction(action)) return false
+  const id = action.id.toLowerCase()
   return (
-    id === 'ca' ||
-    id.startsWith('ca_') ||
-    id.startsWith('aim') ||
     id === 'skill' ||
     id.startsWith('skill') ||
     id === 'burst' ||
     id.startsWith('burst') ||
     id === 'dash' ||
-    id.startsWith('dash')
+    id.startsWith('dash') ||
+    id === 'jump' ||
+    id.startsWith('jump') ||
+    action.kind === 'jump'
   )
 }
 
@@ -189,7 +216,7 @@ function isPaletteAction(action: AnimationAction): boolean {
 export function normalsPaletteAction(): AnimationAction {
   return {
     id: NORMALS_ACTION_ID,
-    label: 'Normals',
+    label: 'Normals (general)',
     kind: 'na',
     frames: Math.round(NORMALS_DEFAULT_SECONDS * FPS),
     seconds: NORMALS_DEFAULT_SECONDS,
@@ -200,25 +227,299 @@ export function normalsPaletteAction(): AnimationAction {
   }
 }
 
+/**
+ * Sequence gates: dependent abilities only appear in the inspect palette when
+ * a required earlier step is already in the combo.
+ *
+ * Rules come from kit copy (“replaced with the special…”, “while X is active…”)
+ * and animation notes. `requiresAny` — any one prior actionId unlocks it.
+ */
+type SequencePrereq = {
+  /** Exact action id, or RegExp matched against action id. */
+  action: string | RegExp
+  requiresAny: string[]
+  /** Limit the rule to these characters (omit = all). */
+  characterIds?: string[]
+}
+
+const SEQUENCE_PREREQUISITES: SequencePrereq[] = [
+  // —— Flins (kit): Manifest Flame E → Northland Spearstorm → Thunderous Symphony (sQ)
+  {
+    action: 'skill_spearstorm',
+    requiresAny: ['skill'],
+  },
+  {
+    action: 'burst_mini',
+    requiresAny: ['skill_spearstorm'],
+    characterIds: ['flins'],
+  },
+
+  // —— Freminet (kit): Pressurized Floe thrust → Pers Timer → Shattering Pressure
+  {
+    action: /^skill_skillpressureframes/,
+    requiresAny: ['skill', 'skill_skillthrust'],
+    characterIds: ['freminet'],
+  },
+  {
+    action: 'skill_1',
+    requiresAny: ['skill', 'skill_skillthrust'],
+    characterIds: ['freminet'],
+  },
+
+  // —— Nefer (kit): Shadow Dance (E) + Verdant Dew → Phantasm Performance CA
+  {
+    action: 'ca_phantasm',
+    requiresAny: ['skill'],
+    characterIds: ['nefer'],
+  },
+
+  // —— Xianyun (kit): White Clouds at Dawn → up to 3 Skyladders
+  {
+    action: 'skill_skillleapframes_0',
+    requiresAny: ['skill'],
+    characterIds: ['xianyun'],
+  },
+  {
+    action: 'skill_1',
+    requiresAny: ['skill', 'skill_skillleapframes_0'],
+    characterIds: ['xianyun'],
+  },
+  {
+    action: 'skill_skillleapframes_1',
+    requiresAny: ['skill_skillleapframes_0', 'skill_1', 'skill'],
+    characterIds: ['xianyun'],
+  },
+  {
+    action: 'skill_2',
+    requiresAny: ['skill_1', 'skill_skillleapframes_1'],
+    characterIds: ['xianyun'],
+  },
+  {
+    action: 'skill_skillleapframes_2',
+    requiresAny: ['skill_skillleapframes_1', 'skill_2'],
+    characterIds: ['xianyun'],
+  },
+
+  // —— Varesa: Fiery Passion forms (skill-state / enhanced E & CA)
+  {
+    action: 'skill_fieryskill',
+    requiresAny: ['skill'],
+    characterIds: ['varesa'],
+  },
+  {
+    action: 'ca_fierycharge',
+    requiresAny: ['skill'],
+    characterIds: ['varesa'],
+  },
+
+  // —— Heizou: skill end cancel after casting / holding E
+  {
+    action: 'skill_skillend',
+    requiresAny: ['skill', 'skill_hold'],
+    characterIds: ['shikanoin-heizou'],
+  },
+
+  // —— Skill recasts (Keqing stiletto, Dehya field, Fischl Oz, Durin, Mavuika ring/bike, …)
+  {
+    action: /^skill_skillrecast/,
+    requiresAny: ['skill', 'skill_hold', 'skill_press', 'skill_skillpress'],
+  },
+]
+
+/** Infer gates from animation `notes` when no explicit rule matches. */
+function prerequisitesFromActionNotes(
+  actionId: string,
+  notes: string | undefined,
+): string[] | null {
+  if (!notes) return null
+  // e.g. Flins mini-burst notes already covered explicitly; keep for Varka / future
+  if (
+    /after using .{0,60}Spearstorm|after .{0,40}Northland Spearstorm/i.test(
+      notes,
+    )
+  ) {
+    return ['skill_spearstorm']
+  }
+  if (
+    /while Manifest Flame|during Manifest Flame|Special E during Manifest/i.test(
+      notes,
+    )
+  ) {
+    return ['skill']
+  }
+  if (/Verdant Dew/i.test(notes) && actionId.startsWith('ca_')) {
+    return ['skill']
+  }
+  if (/Special E during|during .{0,20}skill-state/i.test(notes)) {
+    return ['skill']
+  }
+  return null
+}
+
+function prereqMatchesAction(rule: SequencePrereq, actionId: string): boolean {
+  if (typeof rule.action === 'string') return rule.action === actionId
+  return rule.action.test(actionId)
+}
+
+/** Prerequisite action ids for this ability, or null if always available. */
+export function sequencePrerequisitesFor(
+  characterId: string,
+  actionId: string,
+  notes?: string,
+): string[] | null {
+  for (const rule of SEQUENCE_PREREQUISITES) {
+    if (rule.characterIds && !rule.characterIds.includes(characterId)) continue
+    if (!prereqMatchesAction(rule, actionId)) continue
+    return rule.requiresAny
+  }
+  return prerequisitesFromActionNotes(actionId, notes)
+}
+
+/** True when `actionId` may be placed after `priorSteps`. */
+export function isActionUnlockedByPriorSteps(
+  characterId: string,
+  actionId: string,
+  priorSteps: Array<Pick<ComboStep, 'actionId'>>,
+  notes?: string,
+): boolean {
+  const required = sequencePrerequisitesFor(characterId, actionId, notes)
+  if (!required || required.length === 0) return true
+  const prior = new Set(priorSteps.map((s) => s.actionId))
+  return required.some((id) => prior.has(id))
+}
+
+export type PaletteActionEntry = {
+  action: AnimationAction
+  /** True when prerequisites are not yet in the sequence. */
+  locked: boolean
+  /** Action ids that unlock this entry (any one). */
+  requiresAny: string[] | null
+  /** Other palette actions that list this action as a prerequisite. */
+  unlocks: AnimationAction[]
+}
+
+function sortPaletteActions(actions: AnimationAction[]): AnimationAction[] {
+  return [...actions].sort((a, b) => {
+    const fa = comboActionFamily(a.kind || a.id)
+    const fb = comboActionFamily(b.kind || b.id)
+    const order = ['na', 'ca', 'skill', 'burst', 'dash', 'other']
+    const d = order.indexOf(fa) - order.indexOf(fb)
+    if (d !== 0) return d
+    const naA = a.id.match(/^na_?(\d+)/i)
+    const naB = b.id.match(/^na_?(\d+)/i)
+    if (naA && naB) return Number(naA[1]) - Number(naB[1])
+    if (a.id === 'ca' && b.id !== 'ca') return -1
+    if (b.id === 'ca' && a.id !== 'ca') return 1
+    return a.label.localeCompare(b.label)
+  })
+}
+
+/** Compact label for a prerequisite action id (e.g. skill → E). */
+export function prerequisiteShortLabel(
+  characterId: string,
+  actionId: string,
+  stateId = 'default',
+): string {
+  const action = getAnimationAction(characterId, actionId, stateId)
+  if (action) return shortActionLabel(action.label, action.kind || action.id)
+  if (actionId === 'skill' || actionId === 'skill_hold' || actionId === 'skill_press') {
+    return 'E'
+  }
+  if (actionId === 'burst') return 'Q'
+  if (actionId === 'skill_spearstorm') return 'E·S'
+  if (actionId === 'burst_mini') return 'sQ'
+  return actionId.replace(/^skill_?/, 'E·').replace(/^burst_?/, 'Q·')
+}
+
+/**
+ * Palette entries for a state, including locked (gated) abilities so the UI
+ * can show what is waiting on a prior step.
+ */
+export function listPaletteEntries(
+  characterId: string,
+  stateId = 'default',
+  priorSteps: Array<Pick<ComboStep, 'actionId'>> = [],
+): PaletteActionEntry[] {
+  const character = getCharacterAnimationTimings(characterId)
+  if (!character) {
+    return [
+      {
+        action: normalsPaletteAction(),
+        locked: false,
+        requiresAny: null,
+        unlocks: [],
+      },
+    ]
+  }
+  const state =
+    character.states.find((s) => s.id === stateId) ?? character.states[0]
+  if (!state) {
+    return [
+      {
+        action: normalsPaletteAction(),
+        locked: false,
+        requiresAny: null,
+        unlocks: [],
+      },
+    ]
+  }
+
+  const palette = sortPaletteActions(
+    state.actions.filter(
+      (a) => isAbilityPaletteAction(a) || isAttackStringAction(a),
+    ),
+  )
+  const entries: PaletteActionEntry[] = palette.map((action) => {
+    const requiresAny = sequencePrerequisitesFor(
+      characterId,
+      action.id,
+      action.notes,
+    )
+    const locked = !isActionUnlockedByPriorSteps(
+      characterId,
+      action.id,
+      priorSteps,
+      action.notes,
+    )
+    return {
+      action,
+      locked,
+      requiresAny,
+      unlocks: [],
+    }
+  })
+
+  for (const entry of entries) {
+    entry.unlocks = palette.filter((candidate) => {
+      const req = sequencePrerequisitesFor(
+        characterId,
+        candidate.id,
+        candidate.notes,
+      )
+      return Boolean(req?.includes(entry.action.id))
+    })
+  }
+
+  return [
+    {
+      action: normalsPaletteAction(),
+      locked: false,
+      requiresAny: null,
+      unlocks: [],
+    },
+    ...entries,
+  ]
+}
+
 /** Actions available in the inspect palette for a state (excludes individual NAs). */
 export function listPaletteActions(
   characterId: string,
   stateId = 'default',
+  priorSteps: Array<Pick<ComboStep, 'actionId'>> = [],
 ): AnimationAction[] {
-  const character = getCharacterAnimationTimings(characterId)
-  if (!character) return [normalsPaletteAction()]
-  const state =
-    character.states.find((s) => s.id === stateId) ?? character.states[0]
-  if (!state) return [normalsPaletteAction()]
-  const actions = state.actions.filter(isPaletteAction).sort((a, b) => {
-    const fa = comboActionFamily(a.kind || a.id)
-    const fb = comboActionFamily(b.kind || b.id)
-    const order = ['ca', 'skill', 'burst', 'dash', 'other']
-    const d = order.indexOf(fa) - order.indexOf(fb)
-    if (d !== 0) return d
-    return a.label.localeCompare(b.label)
-  })
-  return [normalsPaletteAction(), ...actions]
+  return listPaletteEntries(characterId, stateId, priorSteps)
+    .filter((e) => !e.locked)
+    .map((e) => e.action)
 }
 
 function cancelKeyForNext(next: AnimationAction | null): keyof AnimationCancelMap | null {
@@ -229,34 +530,87 @@ function cancelKeyForNext(next: AnimationAction | null): keyof AnimationCancelMa
   if (fam === 'skill') return 'skill'
   if (fam === 'burst') return 'burst'
   if (fam === 'dash') return 'dash'
+  if (fam === 'jump') return 'jump'
+  return null
+}
+
+function fullActionSeconds(action: AnimationAction): number | null {
+  if (action.seconds != null && action.seconds > 0) return action.seconds
+  if (action.frames != null && action.frames > 0) {
+    return framesToSeconds(action.frames, FPS) ?? action.frames / FPS
+  }
+  return null
+}
+
+/**
+ * Cancel frames into `next`, or spin-cycle length for consecutive donut CAs.
+ */
+export function cancelFramesIntoNext(
+  action: AnimationAction,
+  next: AnimationAction | null,
+): { key: keyof AnimationCancelMap; frames: number } | null {
+  const key = cancelKeyForNext(next)
+  if (!key) return null
+  const mapped = action.cancels?.[key]
+  if (typeof mapped === 'number' && mapped > 0) {
+    return { key, frames: mapped }
+  }
+  // Flamestrider CA cycle → next CA: one spin worth of frames.
+  if (
+    key === 'charge' &&
+    typeof action.spinFrames === 'number' &&
+    action.spinFrames > 0 &&
+    /ca_cycle|cycle|donut|spin/i.test(action.id)
+  ) {
+    return { key, frames: action.spinFrames }
+  }
   return null
 }
 
 function resolveStepDuration(
   action: AnimationAction | null,
   next: AnimationAction | null,
-): { seconds: number; incomplete: boolean } {
-  if (!action) return { seconds: FALLBACK_SECONDS, incomplete: true }
-  const key = cancelKeyForNext(next)
-  if (key && action.cancels) {
-    const frames = action.cancels[key]
-    if (typeof frames === 'number' && frames > 0) {
+  cancelMode: 'auto' | 'full' = 'auto',
+): {
+  seconds: number
+  incomplete: boolean
+  cancelledInto: keyof AnimationCancelMap | null
+  fullDuration: number | null
+} {
+  if (!action) {
+    return {
+      seconds: FALLBACK_SECONDS,
+      incomplete: true,
+      cancelledInto: null,
+      fullDuration: null,
+    }
+  }
+  const full = fullActionSeconds(action)
+  if (cancelMode !== 'full') {
+    const cancel = cancelFramesIntoNext(action, next)
+    if (cancel) {
       return {
-        seconds: framesToSeconds(frames, FPS) ?? frames / FPS,
+        seconds: framesToSeconds(cancel.frames, FPS) ?? cancel.frames / FPS,
         incomplete: false,
+        cancelledInto: cancel.key,
+        fullDuration: full,
       }
     }
   }
-  if (action.seconds != null && action.seconds > 0) {
-    return { seconds: action.seconds, incomplete: false }
-  }
-  if (action.frames != null && action.frames > 0) {
+  if (full != null) {
     return {
-      seconds: framesToSeconds(action.frames, FPS) ?? action.frames / FPS,
+      seconds: full,
       incomplete: false,
+      cancelledInto: null,
+      fullDuration: full,
     }
   }
-  return { seconds: FALLBACK_SECONDS, incomplete: true }
+  return {
+    seconds: FALLBACK_SECONDS,
+    incomplete: true,
+    cancelledInto: null,
+    fullDuration: null,
+  }
 }
 
 function round(n: number): number {
@@ -288,18 +642,24 @@ export function packComboSteps(
           )
         : null
     const isNormals = step.actionId === NORMALS_ACTION_ID
-    const { seconds, incomplete } = isNormals
+    const cancelMode = step.cancelMode === 'full' ? 'full' : 'auto'
+    const canCancel =
+      !isNormals &&
+      Boolean(action && cancelFramesIntoNext(action, nextAction))
+    const resolved = isNormals
       ? {
           seconds: step.durationSeconds ?? NORMALS_DEFAULT_SECONDS,
           incomplete: false,
+          cancelledInto: null as keyof AnimationCancelMap | null,
+          fullDuration: null as number | null,
         }
-      : resolveStepDuration(action, nextAction)
+      : resolveStepDuration(action, nextAction, cancelMode)
     const overridden =
       typeof step.durationSeconds === 'number' && step.durationSeconds > 0
     const duration = round(
       Math.max(
         0.05,
-        overridden ? step.durationSeconds! : seconds,
+        overridden ? step.durationSeconds! : resolved.seconds,
       ),
     )
     segments.push({
@@ -315,8 +675,12 @@ export function packComboSteps(
       start: cursor,
       duration,
       durationOverridden: overridden || isNormals,
-      incomplete: overridden || isNormals ? false : incomplete,
+      incomplete: overridden || isNormals ? false : resolved.incomplete,
       gapAfter: 0,
+      cancelMode,
+      fullDuration: resolved.fullDuration,
+      cancelledInto: overridden ? null : resolved.cancelledInto,
+      canCancel,
     })
     cursor = round(cursor + duration)
 

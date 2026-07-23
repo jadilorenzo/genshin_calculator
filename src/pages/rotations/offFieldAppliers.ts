@@ -289,11 +289,74 @@ export const OFF_FIELD_APPLIER_CATALOG: Record<string, OffFieldApplierDef[]> = {
       abilMatch: /Havoc: Ruin \(DoT\)/i,
     },
   ],
+  citlali: [
+    {
+      id: 'itzpapa-frostfall',
+      label: 'Itzpapa Frostfall Storm',
+      source: 'skill',
+      element: 'Cryo',
+      gaugeUnits: 1,
+      // Attacks every 1s; 1.5s ICD → Cryo gauge about every 2s (ICD applied in sim).
+      intervalSeconds: 1,
+      firstTickDelaySeconds: 1,
+      // Kit lists 20s follow time; with EQ, Opal Fire Cryo uptime is ~12–13s.
+      durationSeconds: 12,
+      abilMatch: /frostFallAbil|Frostfall/i,
+      icdTag: 'CitlaliFrostfallStorm',
+      icdGroup: 'CitlaliFrostfallStorm',
+      note: 'KQM: Opal Fire every 1s, ICD 1.5s → app ~every 2s; ~12s with EQ',
+    },
+  ],
+  mavuika: [
+    {
+      id: 'ring-of-searing-radiance',
+      label: 'Ring of Searing Radiance',
+      source: 'skill',
+      element: 'Pyro',
+      gaugeUnits: 1,
+      intervalSeconds: 2,
+      firstTickDelaySeconds: 2,
+      durationSeconds: 12,
+      abilMatch: /^Rings of Searing Radiance$/i,
+      icdTag: 'None',
+      note: 'Tap skill ring: 2s interval, ~12s / 6 hits at C0 (80 NS); 1U no ICD',
+    },
+  ],
+  escoffier: [
+    {
+      id: 'frosty-parfait',
+      label: 'Frosty Parfait',
+      source: 'skill',
+      element: 'Cryo',
+      gaugeUnits: 1,
+      intervalSeconds: 1,
+      firstTickDelaySeconds: 1,
+      durationAttr: 'Cold Storage Mode Duration',
+      durationSeconds: 20,
+      abilMatch: /^Frosty Parfait$/i,
+      note: 'Cooking Mek Cold Storage Mode — Frosty Parfaits ~1s',
+    },
+  ],
+  'kuki-shinobu': [
+    {
+      id: 'grass-ring',
+      label: 'Grass Ring of Sanctification',
+      source: 'skill',
+      element: 'Electro',
+      gaugeUnits: 1,
+      intervalSeconds: 1.5,
+      firstTickDelaySeconds: 1.5,
+      durationAttr: 'Duration',
+      durationSeconds: 12,
+      abilMatch: /Grass Ring of Sanctification/i,
+      note: 'Ring ticks every 1.5s for 12s',
+    },
+  ],
 }
 
 /** Abil patterns that look like repeating off-field / field DoT appliers. */
 const AUTO_OFF_FIELD_ABIL =
-  /(DoT|Tick|Frostgrove Sanctuary|^Oz|Guoba|Birgitta|Ripple|Salon|Isomer|Sesshou|Lightning Rose|Rites of Termination \(DoT\)|Divine Maiden.*DoT|Havoc: Ruin \(DoT\)|Sweeping Fervor \(DoT\)|Riff Revolution \(DoT\)|Stone Stele \(Tick\)|skillDoTAbil)/i
+  /(DoT|Tick|Frostgrove Sanctuary|^Oz|Guoba|Birgitta|Ripple|Salon|Isomer|Sesshou|Lightning Rose|Rites of Termination \(DoT\)|Divine Maiden.*DoT|Havoc: Ruin \(DoT\)|Sweeping Fervor \(DoT\)|Riff Revolution \(DoT\)|Stone Stele \(Tick\)|skillDoTAbil|Rings of Searing Radiance|frostFallAbil|Frosty Parfait|Grass Ring of Sanctification)/i
 
 function inferIntervalSeconds(abil: string): number {
   const a = abil.toLowerCase()
@@ -308,6 +371,9 @@ function inferIntervalSeconds(abil: string): number {
   if (a.includes('stele')) return 2
   if (a.includes('salon')) return 2
   if (a.includes('dehya') || a.includes('skilldot')) return 2.5
+  if (a.includes('searing radiance') || a.includes('rings of searing')) return 2
+  if (a.includes('frostfall') || a.includes('frosty parfait')) return 1
+  if (a.includes('grass ring')) return 1.5
   return 2
 }
 
@@ -342,6 +408,10 @@ function inferDurationSeconds(
   if (a.includes('maiden')) return 12
   if (a.includes('stele')) return 30
   if (a.includes('guoba')) return 7
+  if (a.includes('searing radiance') || a.includes('rings of searing')) return 12
+  if (a.includes('frostfall')) return 12
+  if (a.includes('frosty parfait')) return 20
+  if (a.includes('grass ring')) return 12
   return 12
 }
 
