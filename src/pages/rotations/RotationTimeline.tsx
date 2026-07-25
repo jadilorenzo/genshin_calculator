@@ -183,6 +183,8 @@ interface RotationTimelineProps {
   hideToolbar?: boolean;
   /** Compact block sizing (hub / detail previews). */
   compactLayout?: boolean;
+  /** CORS mode for character portraits (use in screenshot capture). */
+  portraitCrossOrigin?: "anonymous" | "use-credentials";
 }
 
 const majorTickStep = (pxPerSec: number) => {
@@ -344,6 +346,7 @@ export const RotationTimeline = ({
   fixedZoomScale,
   hideToolbar = false,
   compactLayout = false,
+  portraitCrossOrigin,
 }: RotationTimelineProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -895,6 +898,7 @@ export const RotationTimeline = ({
         }
         onBeginResize={beginResize}
         onBeginMove={beginMove}
+        portraitCrossOrigin={portraitCrossOrigin}
       />
     ));
   };
@@ -1411,6 +1415,7 @@ const TimelineBlock = ({
   onHoverLeave,
   onBeginResize,
   onBeginMove,
+  portraitCrossOrigin,
 }: {
   placement: TimelinePlacement;
   character: CharacterData | undefined;
@@ -1432,6 +1437,7 @@ const TimelineBlock = ({
     mode: "resize-right" | "resize-left",
   ) => void;
   onBeginMove: (e: ReactPointerEvent, id: string) => void;
+  portraitCrossOrigin?: "anonymous" | "use-credentials";
 }) => {
   if (!character) return null;
 
@@ -1490,7 +1496,11 @@ const TimelineBlock = ({
   let icon: ReactNode;
   if (character.icon || character.iconFile) {
     icon = (
-      <CharacterIcon character={character} className="rotation-block-icon" />
+      <CharacterIcon
+        character={character}
+        className="rotation-block-icon"
+        crossOrigin={portraitCrossOrigin}
+      />
     );
   } else {
     icon = (

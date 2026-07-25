@@ -3555,3 +3555,114 @@ body.rotation-editor-resizing {
   background: var(--panel);
   max-width: 28rem;
 }
+
+/* —— Share screenshot (rotations preview capture) —— */
+
+.rotation-share-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: color-mix(in srgb, #05080e 72%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.rotation-share-dialog {
+  width: min(1100px, calc(100vw - 1.5rem));
+  max-height: min(94vh, 860px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.rotation-share-dialog-head {
+  flex: 0 0 auto;
+
+  h2 {
+    margin: 0 0 0.2rem;
+    font-size: 1.05rem;
+  }
+
+  .field-note {
+    margin: 0;
+  }
+}
+
+.rotation-share-preview-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--row-surface);
+  padding: 0.75rem;
+}
+
+.rotation-share-capture {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.85rem 1rem 1rem;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+
+  .rotation-timeline {
+    margin: 0;
+  }
+
+  /* Same as detail preview — scroll inside the timeline, not max-content collapse */
+  .rotation-timeline-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.15rem;
+  }
+}
+
+.rotation-share-capture-head {
+  margin: 0 0 0.75rem;
+}
+
+.rotation-share-capture-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.rotation-share-capture-desc {
+  margin: 0.35rem 0 0;
+  max-width: 42rem;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: var(--fog);
+}
+
+.rotation-share-dialog-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.85rem;
+
+  .auth-error,
+  .field-note {
+    margin: 0;
+    flex: 1 1 auto;
+  }
+
+  .chip-row {
+    margin-left: auto;
+  }
+}

@@ -25,6 +25,7 @@ import { PlacementRoster } from "./PlacementRoster";
 import { AuraSimPanel } from "./AuraSimPanel";
 import { ComboInspectPanel } from "./ComboInspectPanel";
 import { DeferredNumberInput } from "./DeferredNumberInput";
+import { ShareRotationButton } from "./ShareRotationModal";
 import {
   initialComboStepsForPlacement,
   initialOnFieldDuration,
@@ -701,6 +702,15 @@ const RotationsEditorInner = () => {
           </div>
         </div>
         <div className="rotation-editor-bar-actions">
+          <ShareRotationButton
+            title={title}
+            description={description}
+            placements={placements}
+            switchBuffer={switchBuffer}
+            timingMode={timingMode}
+            humanLag={humanLag}
+            showAuraMarkers={showAuraMarkers}
+          />
           <button
             type="button"
             className="chip compact"

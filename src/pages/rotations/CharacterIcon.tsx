@@ -6,10 +6,16 @@ const FALLBACK_CDN = "https://gi.yatta.moe/assets/UI";
 interface CharacterIconProps {
   character: Pick<CharacterData, "name" | "icon" | "iconFile">;
   className?: string;
+  /** Set for canvas/screenshot capture of cross-origin portraits. */
+  crossOrigin?: "anonymous" | "use-credentials";
 }
 
 /** Character portrait with Enka → Yatta fallbacks. */
-export const CharacterIcon = ({ character, className }: CharacterIconProps) => {
+export const CharacterIcon = ({
+  character,
+  className,
+  crossOrigin,
+}: CharacterIconProps) => {
   const [failed, setFailed] = useState(0);
   const enka = character.icon;
   const yatta = character.iconFile
@@ -32,6 +38,7 @@ export const CharacterIcon = ({ character, className }: CharacterIconProps) => {
       alt=""
       className={className}
       loading="lazy"
+      crossOrigin={crossOrigin}
       onError={() => setFailed((n) => n + 1)}
     />
   );

@@ -16,6 +16,7 @@ import {
 } from './communityApi'
 import type { RotationDoc } from './rotationDoc'
 import { RotationTimeline } from './RotationTimeline'
+import { ShareRotationButton } from './ShareRotationModal'
 
 const clerkConfigured = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
 
@@ -259,6 +260,15 @@ function DetailInner({
             >
               {isOwn ? 'Edit' : 'Remix'}
             </Link>
+            <ShareRotationButton
+              title={item.title}
+              description={item.description || ''}
+              placements={placements}
+              switchBuffer={doc.switchBuffer ?? 0.1}
+              timingMode={doc.timingMode ?? 'frame'}
+              humanLag={doc.humanLag ?? 0.15}
+              showAuraMarkers={doc.showAuraMarkers !== false}
+            />
           </div>
         </div>
         {editingMeta ? (
