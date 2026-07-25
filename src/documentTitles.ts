@@ -13,4 +13,7 @@ export const PAGE_TITLES = {
   pullPace: `Daily Pull Pace · ${SITE_NAME}`,
   pullingDay: `Pulling Day Tracker · ${SITE_NAME}`,
   bannerCountdown: `Genshin Banner Countdown · ${SITE_NAME}`,
+  personalTesting: `Personal Testing · ${SITE_NAME}`,
+  personalTestingSession: `Testing Session · ${SITE_NAME}`,
+  myStuff: `My Stuff · ${SITE_NAME}`,
 } as const

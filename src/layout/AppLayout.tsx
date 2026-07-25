@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useAuth } from '@clerk/react'
 import { AuthControls } from '../components/AuthControls.tsx'
 import { BannerPullingDayNotice } from '../components/BannerPullingDayNotice.tsx'
 import { BrandMoonLogo } from '../components/icons.tsx'
@@ -12,7 +13,21 @@ const links = [
   { to: '/characters', label: 'Characters' },
 ]
 
+const clerkConfigured = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
 const GITHUB_URL = 'https://github.com/jadilorenzo/genshin_calculator'
+
+function MyStuffNavLink() {
+  const { isSignedIn, isLoaded } = useAuth()
+  if (!isLoaded || !isSignedIn) return null
+  return (
+    <NavLink
+      to="/mine"
+      className={({ isActive }) => (isActive ? 'tab active' : 'tab')}
+    >
+      My Stuff
+    </NavLink>
+  )
+}
 
 export function AppLayout() {
   const { pathname } = useLocation()
@@ -57,6 +72,7 @@ export function AppLayout() {
                   {link.label}
                 </NavLink>
               ))}
+              {clerkConfigured ? <MyStuffNavLink /> : null}
             </nav>
           )}
         </div>

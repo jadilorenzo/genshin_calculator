@@ -393,6 +393,57 @@ a.brand-block:focus-visible {
   transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
+.sub-tab-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sub-tab-wip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.sub-tab-wip {
+  flex: 0 0 auto;
+  width: 0.95em;
+  height: 0.95em;
+  color: var(--gold-bright);
+  opacity: 0.9;
+}
+
+.sub-tab-wip-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.45rem);
+  z-index: 40;
+  transform: translateX(-50%) translateY(0.15rem);
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--panel);
+  box-shadow: var(--panel-shadow);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.sub-tab-wip-wrap:hover .sub-tab-wip-tip,
+.sub-tab-wip-wrap:focus-within .sub-tab-wip-tip,
+.sub-tab:hover .sub-tab-wip-tip,
+.sub-tab:focus-visible .sub-tab-wip-tip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 .sub-tab:hover {
   border-color: var(--gold-hover);
   color: var(--mist);

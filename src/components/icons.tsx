@@ -61,6 +61,17 @@ export function InfoIcon(props: IconProps) {
   )
 }
 
+/** Construction barrier — marks work-in-progress UI. */
+export function ConstructionIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="2" y="6" width="20" height="8" rx="1" />
+      <path d="M17 14v7M7 14v7M17 3v3M7 3v3" />
+      <path d="M10 14 2.3 6.3M14 6l7.7 7.7M8 6l8 8" />
+    </Icon>
+  )
+}
+
 /** Share / export — node graph style */
 export function ShareIcon(props: IconProps) {
   return (

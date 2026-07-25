@@ -132,23 +132,23 @@ function MyRotationsInner({
 
   return (
     <>
-      <header className="hero">
-        <div className="hero-top">
-          <h1>My rotations</h1>
-          <div className="hero-actions">
-            <Link to="/rotations" className="chip compact">
-              Community
-            </Link>
-            <Link to="/rotations/editor?new=1" className="chip filled">
-              New rotation
-            </Link>
-          </div>
+      <div className="mine-section-head">
+        <div className="mine-section-copy">
+          <h2>My rotations</h2>
+          <p className="field-note">
+            Your saved timelines — public ones appear on the community list;
+            private ones stay here.
+          </p>
         </div>
-        <p className="lede">
-          Your saved timelines — public ones appear on the community list;
-          private ones stay here.
-        </p>
-      </header>
+        <div className="hero-actions">
+          <Link to="/rotations" className="chip compact">
+            Community
+          </Link>
+          <Link to="/rotations/editor?new=1" className="chip filled">
+            New rotation
+          </Link>
+        </div>
+      </div>
 
       <div className="rotations-hub-toolbar">
         <div className="chip-row" role="group" aria-label="Sort rotations">
@@ -336,17 +336,14 @@ function MyRotationsWithClerk() {
 export default function MyRotationsPage() {
   if (!clerkConfigured) {
     return (
-      <>
-        <header className="hero">
-          <h1>My rotations</h1>
-          <p className="lede">
-            Auth is not configured, so saved rotations are unavailable.
-          </p>
-        </header>
+      <main className="panel">
+        <p className="lede">
+          Auth is not configured, so saved rotations are unavailable.
+        </p>
         <Link to="/rotations" className="chip">
           Community rotations
         </Link>
-      </>
+      </main>
     )
   }
   return <MyRotationsWithClerk />
