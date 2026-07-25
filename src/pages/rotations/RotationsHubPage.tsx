@@ -12,6 +12,7 @@ import {
 } from './communityApi'
 import type { RotationDoc } from './rotationDoc'
 import { RotationTimeline } from './RotationTimeline'
+import { ShareRotationButton } from './ShareRotationModal'
 
 const clerkConfigured = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
 
@@ -261,6 +262,15 @@ function RotationsHubInner({
                   >
                     Discussion {item.commentsCount}
                   </Link>
+                  <ShareRotationButton
+                    title={item.title}
+                    description={item.description || ''}
+                    placements={preview.placements}
+                    switchBuffer={preview.switchBuffer}
+                    timingMode={preview.timingMode}
+                    humanLag={preview.humanLag}
+                    showAuraMarkers={preview.showAuraMarkers}
+                  />
                 </div>
               </article>
             </li>

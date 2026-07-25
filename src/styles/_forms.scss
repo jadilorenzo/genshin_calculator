@@ -50,6 +50,17 @@ select {
   font-size: 0.84rem;
 }
 
+.chip.chip-icon {
+  padding: 0.32rem;
+  line-height: 0;
+
+  .icon {
+    display: block;
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+}
+
 .field {
   display: grid;
   gap: 0.55rem;

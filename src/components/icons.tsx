@@ -61,6 +61,18 @@ export function InfoIcon(props: IconProps) {
   )
 }
 
+/** Share / export — node graph style */
+export function ShareIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="18" cy="5" r="2.5" />
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="19" r="2.5" />
+      <path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5" />
+    </Icon>
+  )
+}
+
 /** Filled crescent for brand/logo — angled ~45°, smaller cutout */
 export function BrandMoonLogo({ className, title, ...props }: IconProps) {
   return (

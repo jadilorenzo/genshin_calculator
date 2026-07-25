@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { ShareIcon } from '../../components/icons'
 import type { TimingMode } from './fieldTimings'
 import { RotationTimeline } from './RotationTimeline'
 import {
@@ -210,26 +211,25 @@ type ShareRotationButtonProps = {
   className?: string
 }
 
-/** Opens the rotations-preview screenshot flow. */
+/** Opens the rotations-preview screenshot flow (icon button). */
 export function ShareRotationButton({
-  className = 'chip compact',
+  className = 'chip compact chip-icon',
   ...shareProps
 }: ShareRotationButtonProps) {
   const [open, setOpen] = useState(false)
+  const empty = shareProps.placements.length === 0
+  const label = empty ? 'Add characters before sharing' : 'Share as screenshot'
   return (
     <>
       <button
         type="button"
         className={className}
-        disabled={shareProps.placements.length === 0}
-        title={
-          shareProps.placements.length === 0
-            ? 'Add characters before sharing'
-            : 'Share as screenshot'
-        }
+        disabled={empty}
+        title={label}
+        aria-label={label}
         onClick={() => setOpen(true)}
       >
-        Share image
+        <ShareIcon />
       </button>
       <ShareRotationModal
         open={open}

@@ -12,6 +12,7 @@ import {
 } from './communityApi'
 import type { RotationDoc } from './rotationDoc'
 import { RotationTimeline } from './RotationTimeline'
+import { ShareRotationButton } from './ShareRotationModal'
 
 const clerkConfigured = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
 
@@ -272,6 +273,15 @@ function MyRotationsInner({
                         Discussion {item.commentsCount}
                       </Link>
                     ) : null}
+                    <ShareRotationButton
+                      title={item.title}
+                      description={item.description || ''}
+                      placements={preview.placements}
+                      switchBuffer={preview.switchBuffer}
+                      timingMode={preview.timingMode}
+                      humanLag={preview.humanLag}
+                      showAuraMarkers={preview.showAuraMarkers}
+                    />
                     <Link
                       to={`/rotations/editor/${item.id}`}
                       className="chip compact"
