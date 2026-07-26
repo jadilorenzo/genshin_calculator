@@ -115,6 +115,53 @@ function TestingSessionInner({
     void load()
   }, [load])
 
+  const selectRun = useCallback((runId: string) => {
+    setSelectedRunId(runId)
+    setBarMode('selected')
+    // Defer so the selected class is applied before scrolling.
+    requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>(`[data-run-id="${runId}"]`)
+        ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    })
+  }, [])
+
+  useEffect(() => {
+    if (runs.length === 0) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return
+      const key = event.key.toLowerCase()
+      const forward = key === 'arrowright' || key === 'd' || key === 's'
+      const backward = key === 'arrowleft' || key === 'a' || key === 'w'
+      if (!forward && !backward) return
+      if (expandedScreenshot || metaOpen) return
+      const target = event.target as HTMLElement | null
+      if (
+        target &&
+        (target.closest('input, textarea, select, [contenteditable="true"]') ||
+          target.isContentEditable)
+      ) {
+        return
+      }
+      event.preventDefault()
+      const currentIndex = selectedRunId
+        ? runs.findIndex((run) => run.id === selectedRunId)
+        : -1
+      const delta = forward ? 1 : -1
+      const nextIndex =
+        currentIndex < 0
+          ? forward
+            ? 0
+            : runs.length - 1
+          : currentIndex + delta
+      if (nextIndex < 0 || nextIndex >= runs.length) return
+      const next = runs[nextIndex]
+      if (next) selectRun(next.id)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [expandedScreenshot, metaOpen, runs, selectRun, selectedRunId])
+
   const stats = useMemo(() => {
     const dpsValues = runs
       .map((r) => r.dps)
@@ -360,9 +407,14 @@ function TestingSessionInner({
             <div className="testing-chart-block">
               <h2>DPS timeline</h2>
               <p className="field-note">
-                One series per main DPS across runs in this session.
+                Click a point or use ← → / WASD to select a run and update team
+                damage.
               </p>
-              <DpsTimelineChart runs={runs} />
+              <DpsTimelineChart
+                runs={runs}
+                selectedRunId={selectedRunId}
+                onSelectRun={selectRun}
+              />
             </div>
             <div className="testing-chart-block">
               <div className="testing-chart-block-head">
@@ -417,6 +469,7 @@ function TestingSessionInner({
                   return (
                     <li key={run.id}>
                       <article
+                        data-run-id={run.id}
                         className={
                           selected
                             ? 'testing-run-card selected'
@@ -426,7 +479,7 @@ function TestingSessionInner({
                         <button
                           type="button"
                           className="testing-run-select"
-                          onClick={() => setSelectedRunId(run.id)}
+                          onClick={() => selectRun(run.id)}
                         >
                           {run.imageUrl ? (
                             <img

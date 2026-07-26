@@ -5,6 +5,8 @@ import type { TestingRun } from './types'
 
 type DpsTimelineChartProps = {
   runs: TestingRun[]
+  selectedRunId?: string | null
+  onSelectRun?: (runId: string) => void
 }
 
 const COLORS = [
@@ -16,7 +18,11 @@ const COLORS = [
   '#e6c07b',
 ]
 
-export function DpsTimelineChart({ runs }: DpsTimelineChartProps) {
+export function DpsTimelineChart({
+  runs,
+  selectedRunId = null,
+  onSelectRun,
+}: DpsTimelineChartProps) {
   const [hover, setHover] = useState<string | null>(null)
 
   const series = useMemo(() => {
@@ -87,21 +93,63 @@ export function DpsTimelineChart({ runs }: DpsTimelineChartProps) {
           return (
             <g key={s.id}>
               <path d={path} fill="none" stroke={s.color} strokeWidth={2.2} />
-              {s.points.map((p) => (
-                <circle
-                  key={p.runId}
-                  cx={xAt(p.index)}
-                  cy={yAt(p.dps)}
-                  r={hover === p.runId ? 5 : 3.5}
-                  fill={s.color}
-                  onMouseEnter={() => setHover(p.runId)}
-                  onMouseLeave={() => setHover(null)}
-                >
-                  <title>
-                    {s.label}: {p.dps.toLocaleString()} DPS (run {p.index + 1})
-                  </title>
-                </circle>
-              ))}
+              {s.points.map((p) => {
+                const selected = p.runId === selectedRunId
+                const active = selected || hover === p.runId
+                return (
+                  <g key={p.runId}>
+                    {selected ? (
+                      <circle
+                        cx={xAt(p.index)}
+                        cy={yAt(p.dps)}
+                        r={9}
+                        className="testing-chart-point-ring"
+                        fill="none"
+                      />
+                    ) : null}
+                    <circle
+                      cx={xAt(p.index)}
+                      cy={yAt(p.dps)}
+                      r={active ? 5.5 : 3.5}
+                      fill={s.color}
+                      className={
+                        onSelectRun
+                          ? 'testing-chart-point'
+                          : undefined
+                      }
+                      role={onSelectRun ? 'button' : undefined}
+                      tabIndex={onSelectRun ? 0 : undefined}
+                      aria-label={
+                        onSelectRun
+                          ? `Select run ${p.index + 1}: ${p.dps.toLocaleString()} DPS`
+                          : undefined
+                      }
+                      aria-pressed={onSelectRun ? selected : undefined}
+                      onMouseEnter={() => setHover(p.runId)}
+                      onMouseLeave={() => setHover(null)}
+                      onClick={
+                        onSelectRun
+                          ? () => onSelectRun(p.runId)
+                          : undefined
+                      }
+                      onKeyDown={
+                        onSelectRun
+                          ? (event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault()
+                                onSelectRun(p.runId)
+                              }
+                            }
+                          : undefined
+                      }
+                    >
+                      <title>
+                        {s.label}: {p.dps.toLocaleString()} DPS (run {p.index + 1})
+                      </title>
+                    </circle>
+                  </g>
+                )
+              })}
             </g>
           )
         })}

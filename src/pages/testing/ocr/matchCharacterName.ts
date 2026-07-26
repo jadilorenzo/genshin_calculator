@@ -3,6 +3,7 @@ import {
   getCharacterByName,
 } from '../../rotations/characters'
 import type { CharacterData } from '../../rotations/types'
+import { OCR_NAME_ALIASES } from './ocrNameAliases'
 
 const levenshtein = (a: string, b: string): number => {
   const left = a.toLowerCase()
@@ -37,24 +38,6 @@ export function normalizeOcrName(raw: string): string {
     .replace(/1/g, 'l')
     .replace(/\s+/g, ' ')
     .trim()
-}
-
-/** Common short OCR misreads → kit display name. */
-const OCR_NAME_ALIASES: Record<string, string> = {
-  neer: 'Nefer',
-  net: 'Nefer',
-  nef: 'Nefer',
-  nefer: 'Nefer',
-  lneffa: 'Ineffa',
-  ineffa: 'Ineffa',
-  columb1na: 'Columbina',
-  columblna: 'Columbina',
-  columbina: 'Columbina',
-  alno: 'Aino',
-  aina: 'Aino',
-  laurna: 'Lauma',
-  sicrose: 'Sucrose',
-  sucrose: 'Sucrose',
 }
 
 /** Exact kit lookup, then best Levenshtein match within a small distance. */

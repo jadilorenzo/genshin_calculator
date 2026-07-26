@@ -570,6 +570,22 @@
   }
 }
 
+.testing-chart-point {
+  cursor: pointer;
+  outline: none;
+
+  &:focus-visible {
+    stroke: var(--focus);
+    stroke-width: 2;
+  }
+}
+
+.testing-chart-point-ring {
+  stroke: var(--gold-bright);
+  stroke-width: 1.6;
+  opacity: 0.85;
+}
+
 .testing-chart-grid {
   stroke: color-mix(in srgb, var(--line) 70%, transparent);
   stroke-width: 1;

@@ -23,13 +23,24 @@ export function TeamDamageBars({
   mode,
 }: TeamDamageBarsProps) {
   const rows = useMemo(() => {
+    const activeRun = runs.find((r) => r.id === selectedRunId) || runs[0]
+    const mainDpsId = activeRun?.mainDpsId || ''
+    const mainName = getCharacter(mainDpsId)?.name || ''
+
+    /** Main DPS pinned to the top, everyone else alphabetical. */
+    const byMainThenName = (a: BarRow, b: BarRow) => {
+      const aMain = isMain(a, mainDpsId, mainName)
+      const bMain = isMain(b, mainDpsId, mainName)
+      if (aMain !== bMain) return aMain ? -1 : 1
+      return a.name.localeCompare(b.name)
+    }
+
     if (mode === 'selected') {
-      const run = runs.find((r) => r.id === selectedRunId) || runs[0]
-      if (!run) return [] as BarRow[]
-      return run.characters
+      if (!activeRun) return [] as BarRow[]
+      return activeRun.characters
         .filter((c) => c.name || c.characterId)
         .map((c) => toBar(c))
-        .sort((a, b) => b.damage - a.damage)
+        .sort(byMainThenName)
     }
 
     // Average character share per main DPS grouping — flatten all runs for now
@@ -63,7 +74,7 @@ export function TeamDamageBars({
         damage: entry.n ? entry.damage / entry.n : 0,
         teamPct: entry.n ? entry.pct / entry.n : 0,
       }))
-      .sort((a, b) => b.damage - a.damage)
+      .sort(byMainThenName)
   }, [runs, selectedRunId, mode])
 
   if (rows.length === 0) {
@@ -105,6 +116,12 @@ export function TeamDamageBars({
       })}
     </ul>
   )
+}
+
+/** OCR rows may resolve only a name, so fall back to comparing display names. */
+function isMain(row: BarRow, mainDpsId: string, mainName: string): boolean {
+  if (mainDpsId && row.characterId) return row.characterId === mainDpsId
+  return Boolean(mainName) && row.name === mainName
 }
 
 function toBar(c: TestingCharacterRow): BarRow {
