@@ -5,7 +5,8 @@ import type {
   MaterialCost,
   MaterialInfo,
 } from './types'
-import { ASCEND_KEYS, TALENT_KEYS, levelToAscension } from './types'
+import { ASCEND_KEYS, TALENT_KEYS, WEEKDAYS, levelToAscension } from './types'
+import { WEAPON_MATERIAL_INFO, weaponNeeds } from './weaponCosts'
 
 type MaterialsFile = {
   ascendLabels: Record<string, string>
@@ -22,7 +23,10 @@ export const MATERIAL_LIST = data.materials
 export const MATERIAL_CHARACTERS = data.characters
 
 export const MATERIAL_BY_NAME: Record<string, MaterialInfo> =
-  Object.fromEntries(MATERIAL_LIST.map((m) => [m.name, m]))
+  Object.fromEntries([
+    ...MATERIAL_LIST.map((m) => [m.name, m] as const),
+    ...Object.entries(WEAPON_MATERIAL_INFO),
+  ])
 
 export const MATERIAL_CHAR_BY_ID: Record<string, CharacterMaterials> =
   Object.fromEntries(MATERIAL_CHARACTERS.map((c) => [c.id, c]))
@@ -93,30 +97,58 @@ export function mergeNeeds(
 }
 
 export function planNeeds(plan: FarmingPlanEntry): Record<string, number> {
+  const grouped = planNeedsGrouped(plan)
+  return mergeNeeds(grouped.ascension, grouped.talent, grouped.weapon)
+}
+
+export type MaterialGroupId = 'ascension' | 'talent' | 'weapon'
+
+export const MATERIAL_GROUP_ORDER: MaterialGroupId[] = [
+  'ascension',
+  'talent',
+  'weapon',
+]
+
+export const MATERIAL_GROUP_LABELS: Record<MaterialGroupId, string> = {
+  ascension: 'Ascension',
+  talent: 'Talents',
+  weapon: 'Weapon',
+}
+
+/** Needs split by source so the checklist can group without reshuffling. */
+export function planNeedsGrouped(plan: FarmingPlanEntry): Record<
+  MaterialGroupId,
+  Record<string, number>
+> {
   const character = MATERIAL_CHAR_BY_ID[plan.characterId]
-  if (!character) return {}
-  return mergeNeeds(
-    ascensionNeeds(
+  if (!character) {
+    return { ascension: {}, talent: {}, weapon: {} }
+  }
+  return {
+    ascension: ascensionNeeds(
       character,
       levelToAscension(plan.currentLevel),
       levelToAscension(plan.targetLevel),
     ),
-    talentNeeds(
-      character,
-      plan.talents.normal.current,
-      plan.talents.normal.target,
+    talent: mergeNeeds(
+      talentNeeds(
+        character,
+        plan.talents.normal.current,
+        plan.talents.normal.target,
+      ),
+      talentNeeds(
+        character,
+        plan.talents.skill.current,
+        plan.talents.skill.target,
+      ),
+      talentNeeds(
+        character,
+        plan.talents.burst.current,
+        plan.talents.burst.target,
+      ),
     ),
-    talentNeeds(
-      character,
-      plan.talents.skill.current,
-      plan.talents.skill.target,
-    ),
-    talentNeeds(
-      character,
-      plan.talents.burst.current,
-      plan.talents.burst.target,
-    ),
-  )
+    weapon: weaponNeeds(plan.weapon),
+  }
 }
 
 export function planProgress(
@@ -124,19 +156,9 @@ export function planProgress(
   inventory: Record<string, number>,
   checkedMaterials: Record<string, boolean>,
 ): { pct: number; remainingUnits: number; neededUnits: number } {
-  const needs = planNeeds(plan)
-  let neededUnits = 0
-  let ownedUnits = 0
-  for (const [name, needed] of Object.entries(needs)) {
-    neededUnits += needed
-    if (checkedMaterials[name]) ownedUnits += needed
-    else ownedUnits += Math.min(inventory[name] || 0, needed)
-  }
-  return {
-    pct: neededUnits > 0 ? (ownedUnits / neededUnits) * 100 : plan.checked ? 100 : 0,
-    remainingUnits: Math.max(0, neededUnits - ownedUnits),
-    neededUnits,
-  }
+  return materialsProgressFromGroups(
+    resourceProgressGrouped(plan, inventory, checkedMaterials),
+  )
 }
 
 export function aggregateNeeds(
@@ -155,7 +177,13 @@ export type ResourceProgress = {
   info: MaterialInfo | undefined
 }
 
-export function resourceProgressList(
+export type ResourceGroup = {
+  id: MaterialGroupId
+  label: string
+  rows: ResourceProgress[]
+}
+
+function toResourceRows(
   needs: Record<string, number>,
   inventory: Record<string, number>,
   checkedMaterials: Record<string, boolean>,
@@ -176,14 +204,36 @@ export function resourceProgressList(
         info: MATERIAL_BY_NAME[name],
       }
     })
-    .sort((a, b) => {
-      if (a.checked !== b.checked) return a.checked ? 1 : -1
-      if (a.pct !== b.pct) return a.pct - b.pct
-      return a.name.localeCompare(b.name)
-    })
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export function resourceProgressList(
+  needs: Record<string, number>,
+  inventory: Record<string, number>,
+  checkedMaterials: Record<string, boolean>,
+): ResourceProgress[] {
+  return toResourceRows(needs, inventory, checkedMaterials)
+}
+
+/** Grouped checklist rows — stable alpha order within each group. */
+export function resourceProgressGrouped(
+  plan: FarmingPlanEntry,
+  inventory: Record<string, number>,
+  checkedMaterials: Record<string, boolean>,
+): ResourceGroup[] {
+  // Unbuilt / not-obtained goals assume you have none of the mats yet.
+  const effectiveInventory = plan.notObtained ? {} : inventory
+  const effectiveChecked = plan.notObtained ? {} : checkedMaterials
+  const grouped = planNeedsGrouped(plan)
+  return MATERIAL_GROUP_ORDER.map((id) => ({
+    id,
+    label: MATERIAL_GROUP_LABELS[id],
+    rows: toResourceRows(grouped[id], effectiveInventory, effectiveChecked),
+  })).filter((group) => group.rows.length > 0)
 }
 
 export function overallProgress(resources: ResourceProgress[]): {
+  /** Equal weight per material — not by raw unit count (avoids Mora skew). */
   pct: number
   ownedUnits: number
   neededUnits: number
@@ -193,13 +243,15 @@ export function overallProgress(resources: ResourceProgress[]): {
   let ownedUnits = 0
   let neededUnits = 0
   let completeCount = 0
+  let pctSum = 0
   for (const row of resources) {
     neededUnits += row.needed
     ownedUnits += row.checked ? row.needed : Math.min(row.owned, row.needed)
     if (row.checked || row.owned >= row.needed) completeCount += 1
+    pctSum += row.pct
   }
   return {
-    pct: neededUnits > 0 ? (ownedUnits / neededUnits) * 100 : 0,
+    pct: resources.length > 0 ? pctSum / resources.length : 0,
     ownedUnits,
     neededUnits,
     completeCount,
@@ -207,9 +259,87 @@ export function overallProgress(resources: ResourceProgress[]): {
   }
 }
 
-/** Talent/domain materials available on a given weekday. */
-export function materialsForWeekday(day: string): MaterialInfo[] {
-  return MATERIAL_LIST.filter((m) => m.daysOfWeek.includes(day)).sort((a, b) =>
-    a.name.localeCompare(b.name),
-  )
+/** Equal weight per group (ascension / talents / weapon), then equal weight per mat inside. */
+export function materialsProgressFromGroups(groups: ResourceGroup[]): {
+  pct: number
+  completeCount: number
+  totalCount: number
+} {
+  let completeCount = 0
+  let totalCount = 0
+  if (groups.length === 0) {
+    return { pct: 0, completeCount: 0, totalCount: 0 }
+  }
+  let groupPctSum = 0
+  for (const group of groups) {
+    totalCount += group.rows.length
+    if (group.rows.length === 0) continue
+    let rowPctSum = 0
+    for (const row of group.rows) {
+      rowPctSum += row.pct
+      if (row.checked || row.owned >= row.needed) completeCount += 1
+    }
+    groupPctSum += rowPctSum / group.rows.length
+  }
+  return {
+    pct: groupPctSum / groups.length,
+    completeCount,
+    totalCount,
+  }
+}
+
+const DAY_SHORT: Record<string, string> = {
+  Sunday: 'Sun',
+  Monday: 'Mon',
+  Tuesday: 'Tue',
+  Wednesday: 'Wed',
+  Thursday: 'Thu',
+  Friday: 'Fri',
+  Saturday: 'Sat',
+}
+
+/** Incomplete talent mats that drop in domains today. */
+export function farmableTalentToday(
+  groups: ResourceGroup[],
+  today: string = WEEKDAYS[new Date().getDay()],
+): {
+  rows: ResourceProgress[]
+  domain: string | null
+  names: string[]
+} | null {
+  const talentGroup = groups.find((g) => g.id === 'talent')
+  if (!talentGroup) return null
+  const rows = talentGroup.rows.filter((row) => {
+    if (row.owned >= row.needed || row.checked) return false
+    const days = row.info?.daysOfWeek
+    if (!days?.length || !days.includes(today)) return false
+    const type = row.info?.typeText?.toLowerCase() ?? ''
+    return type.includes('talent')
+  })
+  if (rows.length === 0) return null
+  const domain =
+    rows.find((r) => r.info?.domain)?.info?.domain ?? null
+  return {
+    rows,
+    domain,
+    names: rows.map((r) => r.name),
+  }
+}
+
+/** Compact schedule label for checklist rows (e.g. "Can farm today", "Mon · Thu"). */
+export function farmScheduleLabel(
+  info: MaterialInfo | undefined,
+  today: string = WEEKDAYS[new Date().getDay()],
+): string | null {
+  const days = info?.daysOfWeek
+  if (!days?.length) return null
+  if (days.includes(today)) {
+    const kind = info?.typeText?.toLowerCase().includes('talent')
+      ? 'talent'
+      : info?.typeText?.toLowerCase().includes('weapon')
+        ? 'weapon'
+        : null
+    return kind ? `Can farm ${kind}` : 'Can farm today'
+  }
+  return `Farmed ${days.map((d) => DAY_SHORT[d] ?? d.slice(0, 3)).join(' · ')}`
 }

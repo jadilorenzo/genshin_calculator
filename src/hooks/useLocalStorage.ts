@@ -43,7 +43,9 @@ export function useLocalStorage<T>(
     setLocalValue(userData.getCloudValue(key, initialValue))
   }, [cloudReady, userData, key, initialValue])
 
-  // Always keep a localStorage copy (signed-out source of truth; signed-in cache).
+  // Keep a localStorage copy as a cache (signed-in) / source of truth (signed-out).
+  // Write synchronously in setValue so navigating to another route can't remount
+  // from a stale read before the effect flush.
   useEffect(() => {
     writeLocalJson(key, localValue)
   }, [key, localValue])
@@ -55,6 +57,7 @@ export function useLocalStorage<T>(
           typeof update === 'function'
             ? (update as (prevState: T) => T)(prev)
             : update
+        writeLocalJson(key, next)
         if (cloudReady && userData) {
           userData.setCloudValue(key, next)
         }

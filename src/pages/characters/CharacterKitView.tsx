@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { CharacterIcon } from '../rotations/CharacterIcon'
 import type { CharacterData, KitAttribute, KitSkill } from '../rotations/types'
 import { CharacterAnimationTimingsView } from './CharacterAnimationTimingsView'
@@ -75,6 +76,8 @@ interface CharacterKitViewProps {
   showHeader?: boolean
   /** Collapse kit sections by default (useful in dense lists) */
   compact?: boolean
+  /** Link to create a farming goal for this character */
+  showAddGoal?: boolean
   className?: string
 }
 
@@ -84,6 +87,7 @@ export function CharacterKitView({
   headingId,
   showHeader = true,
   compact = false,
+  showAddGoal = false,
   className,
 }: CharacterKitViewProps) {
   const { kit } = character
@@ -108,6 +112,14 @@ export function CharacterKitView({
               {characterSubtitle(character)}
             </p>
           </div>
+          {showAddGoal ? (
+            <Link
+              to={`/mine/farming?add=${encodeURIComponent(character.id)}`}
+              className="character-kit-add-goal"
+            >
+              Add build goal
+            </Link>
+          ) : null}
         </header>
       ) : null}
 

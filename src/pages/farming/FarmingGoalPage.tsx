@@ -1,31 +1,253 @@
-import { useMemo, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useMemo } from 'react'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { TrashIcon } from '../../components/icons'
 import { PAGE_TITLES } from '../../documentTitles'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
-import { CharacterIcon } from '../rotations/CharacterIcon'
-import { CHARACTER_KITS, getCharacter } from '../rotations/characters'
 import { GoalEditor, MaterialRowIcon } from './farmingUi'
 import {
   MATERIAL_CHAR_BY_ID,
-  materialsForWeekday,
-  overallProgress,
-  planNeeds,
-  planProgress,
-  resourceProgressList,
+  farmScheduleLabel,
+  farmableTalentToday,
+  materialsProgressFromGroups,
+  resourceProgressGrouped,
+  type ResourceGroup,
+  type ResourceProgress,
 } from './materialsData'
-import { formatGoalSummary, WEEKDAYS } from './types'
+import { buildProgress, formatGoalSummary } from './types'
 import { useFarmingState } from './useFarmingState'
 
-function todayWeekday(): string {
-  return WEEKDAYS[new Date().getDay()]
+function MaterialChecklistRow({
+  row,
+  onOwned,
+  locked = false,
+}: {
+  row: ResourceProgress
+  onOwned: (name: string, value: number) => void
+  locked?: boolean
+}) {
+  const schedule = farmScheduleLabel(row.info)
+  const titleHint = [schedule, row.info?.domain].filter(Boolean).join(' · ')
+  const sliderMax = Math.max(1, row.needed)
+  const sliderValue = Math.min(row.owned, sliderMax)
+  const fillPct =
+    row.needed > 0 ? Math.min(100, (sliderValue / row.needed) * 100) : 100
+  return (
+    <li
+      className={[
+        row.owned >= row.needed ? 'done' : '',
+        locked ? 'locked' : '',
+      ]
+        .filter(Boolean)
+        .join(' ') || undefined}
+      title={titleHint || undefined}
+    >
+      <div className="farming-resource-main">
+        <MaterialRowIcon name={row.name} icon={row.info?.icon} />
+        <div className="farming-resource-copy">
+          <span className="farming-resource-name">{row.name}</span>
+          {schedule ? (
+            <span
+              className={
+                schedule.startsWith('Can farm')
+                  ? 'farming-resource-days today'
+                  : 'farming-resource-days'
+              }
+            >
+              {schedule}
+            </span>
+          ) : null}
+        </div>
+      </div>
+      <div className="farming-resource-nums">
+        <label className="farming-owned">
+          <span className="visually-hidden">Owned {row.name}</span>
+          <input
+            type="number"
+            min={0}
+            value={row.owned}
+            disabled={locked}
+            size={Math.max(String(row.owned).length, String(row.needed).length, 4)}
+            style={{
+              width: `${Math.min(
+                12,
+                Math.max(
+                  5,
+                  Math.max(
+                    String(row.owned).length,
+                    String(row.needed).length,
+                  ) + 2.5,
+                ),
+              )}ch`,
+            }}
+            onChange={(e) => onOwned(row.name, Number(e.target.value))}
+          />
+        </label>
+        <span className="field-note">/ {row.needed.toLocaleString()}</span>
+        <span className="farming-resource-pct">{row.pct.toFixed(0)}%</span>
+      </div>
+      <label className="farming-mat-slider">
+        <span className="visually-hidden">Progress for {row.name}</span>
+        <input
+          type="range"
+          min={0}
+          max={sliderMax}
+          step={1}
+          value={sliderValue}
+          disabled={locked || row.needed <= 0}
+          onChange={(e) => onOwned(row.name, Number(e.target.value))}
+          style={{ ['--slider-fill' as string]: `${fillPct}%` }}
+        />
+      </label>
+    </li>
+  )
+}
+
+function ChecklistPanel({
+  groups,
+  matsProgress,
+  matsView,
+  setMatsView,
+  notObtained,
+  locked,
+  expanded,
+  onToggleExpand,
+  onOwned,
+}: {
+  groups: ResourceGroup[]
+  matsProgress: { pct: number; completeCount: number; totalCount: number }
+  matsView: 'list' | 'cards'
+  setMatsView: (view: 'list' | 'cards') => void
+  notObtained: boolean
+  locked: boolean
+  expanded: boolean
+  onToggleExpand: () => void
+  onOwned: (name: string, value: number) => void
+}) {
+  const listClass =
+    matsView === 'cards'
+      ? 'farming-resource-list farming-resource-list-full cards'
+      : 'farming-resource-list farming-resource-list-full'
+
+  return (
+    <section
+      className={[
+        'farming-panel farming-goal-checklist',
+        expanded ? 'expanded' : 'compact',
+      ].join(' ')}
+      aria-label="Materials"
+    >
+      <div className="farming-panel-head">
+        <h3>Checklist</h3>
+        <div className="farming-mats-head-actions">
+          <span className="field-note">
+            {matsProgress.totalCount
+              ? `${matsProgress.pct.toFixed(0)}% · ${matsProgress.completeCount}/${matsProgress.totalCount}`
+              : '—'}
+          </span>
+          <div
+            className="farming-view-toggle"
+            role="group"
+            aria-label="Materials layout"
+          >
+            <button
+              type="button"
+              className={matsView === 'list' ? 'chip compact active' : 'chip compact'}
+              onClick={() => setMatsView('list')}
+            >
+              List
+            </button>
+            <button
+              type="button"
+              className={
+                matsView === 'cards' ? 'chip compact active' : 'chip compact'
+              }
+              onClick={() => setMatsView('cards')}
+            >
+              Cards
+            </button>
+          </div>
+          <button
+            type="button"
+            className="chip compact"
+            aria-expanded={expanded}
+            onClick={onToggleExpand}
+          >
+            {expanded ? 'Collapse' : 'Expand'}
+          </button>
+        </div>
+      </div>
+      {notObtained ? (
+        <p className="field-note">
+          Materials are treated as unowned while the character is not obtained.
+          Uncheck that to apply your inventory.
+        </p>
+      ) : null}
+      {groups.length === 0 ? (
+        <p className="field-note">
+          No materials required for the current build targets.
+        </p>
+      ) : expanded ? (
+        <div className="farming-checklist-groups">
+          {groups.map((group) => (
+            <section
+              key={group.id}
+              className="farming-checklist-group"
+              aria-label={group.label}
+            >
+              <h4 className="farming-checklist-group-title">
+                {group.label}
+                <span className="field-note">
+                  {(
+                    group.rows.reduce((sum, row) => sum + row.pct, 0) /
+                    group.rows.length
+                  ).toFixed(0)}
+                  % ·{' '}
+                  {
+                    group.rows.filter(
+                      (row) => row.owned >= row.needed || row.checked,
+                    ).length
+                  }
+                  /{group.rows.length}
+                </span>
+              </h4>
+              <ul className={listClass}>
+                {group.rows.map((row) => (
+                  <MaterialChecklistRow
+                    key={`${group.id}:${row.name}`}
+                    row={row}
+                    locked={locked}
+                    onOwned={onOwned}
+                  />
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <ul className={listClass}>
+          {groups.flatMap((group) =>
+            group.rows.map((row) => (
+              <MaterialChecklistRow
+                key={`${group.id}:${row.name}`}
+                row={row}
+                locked={locked}
+                onOwned={onOwned}
+              />
+            )),
+          )}
+        </ul>
+      )}
+    </section>
+  )
 }
 
 /** Full-page view for one character goal + its materials checklist. */
 export default function FarmingGoalPage() {
   const { characterId: rawId = '' } = useParams()
   const characterId = decodeURIComponent(rawId)
-  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const startEditing = searchParams.get('edit') === '1'
   const {
     state,
     plans,
@@ -33,13 +255,15 @@ export default function FarmingGoalPage() {
     updateTalents,
     applyTalentPreset,
     setOwned,
-    toggleMaterialChecked,
     removeCharacter,
   } = useFarmingState()
-  const [weekday, setWeekday] = useState(todayWeekday)
   const [matsView, setMatsView] = useLocalStorage<'list' | 'cards'>(
     'gc:farming:matsView',
     'list',
+  )
+  const [checklistExpanded, setChecklistExpanded] = useLocalStorage(
+    'gc:farming:checklistExpanded',
+    false,
   )
 
   const plan = useMemo(
@@ -53,26 +277,26 @@ export default function FarmingGoalPage() {
     plan ? `${name} · ${PAGE_TITLES.farmingGoal}` : PAGE_TITLES.farming,
   )
 
-  const needs = useMemo(() => {
-    if (!plan || plan.checked) return {}
-    return planNeeds(plan)
-  }, [plan])
-
-  const resources = useMemo(
+  const groups = useMemo(
     () =>
-      resourceProgressList(needs, state.inventory, state.checkedMaterials),
-    [needs, state.inventory, state.checkedMaterials],
+      plan
+        ? resourceProgressGrouped(
+            plan,
+            state.inventory,
+            state.checkedMaterials,
+          )
+        : [],
+    [plan, state.inventory, state.checkedMaterials],
   )
-  const progress = useMemo(() => overallProgress(resources), [resources])
-  const planPct = plan
-    ? planProgress(plan, state.inventory, state.checkedMaterials)
-    : null
-
-  const scheduleMats = useMemo(() => {
-    const todayMats = materialsForWeekday(weekday)
-    const neededNames = new Set(Object.keys(needs))
-    return todayMats.filter((m) => neededNames.has(m.name))
-  }, [weekday, needs])
+  const matsProgress = useMemo(
+    () => materialsProgressFromGroups(groups),
+    [groups],
+  )
+  const talentFarmToday = useMemo(
+    () => (groups.length ? farmableTalentToday(groups) : null),
+    [groups],
+  )
+  const buildPct = plan ? buildProgress(plan).pct : 0
 
   if (!MATERIAL_CHAR_BY_ID[characterId]) {
     return <Navigate to="/mine/farming" replace />
@@ -82,232 +306,171 @@ export default function FarmingGoalPage() {
     return <Navigate to="/mine/farming" replace />
   }
 
-  const kit =
-    getCharacter(plan.characterId) ||
-    CHARACTER_KITS.find((c) => c.name === mat?.name)
-
   const onRemove = () => {
+    if (
+      !window.confirm(
+        `Delete the build goal for ${name}? This can’t be undone.`,
+      )
+    ) {
+      return
+    }
     removeCharacter(plan.characterId)
-    navigate('/mine/farming')
+    // Let the !plan redirect handle navigation after state updates, so the list
+    // remounts against the updated store.
+  }
+
+  const checklistProps = {
+    groups,
+    matsProgress,
+    matsView,
+    setMatsView,
+    notObtained: plan.notObtained,
+    locked: plan.notObtained,
+    expanded: checklistExpanded,
+    onToggleExpand: () => setChecklistExpanded(!checklistExpanded),
+    onOwned: setOwned,
   }
 
   return (
-    <main className="farming-page farming-goal-page">
-      <div className="mine-section-head">
-        <div className="mine-section-copy">
-          <p className="farming-back">
-            <Link to="/mine/farming" className="chip compact">
-              ← Goals
-            </Link>
-          </p>
-          <h2>{name}</h2>
-          <p className="field-note">{formatGoalSummary(plan)}</p>
+    <main
+      className={[
+        'farming-page farming-goal-page',
+        checklistExpanded ? 'checklist-expanded' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <header className="farming-goal-hero">
+        <div className="mine-section-head farming-goal-head">
+          <div className="mine-section-copy">
+            <p className="farming-back">
+              <Link to="/mine/farming" className="chip compact">
+                ← Build goals
+              </Link>
+            </p>
+            <h2>{name}</h2>
+            <p className="field-note">{formatGoalSummary(plan)}</p>
+          </div>
+          <div className="farming-goal-head-actions">
+            <div className="farming-goal-head-pct">
+              <div className="farming-dual-pct">
+                <span className="farming-overall-value">
+                  {`${buildPct.toFixed(0)}%`}
+                </span>
+                <span className="field-note">built</span>
+              </div>
+              <div className="farming-dual-pct mats">
+                <span className="farming-overall-value mats">
+                  {matsProgress.totalCount
+                    ? `${matsProgress.pct.toFixed(0)}%`
+                    : '—'}
+                </span>
+                <span className="field-note">
+                  mats
+                  {matsProgress.totalCount
+                    ? ` · ${matsProgress.completeCount}/${matsProgress.totalCount}`
+                    : ''}
+                </span>
+              </div>
+            </div>
+            <button type="button" className="chip compact farming-delete-btn" onClick={onRemove}>
+              <TrashIcon />
+              Delete
+            </button>
+          </div>
         </div>
-        <button type="button" className="chip compact" onClick={onRemove}>
-          Remove goal
-        </button>
-      </div>
 
-      <div className="farming-overall-bar">
-        <div className="farming-overall-copy">
-          <span className="farming-stat-label">Goal progress</span>
-          <span className="farming-overall-value">
-            {plan.checked
-              ? '100%'
-              : planPct
-                ? `${planPct.pct.toFixed(0)}%`
-                : '—'}
-          </span>
-          <span className="field-note">
-            {progress.totalCount
-              ? `${progress.completeCount}/${progress.totalCount} materials`
-              : 'No materials required'}
-            {planPct && !plan.checked
-              ? ` · ${planPct.remainingUnits.toLocaleString()} units left`
-              : ''}
-          </span>
-        </div>
-        <div className="farming-progress-track large">
-          <div
-            className="farming-progress-fill"
-            style={{
-              width: `${plan.checked ? 100 : Math.min(100, planPct?.pct ?? 0)}%`,
-            }}
-          />
-        </div>
-      </div>
-
-      <section className="farming-panel" aria-label="Build form">
-        <div className="farming-panel-head">
-          <h3>Build form</h3>
-          {kit ? (
-            <CharacterIcon character={kit} className="testing-char-icon" />
-          ) : null}
-        </div>
-        <GoalEditor
-          plan={plan}
-          inventory={state.inventory}
-          checkedMaterials={state.checkedMaterials}
-          onUpdate={updatePlan}
-          onTalent={updateTalents}
-          onPreset={applyTalentPreset}
-        />
-      </section>
-
-      <section className="farming-panel" aria-label="Today’s domains">
-        <div className="farming-panel-head">
-          <h3>Today’s domains</h3>
-          <label className="farming-day-select">
-            <span className="visually-hidden">Weekday</span>
-            <select
-              value={weekday}
-              onChange={(e) => setWeekday(e.target.value)}
-            >
-              {WEEKDAYS.map((day) => (
-                <option key={day} value={day}>
-                  {day}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {scheduleMats.length === 0 ? (
-          <p className="field-note">
-            {Object.keys(needs).length === 0
-              ? 'Nothing to farm for this goal.'
-              : `No materials for this goal drop on ${weekday}.`}
-          </p>
-        ) : (
-          <ul className="farming-schedule-list">
-            {scheduleMats.map((item) => {
-              const row = resources.find((r) => r.name === item.name)
-              return (
-                <li key={item.name}>
-                  <MaterialRowIcon name={item.name} icon={item.icon} />
-                  <div className="farming-schedule-copy">
-                    <span>{item.name}</span>
-                    <span className="field-note">
-                      {item.domain || 'Domain material'}
-                      {row
-                        ? ` · ${row.remaining.toLocaleString()} left`
-                        : ''}
-                    </span>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
-
-      <section className="farming-panel farming-goal-checklist" aria-label="Materials">
-        <div className="farming-panel-head">
-          <h3>Materials checklist</h3>
-          <div className="farming-mats-head-actions">
-            <span className="field-note">
-              {progress.totalCount
-                ? `${progress.completeCount}/${progress.totalCount}`
-                : 'Empty'}
-            </span>
-            <div
-              className="farming-view-toggle"
-              role="group"
-              aria-label="Materials layout"
-            >
-              <button
-                type="button"
-                className={
-                  matsView === 'list' ? 'chip compact active' : 'chip compact'
-                }
-                onClick={() => setMatsView('list')}
-              >
-                List
-              </button>
-              <button
-                type="button"
-                className={
-                  matsView === 'cards' ? 'chip compact active' : 'chip compact'
-                }
-                onClick={() => setMatsView('cards')}
-              >
-                Cards
-              </button>
+        <div className="farming-dual-tracks" aria-label="Build and checklist progress">
+          <div className="farming-dual-track">
+            <span className="farming-dual-track-label">Built</span>
+            <div className="farming-progress-track farming-goal-head-track">
+              <div
+                className="farming-progress-fill"
+                style={{ width: `${Math.min(100, buildPct)}%` }}
+              />
+            </div>
+          </div>
+          <div className="farming-dual-track">
+            <span className="farming-dual-track-label">Mats</span>
+            <div className="farming-progress-track farming-goal-head-track mats">
+              <div
+                className="farming-progress-fill mats"
+                style={{
+                  width: `${Math.min(100, matsProgress.pct)}%`,
+                }}
+              />
             </div>
           </div>
         </div>
-        {resources.length === 0 ? (
-          <p className="field-note">
-            No materials required for the current build targets.
-          </p>
-        ) : (
-          <ul
-            className={
-              matsView === 'cards'
-                ? 'farming-resource-list farming-resource-list-full cards'
-                : 'farming-resource-list farming-resource-list-full'
-            }
-          >
-            {resources.map((row) => {
-              const daysHint = [
-                row.info?.daysOfWeek?.join(' · '),
-                row.info?.domain,
-              ]
-                .filter(Boolean)
-                .join(' · ')
-              return (
-                <li
-                  key={row.name}
-                  className={
-                    row.checked || row.owned >= row.needed ? 'done' : undefined
-                  }
-                  title={daysHint || undefined}
-                >
-                  <label className="farming-check">
-                    <input
-                      type="checkbox"
-                      checked={row.checked}
-                      onChange={() => toggleMaterialChecked(row.name)}
-                      aria-label={`Mark ${row.name} done`}
-                    />
-                    <MaterialRowIcon name={row.name} icon={row.info?.icon} />
-                    <span className="farming-resource-name">{row.name}</span>
-                  </label>
-                  <div className="farming-resource-nums">
-                    <label className="farming-owned">
-                      <span className="visually-hidden">Owned {row.name}</span>
-                      <input
-                        type="number"
-                        min={0}
-                        value={row.owned}
-                        onChange={(e) =>
-                          setOwned(row.name, Number(e.target.value))
-                        }
-                      />
-                    </label>
-                    <span className="field-note">
-                      / {row.needed.toLocaleString()}
-                    </span>
-                    <span className="farming-resource-pct">
-                      {row.pct.toFixed(0)}%
-                    </span>
-                  </div>
-                  <div className="farming-progress-track">
-                    <div
-                      className="farming-progress-fill"
-                      style={{ width: `${row.pct}%` }}
-                    />
-                  </div>
-                  {daysHint ? (
-                    <p className="field-note farming-resource-days">
-                      {daysHint}
-                    </p>
-                  ) : null}
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
+      </header>
+
+      {talentFarmToday ? (
+        <div className="farming-farmable-banner" role="status">
+          <div className="farming-farmable-banner-copy">
+            <strong>Talent materials available today</strong>
+            <p>
+              {talentFarmToday.domain
+                ? `${talentFarmToday.domain} · `
+                : ''}
+              {talentFarmToday.names.length <= 3
+                ? talentFarmToday.names.join(', ')
+                : `${talentFarmToday.names.slice(0, 2).join(', ')} +${talentFarmToday.names.length - 2} more`}
+            </p>
+          </div>
+          {!checklistExpanded ? (
+            <button
+              type="button"
+              className="chip compact"
+              onClick={() => setChecklistExpanded(true)}
+            >
+              Open checklist
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div
+        className={[
+          'farming-goal-layout',
+          checklistExpanded ? 'expanded' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <div className="farming-goal-main">
+          <section className="farming-panel" aria-label="Build">
+            <GoalEditor
+              plan={plan}
+              matsPct={matsProgress.pct}
+              matsComplete={matsProgress.completeCount}
+              matsTotal={matsProgress.totalCount}
+              onUpdate={updatePlan}
+              onTalent={updateTalents}
+              onPreset={applyTalentPreset}
+              onRemove={onRemove}
+              initiallyEditing={startEditing}
+              onConfirmGoal={() => {
+                if (!searchParams.has('edit')) return
+                const next = new URLSearchParams(searchParams)
+                next.delete('edit')
+                setSearchParams(next, { replace: true })
+              }}
+            />
+          </section>
+        </div>
+
+        {!checklistExpanded ? (
+          <aside className="farming-goal-side">
+            <ChecklistPanel {...checklistProps} />
+          </aside>
+        ) : null}
+      </div>
+
+      {checklistExpanded ? (
+        <div className="farming-goal-checklist-below">
+          <ChecklistPanel {...checklistProps} />
+        </div>
+      ) : null}
     </main>
   )
 }

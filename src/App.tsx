@@ -91,7 +91,7 @@ function TestingSessionRoute() {
 
 function FarmingRoute() {
   return (
-    <Suspense fallback={<p className="field-note">Loading farming…</p>}>
+    <Suspense fallback={<p className="field-note">Loading build goals…</p>}>
       <FarmingPage />
     </Suspense>
   )

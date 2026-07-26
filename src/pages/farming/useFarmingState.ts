@@ -108,10 +108,15 @@ export function useFarmingState() {
   const setOwned = useCallback(
     (name: string, value: number) => {
       const next = Math.max(0, Math.round(value) || 0)
-      setState((prev) => ({
-        ...prev,
-        inventory: { ...prev.inventory, [name]: next },
-      }))
+      setState((prev) => {
+        const checkedMaterials = { ...prev.checkedMaterials }
+        if (checkedMaterials[name]) delete checkedMaterials[name]
+        return {
+          ...prev,
+          inventory: { ...prev.inventory, [name]: next },
+          checkedMaterials,
+        }
+      })
     },
     [setState],
   )

@@ -5,9 +5,8 @@ export type RecommendedGoal = {
   characterId: string
   tag: string
   blurb: string
-  /** Starting progress snapshot for a typical mid-build account. */
+  /** Goal targets only — progress always starts fully unbuilt. */
   seed?: {
-    currentLevel?: number
     targetLevel?: number
     weaponLevel?: number
     talents?: Partial<{
@@ -28,13 +27,12 @@ export const RECOMMENDED_GOALS: RecommendedGoal[] = [
     tag: 'DPS crown',
     blurb: 'Lv 90 · talents 1 / 10 / 10',
     seed: {
-      currentLevel: 70,
       targetLevel: 90,
       weaponLevel: 90,
       talents: {
-        normal: { current: 1, target: 1 },
-        skill: { current: 6, target: 10 },
-        burst: { current: 6, target: 10 },
+        normal: { target: 1 },
+        skill: { target: 10 },
+        burst: { target: 10 },
       },
     },
   },
@@ -43,7 +41,6 @@ export const RECOMMENDED_GOALS: RecommendedGoal[] = [
     tag: 'New DPS',
     blurb: 'Lv 90 · talents 1 / 10 / 10',
     seed: {
-      currentLevel: 1,
       targetLevel: 90,
       weaponLevel: 90,
     },
@@ -53,13 +50,12 @@ export const RECOMMENDED_GOALS: RecommendedGoal[] = [
     tag: 'Support',
     blurb: 'Lv 90 · talents 1 / 8 / 8',
     seed: {
-      currentLevel: 80,
       targetLevel: 90,
       weaponLevel: 90,
       talents: {
-        normal: { current: 1, target: 1 },
-        skill: { current: 8, target: 8 },
-        burst: { current: 8, target: 8 },
+        normal: { target: 1 },
+        skill: { target: 8 },
+        burst: { target: 8 },
       },
     },
   },
@@ -68,7 +64,6 @@ export const RECOMMENDED_GOALS: RecommendedGoal[] = [
     tag: 'DPS crown',
     blurb: 'Lv 90 · talents 1 / 10 / 10',
     seed: {
-      currentLevel: 70,
       targetLevel: 90,
       weaponLevel: 90,
     },
@@ -84,9 +79,9 @@ export const RECOMMENDED_GOALS: RecommendedGoal[] = [
     blurb: 'Lv 90 · talents 1 / 8 / 8',
     seed: {
       talents: {
-        normal: { current: 1, target: 1 },
-        skill: { current: 1, target: 8 },
-        burst: { current: 1, target: 8 },
+        normal: { target: 1 },
+        skill: { target: 8 },
+        burst: { target: 8 },
       },
     },
   },
@@ -96,9 +91,9 @@ export const RECOMMENDED_GOALS: RecommendedGoal[] = [
     blurb: 'Lv 90 · talents 1 / 8 / 8',
     seed: {
       talents: {
-        normal: { current: 1, target: 1 },
-        skill: { current: 1, target: 8 },
-        burst: { current: 1, target: 8 },
+        normal: { target: 1 },
+        skill: { target: 8 },
+        burst: { target: 8 },
       },
     },
   },
@@ -108,9 +103,9 @@ export const RECOMMENDED_GOALS: RecommendedGoal[] = [
     blurb: 'Lv 90 · talents 1 / 8 / 8',
     seed: {
       talents: {
-        normal: { current: 1, target: 1 },
-        skill: { current: 1, target: 8 },
-        burst: { current: 1, target: 8 },
+        normal: { target: 1 },
+        skill: { target: 8 },
+        burst: { target: 8 },
       },
     },
   },
@@ -120,9 +115,9 @@ export const RECOMMENDED_GOALS: RecommendedGoal[] = [
     blurb: 'Lv 90 · talents 1 / 8 / 8',
     seed: {
       talents: {
-        normal: { current: 1, target: 1 },
-        skill: { current: 1, target: 8 },
-        burst: { current: 1, target: 8 },
+        normal: { target: 1 },
+        skill: { target: 8 },
+        burst: { target: 8 },
       },
     },
   },
@@ -150,23 +145,23 @@ export function recommendedPlanSeed(rec: RecommendedGoal) {
     for (const key of ['normal', 'skill', 'burst'] as const) {
       const lane = seedTalents[key]
       if (!lane) continue
-      if (lane.current != null) talents[key].current = lane.current
       if (lane.target != null) talents[key].target = lane.target
+      talents[key].current = 1
     }
   }
-  const currentLevel = rec.seed?.currentLevel ?? 1
   const targetLevel = rec.seed?.targetLevel ?? 90
   const weaponLevel = rec.seed?.weaponLevel ?? 90
   return {
     characterId: rec.characterId,
-    currentLevel,
-    targetLevel: Math.max(currentLevel, targetLevel),
+    currentLevel: 1,
+    targetLevel,
     weapon: {
       ...structuredClone(DEFAULT_WEAPON),
-      currentLevel: Math.min(weaponLevel, targetLevel),
+      currentLevel: 1,
       targetLevel: weaponLevel,
     },
     talents,
+    notObtained: false,
     checked: false,
   }
 }
