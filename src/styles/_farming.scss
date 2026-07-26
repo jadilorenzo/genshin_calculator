@@ -11,11 +11,10 @@
   border-radius: 4px;
   background:
     linear-gradient(
-      160deg,
-      color-mix(in srgb, #6eb5ff 8%, transparent),
-      transparent 55%
-    ),
-    var(--panel);
+      180deg,
+      color-mix(in srgb, #6eb5ff 10%, var(--panel)) 0%,
+      var(--panel) 72%
+    );
   box-shadow: var(--panel-shadow);
 }
 
@@ -245,13 +244,11 @@
     padding: 0.55rem 0.6rem;
     border: 1px solid var(--line);
     border-radius: 4px;
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, #6eb5ff 5%, transparent),
-        transparent 40%
-      ),
-      var(--row-surface);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, #6eb5ff 7%, var(--row-surface)) 0%,
+      var(--row-surface) 55%
+    );
   }
 }
 
@@ -473,10 +470,6 @@
   }
 }
 
-.farming-goal-row {
-  text-decoration: none;
-}
-
 .farming-plan-list {
   list-style: none;
   margin: 0;
@@ -485,15 +478,10 @@
   gap: 0.4rem;
 }
 
-.farming-goal-list-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.4rem;
-  align-items: stretch;
-}
-
 .farming-goal-delete {
-  align-self: center;
+  flex: 0 0 auto;
+  height: 2rem;
+  padding-inline: 0.6rem;
   color: color-mix(in srgb, #ff8e8e 85%, var(--text));
   border-color: color-mix(in srgb, #ff8e8e 35%, var(--line));
 
@@ -544,19 +532,14 @@
 }
 
 .farming-goal-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.45rem;
   width: 100%;
-  padding: 0.55rem 0.65rem;
+  padding: 0.45rem 0.55rem 0.45rem 0.65rem;
   border: 1px solid var(--line);
   border-radius: 4px;
   background: var(--row-surface);
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
   transition:
     border-color 140ms ease,
     background 140ms ease;
@@ -578,6 +561,26 @@
 
   &.highlighted {
     border-color: #9bccff;
+  }
+}
+
+.farming-goal-row-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+
+  .testing-char-icon {
+    width: 2.35rem;
+    height: 2.35rem;
+    flex-shrink: 0;
   }
 }
 
@@ -1263,28 +1266,39 @@
 }
 
 .farming-goals-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 0.55rem 0.75rem;
+  display: grid;
+  gap: 0.55rem;
 }
 
 .farming-goal-search {
-  flex: 1 1 14rem;
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.farming-goal-search-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.55rem;
   min-width: 0;
 
   input[type='search'] {
-    width: 100%;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
     max-width: none;
     box-sizing: border-box;
+    height: 2.35rem;
   }
 }
 
 .farming-add-btn {
   flex: 0 0 auto;
-  align-self: end;
-  min-height: 2.15rem;
+  align-self: stretch;
+  height: 2.35rem;
+  min-height: 2.35rem;
   padding-inline: 0.85rem;
+  box-sizing: border-box;
 }
 
 .farming-add-dialog-backdrop {

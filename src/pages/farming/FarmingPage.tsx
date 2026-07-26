@@ -185,22 +185,27 @@ export default function FarmingPage() {
         </div>
 
         <div className="farming-goals-toolbar">
-          <label className="field farming-goal-search">
-            <span className="label">Search goals</span>
-            <input
-              type="search"
-              value={goalQuery}
-              onChange={(e) => setGoalQuery(e.target.value)}
-              placeholder="Filter by name, element…"
-            />
-          </label>
-          <button
-            type="button"
-            className="chip farming-add-btn"
-            onClick={() => setAddOpen(true)}
-          >
-            Add goal
-          </button>
+          <div className="farming-goal-search">
+            <span className="label" id="farming-goal-search-label">
+              Search goals
+            </span>
+            <div className="farming-goal-search-row">
+              <input
+                type="search"
+                value={goalQuery}
+                onChange={(e) => setGoalQuery(e.target.value)}
+                placeholder="Filter by name, element…"
+                aria-labelledby="farming-goal-search-label"
+              />
+              <button
+                type="button"
+                className="chip farming-add-btn"
+                onClick={() => setAddOpen(true)}
+              >
+                Add goal
+              </button>
+            </div>
+          </div>
         </div>
 
         {plans.length === 0 ? (
@@ -268,22 +273,24 @@ function GoalListRow({
     resourceProgressGrouped(plan, inventory, checkedMaterials),
   )
   return (
-    <li className="farming-goal-list-item">
+    <li
+      className={['farming-goal-row', plan.checked ? 'done' : '']
+        .filter(Boolean)
+        .join(' ')}
+    >
       <Link
         to={`/mine/farming/${encodeURIComponent(plan.characterId)}`}
-        className={['farming-goal-row', plan.checked ? 'done' : '']
-          .filter(Boolean)
-          .join(' ')}
+        className="farming-goal-row-main"
       >
         {kit ? (
           <CharacterIcon character={kit} className="testing-char-icon" />
         ) : null}
         <span className="farming-goal-copy">
           <span className="farming-goal-name">{name}</span>
-            <span className="farming-goal-summary">
-              {formatGoalSummary(plan)}
-              {plan.notObtained ? ' · Not obtained' : ''}
-            </span>
+          <span className="farming-goal-summary">
+            {formatGoalSummary(plan)}
+            {plan.notObtained ? ' · Not obtained' : ''}
+          </span>
         </span>
         <span className="farming-goal-row-pcts">
           {plan.checked ? (
