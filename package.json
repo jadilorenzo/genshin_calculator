@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "extract:kits": "node scripts/extractCharacterKits.mjs",
+    "extract:materials": "node scripts/extractCharacterMaterials.mjs",
     "extract:animation-timings": "node scripts/extractAnimationTimings.mjs",
     "extract:combat-mechanics": "node scripts/extractCombatMechanics.mjs",
     "fetch:gcsim-pr-chars": "node scripts/fetchGcsimPrChars.mjs"
@@ -34,6 +35,7 @@
     "eslint": "^9.13.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
+    "genshin-db": "^5.2.12",
     "globals": "^15.11.0",
     "sass": "^1.77.8",
     "typescript": "~5.6.2",

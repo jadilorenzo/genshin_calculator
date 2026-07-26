@@ -16,42 +16,51 @@ function MyStuffLayoutInner() {
 
   return (
     <>
-      <header className="hero">
-        <div className="hero-top">
-          <h1>My Stuff</h1>
-        </div>
-        <p className="lede">
-          Your saved rotations and personal combat testing sessions.
-        </p>
-        <nav className="sub-tabs" aria-label="My Stuff">
-          <NavLink
-            to="rotations"
-            className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
-          >
-            My rotations
-          </NavLink>
-          <NavLink
-            to="testing"
-            className={({ isActive }) =>
-              isActive ? 'sub-tab active sub-tab-with-icon' : 'sub-tab sub-tab-with-icon'
-            }
-          >
-            Personal Testing
-            <span className="sub-tab-wip-wrap">
-              <ConstructionIcon className="sub-tab-wip" />
-              <span className="sub-tab-wip-tip" role="tooltip">
-                Work in progress
+      <header className="hero mine-hero">
+        <div className="mine-hero-bar">
+          <h1 className="mine-title">My Stuff</h1>
+          <nav className="sub-tabs" aria-label="My Stuff">
+            <NavLink
+              to="rotations"
+              className={({ isActive }) =>
+                isActive ? 'sub-tab active' : 'sub-tab'
+              }
+            >
+              My rotations
+            </NavLink>
+            <NavLink
+              to="farming"
+              className={({ isActive }) =>
+                isActive ? 'sub-tab active' : 'sub-tab'
+              }
+            >
+              Farming
+            </NavLink>
+            <NavLink
+              to="testing"
+              className={({ isActive }) =>
+                isActive
+                  ? 'sub-tab active sub-tab-with-icon'
+                  : 'sub-tab sub-tab-with-icon'
+              }
+            >
+              Personal Testing
+              <span className="sub-tab-wip-wrap">
+                <ConstructionIcon className="sub-tab-wip" />
+                <span className="sub-tab-wip-tip" role="tooltip">
+                  Work in progress
+                </span>
               </span>
-            </span>
-          </NavLink>
-        </nav>
+            </NavLink>
+          </nav>
+        </div>
       </header>
       <Outlet />
     </>
   )
 }
 
-/** Signed-in hub for My rotations + Personal Testing. */
+/** Signed-in hub for rotations, farming, and Personal Testing. */
 export default function MyStuffLayout() {
   if (!clerkConfigured) {
     return (

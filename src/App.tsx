@@ -30,6 +30,8 @@ const TestingHubPage = lazy(() => import('./pages/testing/TestingHubPage.tsx'))
 const TestingSessionPage = lazy(
   () => import('./pages/testing/TestingSessionPage.tsx'),
 )
+const FarmingPage = lazy(() => import('./pages/farming/FarmingPage.tsx'))
+const FarmingGoalPage = lazy(() => import('./pages/farming/FarmingGoalPage.tsx'))
 
 function RotationsHubRoute() {
   return (
@@ -87,6 +89,22 @@ function TestingSessionRoute() {
   )
 }
 
+function FarmingRoute() {
+  return (
+    <Suspense fallback={<p className="field-note">Loading farming…</p>}>
+      <FarmingPage />
+    </Suspense>
+  )
+}
+
+function FarmingGoalRoute() {
+  return (
+    <Suspense fallback={<p className="field-note">Loading goal…</p>}>
+      <FarmingGoalPage />
+    </Suspense>
+  )
+}
+
 function RedirectLegacyTestingSession() {
   const { sessionId } = useParams()
   return <Navigate to={`/mine/testing/${sessionId}`} replace />
@@ -122,6 +140,8 @@ export default function App() {
           <Route path="mine" element={<MyStuffLayout />}>
             <Route index element={<Navigate to="rotations" replace />} />
             <Route path="rotations" element={<MyRotationsRoute />} />
+            <Route path="farming" element={<FarmingRoute />} />
+            <Route path="farming/:characterId" element={<FarmingGoalRoute />} />
             <Route path="testing" element={<TestingHubRoute />} />
             <Route path="testing/:sessionId" element={<TestingSessionRoute />} />
           </Route>

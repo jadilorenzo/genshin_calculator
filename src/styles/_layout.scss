@@ -301,6 +301,49 @@ a.brand-block:focus-visible {
   background: linear-gradient(180deg, transparent 20%, var(--active-wash));
 }
 
+.tab-mine {
+  color: #6eb5ff;
+
+  &:hover {
+    color: #9bccff;
+  }
+
+  &.active {
+    color: #9bccff;
+    border-bottom-color: #6eb5ff;
+  }
+}
+
+.hero h1.mine-title {
+  color: #6eb5ff;
+}
+
+.mine-hero {
+  margin-bottom: 0.85rem;
+}
+
+.mine-hero-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 1rem;
+}
+
+.mine-hero .mine-title {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.mine-hero .sub-tabs {
+  margin-top: 0;
+}
+
+.mine-hero .sub-tab {
+  padding: 0.28rem 0.65rem;
+  font-size: 0.82rem;
+}
+
 .tab:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;

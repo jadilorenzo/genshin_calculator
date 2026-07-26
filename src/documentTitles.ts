@@ -16,4 +16,6 @@ export const PAGE_TITLES = {
   personalTesting: `Personal Testing · ${SITE_NAME}`,
   personalTestingSession: `Testing Session · ${SITE_NAME}`,
   myStuff: `My Stuff · ${SITE_NAME}`,
+  farming: `Character Goals · ${SITE_NAME}`,
+  farmingGoal: `Goal · ${SITE_NAME}`,
 } as const

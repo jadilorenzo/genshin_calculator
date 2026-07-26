@@ -2,7 +2,8 @@ select,
 input[type='number'],
 input[type='text'],
 input[type='email'],
-input[type='password'] {
+input[type='password'],
+input[type='search'] {
   width: 100%;
   max-width: 22rem;
   appearance: none;
@@ -20,7 +21,8 @@ input[type='password'] {
 [data-theme='light'] input[type='number'],
 [data-theme='light'] input[type='text'],
 [data-theme='light'] input[type='email'],
-[data-theme='light'] input[type='password'] {
+[data-theme='light'] input[type='password'],
+[data-theme='light'] input[type='search'] {
   color-scheme: light;
 }
 
@@ -199,6 +201,7 @@ input[type='number']:focus,
 input[type='text']:focus,
 input[type='email']:focus,
 input[type='password']:focus,
+input[type='search']:focus,
 .chip:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;

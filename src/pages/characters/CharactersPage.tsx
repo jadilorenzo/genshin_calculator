@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { CHARACTER_KITS, ELEMENTS, getCharacter } from '../rotations/characters'
@@ -116,7 +116,7 @@ export default function CharactersPage() {
             {filtered.map((c) => {
               const active = selected?.id === c.id
               return (
-                <li key={c.id}>
+                <li key={c.id} className="characters-list-row">
                   <button
                     type="button"
                     data-character-id={c.id}
@@ -145,6 +145,12 @@ export default function CharactersPage() {
                       {c.rarity}★
                     </span>
                   </button>
+                  <Link
+                    to={`/mine/farming?add=${encodeURIComponent(c.id)}`}
+                    className="characters-list-goal"
+                  >
+                    Set target build
+                  </Link>
                 </li>
               )
             })}

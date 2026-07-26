@@ -22,7 +22,9 @@ function MyStuffNavLink() {
   return (
     <NavLink
       to="/mine"
-      className={({ isActive }) => (isActive ? 'tab active' : 'tab')}
+      className={({ isActive }) =>
+        isActive ? 'tab active tab-mine' : 'tab tab-mine'
+      }
     >
       My Stuff
     </NavLink>
