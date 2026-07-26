@@ -155,7 +155,7 @@ export function planProgress(
   plan: FarmingPlanEntry,
   inventory: Record<string, number>,
   checkedMaterials: Record<string, boolean>,
-): { pct: number; remainingUnits: number; neededUnits: number } {
+) {
   return materialsProgressFromGroups(
     resourceProgressGrouped(plan, inventory, checkedMaterials),
   )
