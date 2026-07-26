@@ -1,4 +1,5 @@
 import {
+  canModerate,
   characterIdsFromDoc,
   hasIsPublicColumn,
   json,
@@ -136,7 +137,7 @@ export async function DELETE(request) {
 
   if (loadError) return json({ error: loadError.message }, 500)
   if (!existing) return json({ error: 'Not found' }, 404)
-  if (existing.author_id !== auth.userId) {
+  if (!canModerate(existing.author_id, auth.userId)) {
     return json({ error: 'Forbidden' }, 403)
   }
 

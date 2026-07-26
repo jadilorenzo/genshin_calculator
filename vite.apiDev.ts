@@ -1,7 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { pathToFileURL } from 'node:url'
 import type { Plugin, ViteDevServer } from 'vite'
 import { loadEnv } from 'vite'
 
@@ -42,7 +41,7 @@ function resolveApiFile(apiRoot: string, pathname: string): string | null {
       (name) =>
         name.startsWith('[') &&
         name.endsWith('].js') &&
-        !name.includes(']/'),
+        !name.includes('.'),
     )
     if (!dynamic) continue
     if (rest.length === 1) {
@@ -50,7 +49,7 @@ function resolveApiFile(apiRoot: string, pathname: string): string | null {
       if (fs.existsSync(file)) return file
     }
 
-    // Nested: [id]/comments.js for /api/rotations/:id/comments
+    // Nested: [id].[comments].js for /api/rotations/:id/comments
     if (rest.length === 2) {
       const param = dynamic.slice(1, -4) // strip [ and ].js
       const flat = path.join(dir, `[${param}].${rest[1]}.js`)
@@ -82,6 +81,22 @@ async function writeResponse(
   })
   const buffer = Buffer.from(await response.arrayBuffer())
   res.end(buffer)
+}
+
+function toViteId(root: string, file: string): string {
+  return '/' + path.relative(root, file).split(path.sep).join('/')
+}
+
+function invalidateApiGraph(server: ViteDevServer, apiRoot: string) {
+  const root = server.config.root
+  for (const name of fs.readdirSync(apiRoot)) {
+    if (!name.endsWith('.js')) continue
+    const file = path.join(apiRoot, name)
+    if (!fs.statSync(file).isFile()) continue
+    const id = toViteId(root, file)
+    const mod = server.moduleGraph.getModuleById(id)
+    if (mod) server.moduleGraph.invalidateModule(mod)
+  }
 }
 
 /**
@@ -129,17 +144,11 @@ export function vercelApiDev(apiRoot = path.resolve('api')): Plugin {
             return
           }
 
-          // Bust Node ESM cache for shared api/_*.js helpers (route imports
-          // resolve bare paths; without this, stale helper modules linger).
-          const bust = Date.now()
-          for (const name of fs.readdirSync(apiRoot)) {
-            if (!name.startsWith('_') || !name.endsWith('.js')) continue
-            const helper = path.join(apiRoot, name)
-            await import(`${pathToFileURL(helper).href}?t=${bust}`)
-          }
-
-          const mod = (await import(
-            `${pathToFileURL(file).href}?t=${bust}`
+          // Use Vite SSR loading so shared api/_*.js helpers and routes stay
+          // on one module graph (Node ESM ?t= bust left helpers stale).
+          invalidateApiGraph(server, apiRoot)
+          const mod = (await server.ssrLoadModule(
+            toViteId(server.config.root, file),
           )) as ApiModule
           const method = (req.method || 'GET').toUpperCase()
           const handler =

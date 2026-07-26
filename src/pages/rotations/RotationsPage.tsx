@@ -11,6 +11,7 @@ import {
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/react";
+import { isAdminUserId } from "../../auth/admin";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle.ts";
 import { useLocalStorage } from "../../hooks/useLocalStorage.ts";
 import { useUndoableLocalStorage } from "../../hooks/useUndoableLocalStorage.ts";
@@ -214,6 +215,13 @@ const RotationsEditorInner = () => {
 
   const isOwnRotation = Boolean(
     editingId && sourceAuthorId && userId && sourceAuthorId === userId,
+  );
+  const isAdmin = isAdminUserId(userId);
+  const canDeletePublished = Boolean(
+    editingId &&
+      sourceAuthorId &&
+      userId &&
+      (sourceAuthorId === userId || isAdmin),
   );
   const isForking = Boolean(
     editingId && sourceAuthorId && userId && sourceAuthorId !== userId,
@@ -653,15 +661,18 @@ const RotationsEditorInner = () => {
   };
 
   const deleteRotation = async () => {
-    const message = isOwnRotation
-      ? "Delete this published rotation permanently? This cannot be undone."
-      : "Delete this rotation from the editor? This cannot be undone.";
+    const asAdmin = isAdmin && !isOwnRotation && Boolean(editingId);
+    const message = asAdmin
+      ? "Admin delete this published rotation permanently? This cannot be undone."
+      : isOwnRotation
+        ? "Delete this published rotation permanently? This cannot be undone."
+        : "Delete this rotation from the editor? This cannot be undone.";
     if (!window.confirm(message)) return;
 
     setDeleting(true);
     setSaveError(null);
     try {
-      if (isOwnRotation && editingId) {
+      if (canDeletePublished && editingId) {
         if (!isSignedIn) {
           navigate("/sign-in");
           return;
@@ -941,7 +952,11 @@ const RotationsEditorInner = () => {
                         void deleteRotation();
                       }}
                     >
-                      {deleting ? "Deleting…" : "Delete"}
+                      {deleting
+                        ? "Deleting…"
+                        : isAdmin && !isOwnRotation && editingId
+                          ? "Admin delete"
+                          : "Delete"}
                     </button>
                   </div>
                 </form>

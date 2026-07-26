@@ -1,10 +1,12 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth, useUser } from '@clerk/react'
+import { canModerateContent, isAdminUserId } from '../../auth/admin'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { getCharacter } from './characters'
 import {
   deleteCommunityComment,
+  deleteCommunityRotation,
   getCommunityRotation,
   listCommunityComments,
   postCommunityComment,
@@ -32,6 +34,7 @@ function DetailInner({
   userId: string | null | undefined
 }) {
   const { rotationId = '' } = useParams()
+  const navigate = useNavigate()
   const [item, setItem] = useState<CommunityRotation | null>(null)
   const [comments, setComments] = useState<CommunityComment[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,6 +48,7 @@ function DetailInner({
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editCommentText, setEditCommentText] = useState('')
   const [commentBusyId, setCommentBusyId] = useState<string | null>(null)
+  const [deletingRotation, setDeletingRotation] = useState(false)
 
   useDocumentTitle(
     item ? `${item.title} · Rotations · False Moon's Reckoning` : `Rotation · False Moon's Reckoning`,
@@ -216,6 +220,33 @@ function DetailInner({
     }
   }
 
+  const onDeleteRotation = async () => {
+    if (!item) return
+    if (!isSignedIn) {
+      window.location.href = '/sign-in'
+      return
+    }
+    const asAdmin = isAdminUserId(userId) && item.authorId !== userId
+    if (
+      !window.confirm(
+        asAdmin
+          ? `Delete ${item.authorName}'s rotation permanently? This cannot be undone.`
+          : 'Delete this rotation permanently? This cannot be undone.',
+      )
+    ) {
+      return
+    }
+    setDeletingRotation(true)
+    setError(null)
+    try {
+      await deleteCommunityRotation(item.id, getToken)
+      navigate('/rotations', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete rotation')
+      setDeletingRotation(false)
+    }
+  }
+
   if (loading) return <p className="field-note">Loading rotation…</p>
   if (!item) {
     return (
@@ -231,6 +262,8 @@ function DetailInner({
   const doc = item.doc as RotationDoc
   const placements = Array.isArray(doc?.placements) ? doc.placements : []
   const isOwn = Boolean(userId && item.authorId === userId)
+  const canModerate = canModerateContent(item.authorId, userId)
+  const isAdmin = isAdminUserId(userId)
 
   return (
     <>
@@ -260,6 +293,22 @@ function DetailInner({
             >
               {isOwn ? 'Edit' : 'Remix'}
             </Link>
+            {canModerate ? (
+              <button
+                type="button"
+                className="chip compact"
+                disabled={deletingRotation}
+                onClick={() => {
+                  void onDeleteRotation()
+                }}
+              >
+                {deletingRotation
+                  ? 'Deleting…'
+                  : isAdmin && !isOwn
+                    ? 'Admin delete'
+                    : 'Delete'}
+              </button>
+            ) : null}
             <ShareRotationButton
               title={item.title}
               description={item.description || ''}
@@ -366,32 +415,37 @@ function DetailInner({
           <ul className="rotation-comment-list">
             {comments.map((c) => {
               const isCommentOwn = Boolean(userId && c.authorId === userId)
+              const canDeleteComment = canModerateContent(c.authorId, userId)
               const isEditing = editingCommentId === c.id
               const busy = commentBusyId === c.id
               return (
                 <li key={c.id} className="rotation-comment">
                   <div className="rotation-comment-head">
                     <p className="rotation-comment-meta">{c.authorName}</p>
-                    {isCommentOwn && !isEditing ? (
+                    {(isCommentOwn || canDeleteComment) && !isEditing ? (
                       <div className="rotation-comment-actions">
-                        <button
-                          type="button"
-                          className="chip compact"
-                          disabled={busy}
-                          onClick={() => startEditComment(c)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="chip compact"
-                          disabled={busy}
-                          onClick={() => {
-                            void onDeleteComment(c.id)
-                          }}
-                        >
-                          Delete
-                        </button>
+                        {isCommentOwn ? (
+                          <button
+                            type="button"
+                            className="chip compact"
+                            disabled={busy}
+                            onClick={() => startEditComment(c)}
+                          >
+                            Edit
+                          </button>
+                        ) : null}
+                        {canDeleteComment ? (
+                          <button
+                            type="button"
+                            className="chip compact"
+                            disabled={busy}
+                            onClick={() => {
+                              void onDeleteComment(c.id)
+                            }}
+                          >
+                            {isAdmin && !isCommentOwn ? 'Admin delete' : 'Delete'}
+                          </button>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@clerk/react'
+import { canModerateContent, isAdminUserId } from '../../auth/admin'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { CharacterIcon } from './CharacterIcon'
 import { getCharacter } from './characters'
 import {
+  deleteCommunityRotation,
   listCommunityRotations,
   toggleCommunityRotationLike,
   type CommunityRotation,
@@ -64,6 +66,7 @@ function RotationsHubInner({
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -126,6 +129,34 @@ function RotationsHubInner({
     }
   }
 
+  const onDelete = async (item: CommunityRotation) => {
+    if (!isSignedIn) {
+      window.location.href = '/sign-in'
+      return
+    }
+    const asAdmin = isAdminUserId(userId) && item.authorId !== userId
+    if (
+      !window.confirm(
+        asAdmin
+          ? `Delete ${item.authorName}'s rotation permanently? This cannot be undone.`
+          : 'Delete this rotation permanently? This cannot be undone.',
+      )
+    ) {
+      return
+    }
+    setDeletingId(item.id)
+    setError(null)
+    try {
+      await deleteCommunityRotation(item.id, getToken)
+      setItems((prev) => prev.filter((row) => row.id !== item.id))
+      setTotal((n) => Math.max(0, n - 1))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <>
       <header className="hero">
@@ -184,6 +215,7 @@ function RotationsHubInner({
           {items.map((item) => {
             const preview = rotationPreviewDoc(item)
             const isOwn = Boolean(userId && item.authorId === userId)
+            const canModerate = canModerateContent(item.authorId, userId)
             const href = isOwn
               ? `/rotations/editor/${item.id}`
               : `/rotations/${item.id}`
@@ -271,6 +303,22 @@ function RotationsHubInner({
                     humanLag={preview.humanLag}
                     showAuraMarkers={preview.showAuraMarkers}
                   />
+                  {canModerate ? (
+                    <button
+                      type="button"
+                      className="chip compact"
+                      disabled={deletingId === item.id}
+                      onClick={() => {
+                        void onDelete(item)
+                      }}
+                    >
+                      {deletingId === item.id
+                        ? 'Deleting…'
+                        : isAdminUserId(userId) && !isOwn
+                          ? 'Admin delete'
+                          : 'Delete'}
+                    </button>
+                  ) : null}
                 </div>
               </article>
             </li>

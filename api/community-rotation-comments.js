@@ -1,4 +1,4 @@
-import { json, requireUserId, supabaseAdmin } from './_authDb.js'
+import { canModerate, json, requireUserId, supabaseAdmin } from './_authDb.js'
 
 function rotationIdFrom(request) {
   return new URL(request.url).searchParams.get('id')
@@ -182,7 +182,7 @@ export async function DELETE(request) {
 
   if (loadError) return json({ error: loadError.message }, 500)
   if (!existing) return json({ error: 'Not found' }, 404)
-  if (existing.author_id !== auth.userId) {
+  if (!canModerate(existing.author_id, auth.userId)) {
     return json({ error: 'Forbidden' }, 403)
   }
 
