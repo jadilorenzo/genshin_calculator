@@ -1,12 +1,15 @@
 import { useMemo } from 'react'
+import { InfoTip } from '../../components/InfoTip.tsx'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { useLocalStorage } from '../../hooks/useLocalStorage.ts'
 import { useArtifactTarget } from '../../hooks/useArtifactTarget.tsx'
 import {
+  DOMAIN_FIVE_STAR_PER_RUN,
   ESTIMATED_CONFIDENCE,
   GUARANTEED_CONFIDENCE,
   LIKELY_CONFIDENCE,
+  RESIN_PER_RUN as MODEL_RESIN_PER_CLAIM,
   artifactProbability,
   estimateResin,
 } from '../../model'
@@ -58,6 +61,16 @@ function formatPercent(value: number): string {
   return `${(value * 100).toExponential(2)}%`
 }
 
+function confidenceTip(confidence: number): string {
+  const pct = Math.round(confidence * 100)
+  return (
+    `Resin so the chance of ≥1 match reaches ${pct}%. ` +
+    `Solve n = ln(1 − ${confidence}) / ln(1 − p) five-star drops, ` +
+    `then convert with ~${DOMAIN_FIVE_STAR_PER_RUN} drops per ${MODEL_RESIN_PER_CLAIM} resin. ` +
+    `“Runs” mode shows condensed ${RESIN_PER_RUN}-resin spends, not the drop count.`
+  )
+}
+
 export default function ArtifactChancesPage() {
   useDocumentTitle(PAGE_TITLES.artifactExpectations)
   const { target, onSetOnly } = useArtifactTarget()
@@ -94,26 +107,54 @@ export default function ArtifactChancesPage() {
 
       <section className="results" aria-live="polite">
         <div className="stat-block accent">
-          <p className="stat-label">Estimated</p>
+          <p className="stat-label">
+            <span className="stat-label-row">
+              Estimated
+              <InfoTip label="How Estimated is calculated">
+                {confidenceTip(ESTIMATED_CONFIDENCE)}
+              </InfoTip>
+            </span>
+          </p>
           <p className="stat-value">{formatCost(estimatedResin, unit)}</p>
           <p className="stat-note">50% chance of ≥1</p>
         </div>
         <div className="stat-block">
-          <p className="stat-label">Likely</p>
+          <p className="stat-label">
+            <span className="stat-label-row">
+              Likely
+              <InfoTip label="How Likely is calculated">
+                {confidenceTip(LIKELY_CONFIDENCE)}
+              </InfoTip>
+            </span>
+          </p>
           <p className="stat-value">{formatCost(likelyResin, unit)}</p>
           <p className="stat-note">75% chance of ≥1</p>
         </div>
         <div className="stat-block">
-          <p className="stat-label">Guaranteed</p>
+          <p className="stat-label">
+            <span className="stat-label-row">
+              Guaranteed
+              <InfoTip label="How Guaranteed is calculated">
+                {confidenceTip(GUARANTEED_CONFIDENCE)}
+              </InfoTip>
+            </span>
+          </p>
           <p className="stat-value">{formatCost(guaranteedResin, unit)}</p>
           <p className="stat-note">95% chance of ≥1</p>
         </div>
       </section>
 
       <p className="odds">
-        Match chance per 5★ drop: <strong>{formatPercent(probability.total)}</strong>
+        Match chance per 5★ drop:{' '}
+        <strong>{formatPercent(probability.total)}</strong>
+        <InfoTip label="How match chance is calculated">
+          {`p = set × slot × main stat × required substats. This is the chance each 5★ drop matches your piece — not per domain run.`}
+        </InfoTip>
         {' · '}
         long-run average {formatCost(estimate.expectedResin, unit)}
+        <InfoTip label="How long-run average is calculated">
+          {`Expected resin for one match: ${MODEL_RESIN_PER_CLAIM} / (${DOMAIN_FIVE_STAR_PER_RUN} × p). Average wait, not a confidence threshold.`}
+        </InfoTip>
         {' · '}
         {onSetOnly ? 'on-set only' : 'any set'}
       </p>

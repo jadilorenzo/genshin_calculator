@@ -328,6 +328,81 @@ input[type='search']:focus,
   color: var(--fog);
 }
 
+.stat-label-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.info-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.info-tip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--fog);
+  cursor: help;
+  line-height: 0;
+}
+
+.info-tip-btn:hover,
+.info-tip-btn:focus-visible {
+  color: var(--gold-bright);
+}
+
+.info-tip-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.info-tip-btn .icon {
+  width: 0.95em;
+  height: 0.95em;
+}
+
+.info-tip-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.45rem);
+  z-index: 40;
+  width: max-content;
+  max-width: min(18rem, 70vw);
+  transform: translateX(-50%) translateY(0.15rem);
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--panel);
+  box-shadow: var(--panel-shadow);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  text-transform: none;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.info-tip:hover .info-tip-bubble,
+.info-tip:focus-within .info-tip-bubble {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 .stat-value {
   margin: 0.2rem 0 0;
   font-family: 'Avenir Next', Avenir, Roboto, sans-serif;
@@ -352,6 +427,10 @@ input[type='search']:focus,
 .odds strong {
   color: var(--mist);
   font-weight: 600;
+}
+
+.odds .info-tip {
+  margin-left: 0.2rem;
 }
 
 @media (max-width: 640px) {
