@@ -24,10 +24,12 @@ export type ReactionId =
   | 'vaporize'
   | 'overload'
   | 'superconduct'
+  | 'stellar-conduct'
   | 'electro-charged'
   | 'lunar-charged'
   | 'freeze'
   | 'swirl'
+  | 'stellar-swirl'
   | 'crystallize'
   | 'burning'
   | 'bloom'
@@ -59,6 +61,8 @@ export type SimOptions = {
   convertElectroCharged?: boolean
   /** Convert Bloom ↔ Lunar-Bloom (Lauma / Nefer). */
   convertBloom?: boolean
+  /** Convert Superconduct / Cryo Swirl ↔ Stellar Glimmer (Odette). */
+  convertStellarGlimmer?: boolean
   /** Sample aura state this often for the timeline (seconds). */
   sampleInterval?: number
   endTime?: number
@@ -390,10 +394,12 @@ function resolveReaction(
     }
   }
 
-  // Superconduct
+  // Superconduct / Stellar-Conduct
   if (trigger === 'Cryo' && hasAura(auras, 'Electro')) {
     return {
-      reaction: 'superconduct',
+      reaction: opts.convertStellarGlimmer
+        ? 'stellar-conduct'
+        : 'superconduct',
       auraElement: 'Electro',
       triggerConsumed: 1,
       auraConsume: gauge * 1,
@@ -401,7 +407,9 @@ function resolveReaction(
   }
   if (trigger === 'Electro' && hasAura(auras, 'Cryo')) {
     return {
-      reaction: 'superconduct',
+      reaction: opts.convertStellarGlimmer
+        ? 'stellar-conduct'
+        : 'superconduct',
       auraElement: 'Cryo',
       triggerConsumed: 1,
       auraConsume: gauge * 1,
@@ -409,7 +417,9 @@ function resolveReaction(
   }
   if (trigger === 'Electro' && hasAura(auras, 'Frozen')) {
     return {
-      reaction: 'superconduct',
+      reaction: opts.convertStellarGlimmer
+        ? 'stellar-conduct'
+        : 'superconduct',
       auraElement: 'Frozen',
       triggerConsumed: 1,
       auraConsume: gauge * 1,
@@ -460,12 +470,15 @@ function resolveReaction(
     }
   }
 
-  // Swirl
+  // Swirl / Stellar-Swirl
   if (trigger === 'Anemo') {
     for (const el of ['Pyro', 'Hydro', 'Electro', 'Cryo'] as AuraElement[]) {
       if (hasAura(auras, el)) {
         return {
-          reaction: 'swirl',
+          reaction:
+            opts.convertStellarGlimmer && el === 'Cryo'
+              ? 'stellar-swirl'
+              : 'swirl',
           auraElement: el,
           triggerConsumed: 1,
           auraConsume: gauge * 0.5,
@@ -830,10 +843,12 @@ export function formatReactionLabel(id: string): string {
     vaporize: 'Vaporize',
     overload: 'Overload',
     superconduct: 'Superconduct',
+    'stellar-conduct': 'Stellar-Conduct',
     'electro-charged': 'Electro-Charged',
     'lunar-charged': 'Lunar-Charged',
     freeze: 'Freeze',
     swirl: 'Swirl',
+    'stellar-swirl': 'Stellar-Swirl',
     crystallize: 'Crystallize',
     burning: 'Burning',
     bloom: 'Bloom',
@@ -853,10 +868,12 @@ export function formatReactionShortLabel(id: string): string {
     vaporize: 'Vape',
     overload: 'OL',
     superconduct: 'SC',
+    'stellar-conduct': 'StC',
     'electro-charged': 'EC',
     'lunar-charged': 'LC',
     freeze: 'Frz',
     swirl: 'Swirl',
+    'stellar-swirl': 'StS',
     crystallize: 'Cry',
     burning: 'Burn',
     bloom: 'Bloom',
@@ -876,10 +893,12 @@ export function reactionAccentColor(id: string): string {
     vaporize: 'rgba(90, 150, 230, 0.92)',
     overload: 'rgba(210, 90, 70, 0.92)',
     superconduct: 'rgba(130, 160, 230, 0.92)',
+    'stellar-conduct': 'rgba(190, 170, 255, 0.95)',
     'electro-charged': 'rgba(160, 110, 230, 0.92)',
     'lunar-charged': 'rgba(150, 130, 240, 0.95)',
     freeze: 'rgba(150, 210, 240, 0.92)',
     swirl: 'rgba(110, 200, 180, 0.92)',
+    'stellar-swirl': 'rgba(160, 210, 230, 0.95)',
     crystallize: 'rgba(210, 170, 80, 0.92)',
     burning: 'rgba(220, 100, 50, 0.92)',
     bloom: 'rgba(100, 180, 90, 0.92)',

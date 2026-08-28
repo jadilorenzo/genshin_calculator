@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "extract:kits": "node scripts/extractCharacterKits.mjs",
+    "extract:yatta-kits": "node scripts/importYattaKits.mjs",
     "extract:materials": "node scripts/extractCharacterMaterials.mjs",
     "extract:animation-timings": "node scripts/extractAnimationTimings.mjs",
     "extract:combat-mechanics": "node scripts/extractCombatMechanics.mjs",

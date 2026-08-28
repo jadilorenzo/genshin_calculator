@@ -53,6 +53,13 @@ export function partyConvertsBloom(characterIds: string[]): boolean {
   return characterIds.some((id) => id === 'lauma' || id === 'nefer')
 }
 
+/** Odette converts Superconduct / Cryo Swirl → Stellar-Conduct / Stellar-Swirl. */
+export function partyConvertsStellarGlimmer(
+  characterIds: string[],
+): boolean {
+  return characterIds.some((id) => id === 'odette')
+}
+
 export type MatchElementAppOptions = {
   /**
    * Prefer skill-form Normal/Charge apps (e.g. Flins Manifest Flame,

@@ -7,6 +7,7 @@ import {
 import {
   partyConvertsBloom,
   partyConvertsElectroCharged,
+  partyConvertsStellarGlimmer,
 } from './combatMechanicsData'
 import { getCharacter } from './characters'
 import { expandRotationHits } from './rotationHits'
@@ -59,6 +60,7 @@ export function AuraSimPanel({
 
   const convertEc = partyConvertsElectroCharged(characterIds)
   const convertBloom = partyConvertsBloom(characterIds)
+  const convertStellar = partyConvertsStellarGlimmer(characterIds)
 
   const rotationEnd = useMemo(
     () => rotationCycleLength(placements, switchBuffer),
@@ -78,11 +80,12 @@ export function AuraSimPanel({
         ? simulateAura(hits, {
             convertElectroCharged: convertEc,
             convertBloom,
+            convertStellarGlimmer: convertStellar,
             sampleInterval: 0.2,
             endTime: gaugeEnd,
           })
         : null,
-    [hits, convertEc, convertBloom, open, gaugeEnd],
+    [hits, convertEc, convertBloom, convertStellar, open, gaugeEnd],
   )
 
   if (!placements.length) return null
@@ -123,7 +126,8 @@ export function AuraSimPanel({
                 Ripple, Oz, Guoba, Birgitta) with internal cooldown. Coexistence
                 ticks
                 {convertEc ? ' (Lunar-Charged via Ineffa/Flins/Columbina)' : ''}
-                {convertBloom ? ' (Lunar-Bloom via Lauma/Nefer)' : ''}.
+                {convertBloom ? ' (Lunar-Bloom via Lauma/Nefer)' : ''}
+                {convertStellar ? ' (Stellar Glimmer via Odette)' : ''}.
               </p>
             </div>
             <div className="aura-sim-meta">

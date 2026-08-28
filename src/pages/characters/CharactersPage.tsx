@@ -36,7 +36,7 @@ export default function CharactersPage() {
         c.element.toLowerCase().includes(q) ||
         (c.constellationName?.toLowerCase().includes(q) ?? false)
       )
-    }).sort((a, b) => a.name.localeCompare(b.name))
+    })
   }, [query, element])
 
   useEffect(() => {

@@ -21,6 +21,9 @@ export const OCR_NAME_ALIASES: Record<string, string> = {
   "alhaithem": "Alhaitham",
   // Aloy
   "aloy": "Aloy",
+  // Alyosha
+  "aliosha": "Alyosha",
+  "alyosha": "Alyosha",
   // Amber
   "amber": "Amber",
   "arnber": "Amber",
@@ -247,6 +250,9 @@ export const OCR_NAME_ALIASES: Record<string, string> = {
   // Noelle
   "noeiie": "Noelle",
   "noelle": "Noelle",
+  // Odette
+  "odette": "Odette",
+  "odete": "Odette",
   // Ororon
   "ororon": "Ororon",
   "orororn": "Ororon",
@@ -301,14 +307,14 @@ export const OCR_NAME_ALIASES: Record<string, string> = {
   "tighnari": "Tighnari",
   "tighnarl": "Tighnari",
   // Traveler (Anemo)
-  "aether": "Traveler (Anemo)",
-  "lumine": "Traveler (Anemo)",
-  "traveler": "Traveler (Anemo)",
   "traveleranemo": "Traveler (Anemo)",
   "traveleranerno": "Traveler (Anemo)",
-  "traveller": "Traveler (Anemo)",
   "travelleranemo": "Traveler (Anemo)",
-  // Traveler (Cryo)
+  // Traveler (Cryo) — default for generic Traveler / Aether / Lumine
+  "aether": "Traveler (Cryo)",
+  "lumine": "Traveler (Cryo)",
+  "traveler": "Traveler (Cryo)",
+  "traveller": "Traveler (Cryo)",
   "travelercryo": "Traveler (Cryo)",
   "travellercryo": "Traveler (Cryo)",
   // Traveler (Dendro)

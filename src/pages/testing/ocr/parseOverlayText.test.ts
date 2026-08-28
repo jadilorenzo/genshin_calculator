@@ -223,6 +223,10 @@ describe('matchCharacterName', () => {
     expect(matchCharacterName('Columb1na')?.name).toBe('Columbina')
     expect(matchCharacterName('Flins')?.name).toBe('Flins')
     expect(matchCharacterName('Nefer')?.name).toBe('Nefer')
+    expect(matchCharacterName('Odette')?.name).toBe('Odette')
+    expect(matchCharacterName('Alyosha')?.name).toBe('Alyosha')
+    expect(matchCharacterName('Traveler')?.name).toBe('Traveler (Cryo)')
+    expect(matchCharacterName('Aether')?.name).toBe('Traveler (Cryo)')
   })
 })
 

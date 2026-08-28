@@ -3,7 +3,19 @@ import type { CharacterData, CharacterKitsFile } from "./types";
 
 const data = kitData as unknown as CharacterKitsFile;
 
-export const CHARACTER_KITS: CharacterData[] = data.characters;
+const DEFAULT_TRAVELER_ID = "traveler-cryo";
+
+export const CHARACTER_KITS: CharacterData[] = [...data.characters].sort(
+  (a, b) => {
+    const aTraveler = a.id.startsWith("traveler-");
+    const bTraveler = b.id.startsWith("traveler-");
+    if (aTraveler && bTraveler) {
+      if (a.id === DEFAULT_TRAVELER_ID) return -1;
+      if (b.id === DEFAULT_TRAVELER_ID) return 1;
+    }
+    return a.name.localeCompare(b.name);
+  },
+);
 
 export const CHARACTER_BY_ID: Record<string, CharacterData> =
   Object.fromEntries(CHARACTER_KITS.map((c) => [c.id, c]));

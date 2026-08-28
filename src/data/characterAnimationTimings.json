@@ -1,17 +1,17 @@
 {
   "source": "gcsim internal/characters (+ open PRs) + characterKits roster + fieldTimings",
-  "extractedAt": "2026-07-21T21:09:38.384Z",
+  "extractedAt": "2026-08-28T03:25:48.687Z",
   "fps": 60,
   "notes": [
     "Frames are at 60 FPS. seconds = frames / 60.",
     "hitmarks are frame offsets from action start.",
     "cancels are earliest queue frames into the listed next action.",
     "States separate default kit from skill/burst-modified kits (e.g. Mavuika Flamestrider).",
-    "null frames mean not yet sourced \u2014 fill via GCSIM_CHARS, open PRs (fetchGcsimPrChars), or manual edits.",
+    "null frames mean not yet sourced — fill via GCSIM_CHARS, open PRs (fetchGcsimPrChars), or manual edits.",
     "ca_cycle / ca_final cover charged loops such as Mavuika donut spinning.",
     "Claymore charged-attack frames are intentionally left null (flexible / rarely simmed)."
   ],
-  "count": 125,
+  "count": 127,
   "withGcsim": 118,
   "characters": [
     {
@@ -687,6 +687,112 @@
               "hitmarks": [],
               "cancels": {},
               "source": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alyosha",
+      "name": "Alyosha",
+      "fps": 60,
+      "gcsimPackage": null,
+      "gcsimPr": null,
+      "sources": [
+        "fieldTimings"
+      ],
+      "completeness": {
+        "actionsWithFrames": 3,
+        "actionsTotal": 8
+      },
+      "incomplete": true,
+      "states": [
+        {
+          "id": "default",
+          "label": "Default",
+          "actions": [
+            {
+              "id": "na1",
+              "label": "Normal Attack 1",
+              "kind": "na1",
+              "frames": null,
+              "seconds": null,
+              "hitmarks": [],
+              "cancels": {},
+              "source": null
+            },
+            {
+              "id": "na2",
+              "label": "Normal Attack 2",
+              "kind": "na2",
+              "frames": null,
+              "seconds": null,
+              "hitmarks": [],
+              "cancels": {},
+              "source": null
+            },
+            {
+              "id": "na3",
+              "label": "Normal Attack 3",
+              "kind": "na3",
+              "frames": null,
+              "seconds": null,
+              "hitmarks": [],
+              "cancels": {},
+              "source": null
+            },
+            {
+              "id": "na4",
+              "label": "Normal Attack 4",
+              "kind": "na4",
+              "frames": null,
+              "seconds": null,
+              "hitmarks": [],
+              "cancels": {},
+              "source": null
+            },
+            {
+              "id": "ca",
+              "label": "Charged Attack",
+              "kind": "ca",
+              "frames": null,
+              "seconds": null,
+              "hitmarks": [],
+              "cancels": {},
+              "source": null
+            },
+            {
+              "id": "skill",
+              "label": "Elemental Skill",
+              "kind": "skill",
+              "frames": 42,
+              "seconds": 0.7,
+              "hitmarks": [],
+              "cancels": {},
+              "source": "estimated",
+              "notes": "From fieldTimings.ts coarse cast lock"
+            },
+            {
+              "id": "skill_hold",
+              "label": "Elemental Skill (Hold / long)",
+              "kind": "skill_hold",
+              "frames": 108,
+              "seconds": 1.8,
+              "hitmarks": [],
+              "cancels": {},
+              "source": "estimated",
+              "notes": "From fieldTimings.ts coarse cast lock"
+            },
+            {
+              "id": "burst",
+              "label": "Elemental Burst",
+              "kind": "burst",
+              "frames": 96,
+              "seconds": 1.6,
+              "hitmarks": [],
+              "cancels": {},
+              "source": "estimated",
+              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }
@@ -12526,7 +12632,7 @@
               "cancels": {},
               "source": "gcsim",
               "gcsimVar": "dashFrames",
-              "notes": "Cancel dash \u2014 no hitmark (Flamestrider Sprint is a separate contact, not used for timed C3F cancels)"
+              "notes": "Cancel dash — no hitmark (Flamestrider Sprint is a separate contact, not used for timed C3F cancels)"
             }
           ]
         },
@@ -14594,6 +14700,122 @@
               "source": "gcsim",
               "notes": "Default gcsim dash length for BODY_GIRL",
               "gcsimVar": "template.DashLength"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "odette",
+      "name": "Odette",
+      "fps": 60,
+      "gcsimPackage": null,
+      "gcsimPr": null,
+      "sources": [
+        "fieldTimings"
+      ],
+      "completeness": {
+        "actionsWithFrames": 3,
+        "actionsTotal": 9
+      },
+      "incomplete": true,
+      "states": [
+        {
+          "id": "default",
+          "label": "Default",
+          "actions": [
+            {
+              "id": "na1",
+              "label": "Normal Attack 1",
+              "kind": "na1",
+              "frames": null,
+              "seconds": null,
+              "hitmarks": [],
+              "cancels": {},
+              "source": null
+            },
+            {
+              "id": "na2",
+              "label": "Normal Attack 2",
+              "kind": "na2",
+              "frames": null,
+              "seconds": null,
+              "hitmarks": [],
+              "cancels": {},
+              "source": null
+            },
+            {
+              "id": "na3",
+              "label": "Normal Attack 3",
+              "kind": "na3",
+              "frames": null,
+              "seconds": null,
+              "hitmarks": [],
+              "cancels": {},
+              "source": null
+            },
+            {
+              "id": "na4",
+              "label": "Normal Attack 4",
+              "kind": "na4",
+              "frames": null,
+              "seconds": null,
+              "hitmarks": [],
+              "cancels": {},
+              "source": null
+            },
+            {
+              "id": "na5",
+              "label": "Normal Attack 5",
+              "kind": "na5",
+              "frames": null,
+              "seconds": null,
+              "hitmarks": [],
+              "cancels": {},
+              "source": null
+            },
+            {
+              "id": "ca",
+              "label": "Charged Attack",
+              "kind": "ca",
+              "frames": null,
+              "seconds": null,
+              "hitmarks": [],
+              "cancels": {},
+              "source": null
+            },
+            {
+              "id": "skill",
+              "label": "Elemental Skill",
+              "kind": "skill",
+              "frames": 54,
+              "seconds": 0.9,
+              "hitmarks": [],
+              "cancels": {},
+              "source": "estimated",
+              "notes": "From fieldTimings.ts coarse cast lock"
+            },
+            {
+              "id": "skill_hold",
+              "label": "Elemental Skill (Hold / long)",
+              "kind": "skill_hold",
+              "frames": 390,
+              "seconds": 6.5,
+              "hitmarks": [],
+              "cancels": {},
+              "source": "estimated",
+              "notes": "From fieldTimings.ts coarse cast lock"
+            },
+            {
+              "id": "burst",
+              "label": "Elemental Burst",
+              "kind": "burst",
+              "frames": 132,
+              "seconds": 2.2,
+              "hitmarks": [],
+              "cancels": {},
+              "source": "estimated",
+              "notes": "From fieldTimings.ts coarse cast lock"
             }
           ]
         }

@@ -70,6 +70,41 @@ describe('off-field aura appliers', () => {
     expect(dots[dots.length - 1].time).toBeGreaterThanOrEqual(14)
   })
 
+  it('catalogues Odette Dance Double Cryo ticks for 20s', () => {
+    const apps = listOffFieldAppliers('odette')
+    expect(apps.some((a) => a.id === 'solo-dance-double')).toBe(true)
+    expect(apps[0].element).toBe('Cryo')
+    expect(apps[0].resolvedDuration).toBe(20)
+    const hits = expandPlacementHits(
+      placement({ id: 'p-odette', characterId: 'odette', start: 0 }),
+    )
+    const dots = hits.filter((h) => h.offField)
+    expect(dots.length).toBeGreaterThanOrEqual(9)
+    expect(dots.every((h) => h.element === 'Cryo')).toBe(true)
+  })
+
+  it('catalogues Alyosha Tugarin Electro ticks for burst duration', () => {
+    const apps = listOffFieldAppliers('alyosha')
+    expect(apps.some((a) => a.id === 'tugarin')).toBe(true)
+    expect(apps[0].element).toBe('Electro')
+    expect(apps[0].resolvedDuration).toBe(14)
+    const hits = expandPlacementHits(
+      placement({
+        id: 'p-alyosha',
+        characterId: 'alyosha',
+        start: 0,
+        castSkill: false,
+        castBurst: true,
+        comboSteps: [
+          { id: 's1', actionId: 'burst', stateId: 'default', gapAfter: 0 },
+        ],
+      }),
+    )
+    const dots = hits.filter((h) => h.offField)
+    expect(dots.length).toBeGreaterThanOrEqual(6)
+    expect(dots.every((h) => h.element === 'Electro')).toBe(true)
+  })
+
   it('catalogues Citlali Itzpapa Frostfall Cryo ticks', () => {
     const apps = listOffFieldAppliers('citlali')
     expect(apps.some((a) => a.id === 'itzpapa-frostfall')).toBe(true)

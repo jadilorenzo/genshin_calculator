@@ -94,6 +94,51 @@ export const OFF_FIELD_APPLIER_CATALOG: Record<string, OffFieldApplierDef[]> = {
       note: 'gcsim skillTick every 117f',
     },
   ],
+  odette: [
+    {
+      id: 'solo-dance-double',
+      label: 'Solo Dance Double',
+      source: 'skill',
+      element: 'Cryo',
+      gaugeUnits: 1,
+      intervalSeconds: 2,
+      firstTickDelaySeconds: 1,
+      durationAttr: 'Solo Dance Double Duration',
+      durationSeconds: 20,
+      icdTag: 'None',
+      note: 'Plume/Wing dance ticks; 2s interval estimated',
+    },
+  ],
+  alyosha: [
+    {
+      id: 'tugarin',
+      label: 'Tugarin',
+      source: 'burst',
+      element: 'Electro',
+      gaugeUnits: 1,
+      intervalSeconds: 2,
+      firstTickDelaySeconds: 2,
+      durationAttr: 'Duration',
+      durationSeconds: 14,
+      icdTag: 'None',
+      note: 'Tugarin mauls every 2s for burst duration',
+    },
+  ],
+  'traveler-cryo': [
+    {
+      id: 'frostpierce-star',
+      label: 'Frostpierce Star',
+      source: 'skill',
+      element: 'Cryo',
+      gaugeUnits: 1,
+      intervalSeconds: 2,
+      firstTickDelaySeconds: 1,
+      durationAttr: 'Frostpierce Star Duration',
+      durationSeconds: 12,
+      icdTag: 'None',
+      note: 'Off-field ice crystals; 2s interval estimated',
+    },
+  ],
   fischl: [
     {
       id: 'oz',
@@ -438,6 +483,8 @@ function kitDurationSeconds(
   if (!attrName) return fallback
   const character = getCharacter(characterId)
   if (!character?.kit) return fallback
+  const needle = attrName.toLowerCase()
+  let fuzzy: number | null = null
   for (const skill of [
     character.kit.elementalSkill,
     character.kit.elementalBurst,
@@ -445,11 +492,14 @@ function kitDurationSeconds(
     if (!skill?.attributes) continue
     for (const attr of skill.attributes) {
       if (!attr.name) continue
-      if (!attr.name.toLowerCase().includes(attrName.toLowerCase())) continue
       const n = typeof attr.raw === 'number' ? attr.raw : Number(attr.raw)
-      if (Number.isFinite(n) && n > 0) return n
+      if (!Number.isFinite(n) || n <= 0) continue
+      const hay = attr.name.toLowerCase()
+      if (hay === needle) return n
+      if (fuzzy == null && hay.includes(needle)) fuzzy = n
     }
   }
+  if (fuzzy != null) return fuzzy
   const combat = getCombatCharacter(characterId)
   const hint = combat?.kitHints?.durations?.find((d) =>
     d.name.toLowerCase().includes(attrName.toLowerCase()),

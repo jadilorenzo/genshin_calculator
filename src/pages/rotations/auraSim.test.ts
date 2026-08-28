@@ -47,6 +47,23 @@ describe('simulateAura', () => {
     expect(result.reactionCounts['electro-charged'] ?? 0).toBe(0)
   })
 
+  it('converts superconduct to stellar-conduct when Odette is enabled', () => {
+    const result = simulateAura(
+      [
+        hit({ time: 0, element: 'Electro', gaugeUnits: 1 }),
+        hit({
+          time: 0.5,
+          element: 'Cryo',
+          gaugeUnits: 1,
+          characterId: 'odette',
+        }),
+      ],
+      { convertStellarGlimmer: true, endTime: 2 },
+    )
+    expect(result.reactionCounts['stellar-conduct']).toBe(1)
+    expect(result.reactionCounts.superconduct ?? 0).toBe(0)
+  })
+
   it('respects default ICD (apply, skip, skip)', () => {
     const hits: TimedHit[] = [0, 0.1, 0.2, 0.3].map((time, i) =>
       hit({
