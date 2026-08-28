@@ -6,12 +6,13 @@ import {
 import { parseCapturedAtFromFilename } from './ocr/parseOverlayText'
 import { runOverlayOcr, terminateOverlayOcr } from './ocr/runOverlayOcr'
 import { RunReviewCard } from './RunReviewCard'
+import { flushFocusedField } from './runFormUtils'
 import type { RunDraft } from './types'
 
 type UploadRunsPanelProps = {
   drafts: RunDraft[]
   onDraftsChange: (drafts: RunDraft[]) => void
-  onSaveDraft: (localId: string) => void
+  onSaveDraft: (draft: RunDraft) => void
   onDiscardDraft: (localId: string) => void
 }
 
@@ -38,6 +39,7 @@ export function UploadRunsPanel({
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const draftsRef = useRef(drafts)
+  const ocrAbortRef = useRef(new Map<string, AbortController>())
   const [dragOver, setDragOver] = useState(false)
 
   useEffect(() => {
@@ -64,11 +66,32 @@ export function UploadRunsPanel({
     )
   }
 
+  const discardDraft = (localId: string) => {
+    ocrAbortRef.current.get(localId)?.abort()
+    ocrAbortRef.current.delete(localId)
+    onDiscardDraft(localId)
+  }
+
+  const cancelOcr = (localId: string) => {
+    discardDraft(localId)
+  }
+
   const processFile = async (file: File, localId: string) => {
+    ocrAbortRef.current.get(localId)?.abort()
+    const controller = new AbortController()
+    ocrAbortRef.current.set(localId, controller)
+
     patchDraft(localId, { status: 'ocr', error: undefined })
     try {
-      const parsed = await runOverlayOcr(file)
+      const parsed = await runOverlayOcr(file, { signal: controller.signal })
+      if (controller.signal.aborted) return
+      const current = draftsRef.current.find((d) => d.localId === localId)
+      if (!current || current.status !== 'ocr') return
       const image = await loadImageFromBlob(file)
+      if (controller.signal.aborted) return
+      if (controller.signal.aborted) return
+      const afterImage = draftsRef.current.find((d) => d.localId === localId)
+      if (!afterImage || afterImage.status !== 'ocr') return
       const imageBase64 = await encodeImageForUpload(image)
       const characters =
         parsed.characters.length > 0 ? parsed.characters : emptyRows()
@@ -87,12 +110,21 @@ export function UploadRunsPanel({
         warnings: parsed.warnings,
       })
     } catch (err) {
+      if (controller.signal.aborted) return
       patchDraft(localId, {
         status: 'error',
         error: err instanceof Error ? err.message : 'OCR failed',
         characters: emptyRows(),
       })
+    } finally {
+      ocrAbortRef.current.delete(localId)
     }
+  }
+
+  const saveDraft = (localId: string) => {
+    flushFocusedField()
+    const draft = draftsRef.current.find((d) => d.localId === localId)
+    if (draft) onSaveDraft(draft)
   }
 
   const enqueueFiles = (fileList: FileList | File[]) => {
@@ -218,12 +250,17 @@ export function UploadRunsPanel({
                   onChange={(next) =>
                     commitDrafts(
                       draftsRef.current.map((d) =>
-                        d.localId === next.localId ? { ...d, ...next } : d,
+                        d.localId === next.localId ? next : d,
                       ),
                     )
                   }
-                  onSave={() => onSaveDraft(draft.localId)}
-                  onDiscard={() => onDiscardDraft(draft.localId)}
+                  onSave={() => saveDraft(draft.localId)}
+                  onDiscard={() => discardDraft(draft.localId)}
+                  onCancelOcr={
+                    draft.status === 'ocr'
+                      ? () => cancelOcr(draft.localId)
+                      : undefined
+                  }
                 />
               </div>
             ))}

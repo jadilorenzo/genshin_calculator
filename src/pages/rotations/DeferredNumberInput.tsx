@@ -22,7 +22,7 @@ const formatDefault = (value: number) => {
 }
 
 const parseDraft = (raw: string): number | null => {
-  const trimmed = raw.trim()
+  const trimmed = raw.trim().replace(/,/g, '')
   if (
     trimmed === '' ||
     trimmed === '-' ||
@@ -73,7 +73,7 @@ export function DeferredNumberInput({
       value={focused ? draft : formatDisplay(value)}
       onFocus={(e) => {
         setFocused(true)
-        setDraft(formatDisplay(value))
+        setDraft(formatDefault(value))
         onFocus?.(e)
       }}
       onChange={(e) => setDraft(e.target.value)}

@@ -55,11 +55,20 @@ export type OverlayOcrResult = ParsedOverlay & {
 async function recognizeOnce(
   worker: Worker,
   canvas: HTMLCanvasElement,
+  signal?: AbortSignal,
 ): Promise<OverlayOcrResult> {
+  assertNotAborted(signal)
   const { data } = await worker.recognize(canvas)
+  assertNotAborted(signal)
   const ocrRaw = data.text || ''
   const parsed = parseOverlayText(ocrRaw)
   return { ...parsed, ocrRaw }
+}
+
+function assertNotAborted(signal?: AbortSignal) {
+  if (signal?.aborted) {
+    throw new DOMException('OCR cancelled', 'AbortError')
+  }
 }
 
 const metaScore = (parsed: ParsedOverlay) => {
@@ -84,11 +93,17 @@ const characterScore = (parsed: ParsedOverlay) => {
 }
 
 /** OCR a full combat-result screenshot and parse structured fields. */
-export async function runOverlayOcr(blob: Blob): Promise<OverlayOcrResult> {
+export async function runOverlayOcr(
+  blob: Blob,
+  options?: { signal?: AbortSignal },
+): Promise<OverlayOcrResult> {
+  const signal = options?.signal
   const image = await loadImageFromBlob(blob)
+  assertNotAborted(signal)
 
   const run = async (): Promise<OverlayOcrResult> => {
     const worker = await getWorker()
+    assertNotAborted(signal)
     const cropped = cropCombatOverlay(image)
     // Hardcoded HUD bands: header (DPS/Damage), chars, footer (Time/Strongest).
     const bands = [
@@ -101,7 +116,9 @@ export async function runOverlayOcr(blob: Blob): Promise<OverlayOcrResult> {
     const results: OverlayOcrResult[] = []
 
     for (const source of bands) {
+      assertNotAborted(signal)
       for (const variant of PREPROCESS_VARIANTS) {
+        assertNotAborted(signal)
         // Narrow bands prefer textMask / yellowBoost.
         if (
           source !== cropped &&
@@ -111,7 +128,7 @@ export async function runOverlayOcr(blob: Blob): Promise<OverlayOcrResult> {
           continue
         }
         const canvas = preprocessOverlay(source, variant)
-        const result = await recognizeOnce(worker, canvas)
+        const result = await recognizeOnce(worker, canvas, signal)
         results.push(result)
         if (scoreParsedOverlay(result) >= 30) break
       }

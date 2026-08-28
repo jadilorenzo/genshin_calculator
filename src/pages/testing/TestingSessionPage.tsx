@@ -15,6 +15,7 @@ import { useLocalStorage } from '../../hooks/useLocalStorage.ts'
 import { getCharacter } from '../rotations/characters'
 import { CharacterIcon } from '../rotations/CharacterIcon'
 import { DpsTimelineChart } from './DpsTimelineChart'
+import { SavedRunEditor } from './SavedRunEditor'
 import { ScreenshotLightbox } from './ScreenshotLightbox'
 import { TeamDamageBars } from './TeamDamageBars'
 import { UploadRunsPanel } from './UploadRunsPanel'
@@ -22,8 +23,10 @@ import {
   createTestingRun,
   deleteTestingRun,
   getTestingSession,
+  updateTestingRun,
   updateTestingSession,
 } from './testingApi'
+import type { RunFormValues } from './RunFormFields'
 import { sortTestingRunsByTimestamp } from './runSort'
 import type { RunDraft, TestingRun, TestingSession } from './types'
 
@@ -69,6 +72,8 @@ function TestingSessionInner({
     'gc:testing:runsExpanded',
     false,
   )
+  const [editingRunId, setEditingRunId] = useState<string | null>(null)
+  const [savingRunId, setSavingRunId] = useState<string | null>(null)
   const [expandedScreenshot, setExpandedScreenshot] = useState<{
     url: string
     label: string
@@ -208,9 +213,8 @@ function TestingSessionInner({
     }
   }
 
-  const onSaveDraft = async (localId: string) => {
-    const draft = drafts.find((d) => d.localId === localId)
-    if (!draft) return
+  const onSaveDraft = async (draft: RunDraft) => {
+    const localId = draft.localId
     setDrafts((prev) =>
       prev.map((d) =>
         d.localId === localId ? { ...d, status: 'saving', error: undefined } : d,
@@ -266,8 +270,27 @@ function TestingSessionInner({
       await deleteTestingRun(id, getToken)
       setRuns((prev) => prev.filter((r) => r.id !== id))
       setSelectedRunId((prev) => (prev === id ? null : prev))
+      setEditingRunId((prev) => (prev === id ? null : prev))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete run')
+    }
+  }
+
+  const onUpdateRun = async (id: string, values: RunFormValues) => {
+    setSavingRunId(id)
+    setError(null)
+    try {
+      const updated = await updateTestingRun(id, values, getToken)
+      setRuns((prev) =>
+        sortTestingRunsByTimestamp(
+          prev.map((run) => (run.id === id ? updated : run)),
+        ),
+      )
+      setEditingRunId(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update run')
+    } finally {
+      setSavingRunId(null)
     }
   }
 
@@ -392,8 +415,8 @@ function TestingSessionInner({
         <UploadRunsPanel
           drafts={drafts}
           onDraftsChange={setDrafts}
-          onSaveDraft={(id) => {
-            void onSaveDraft(id)
+          onSaveDraft={(draft) => {
+            void onSaveDraft(draft)
           }}
           onDiscardDraft={onDiscardDraft}
         />
@@ -482,16 +505,30 @@ function TestingSessionInner({
                 {runs.map((run, index) => {
                   const main = getCharacter(run.mainDpsId)
                   const selected = run.id === selectedRunId
+                  const editing = editingRunId === run.id
                   return (
                     <li key={run.id}>
                       <article
                         data-run-id={run.id}
-                        className={
-                          selected
-                            ? 'testing-run-card selected'
-                            : 'testing-run-card'
-                        }
+                        className={[
+                          'testing-run-card',
+                          selected ? 'selected' : '',
+                          editing ? 'editing' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
                       >
+                        {editing ? (
+                          <SavedRunEditor
+                            run={run}
+                            saving={savingRunId === run.id}
+                            onCancel={() => setEditingRunId(null)}
+                            onSave={(values) => {
+                              void onUpdateRun(run.id, values)
+                            }}
+                          />
+                        ) : (
+                          <>
                         <button
                           type="button"
                           className="testing-run-select"
@@ -535,6 +572,13 @@ function TestingSessionInner({
                           </div>
                         </button>
                         <div className="testing-run-actions">
+                          <button
+                            type="button"
+                            className="chip compact"
+                            onClick={() => setEditingRunId(run.id)}
+                          >
+                            Edit
+                          </button>
                           {run.imageUrl ? (
                             <button
                               type="button"
@@ -559,6 +603,8 @@ function TestingSessionInner({
                             Delete
                           </button>
                         </div>
+                          </>
+                        )}
                       </article>
                     </li>
                   )

@@ -7,6 +7,7 @@ type CharacterPickerFieldProps = {
   onChange: (characterId: string) => void
   label?: string
   allowEmpty?: boolean
+  disabled?: boolean
 }
 
 export function CharacterPickerField({
@@ -14,6 +15,7 @@ export function CharacterPickerField({
   onChange,
   label = 'Character',
   allowEmpty = true,
+  disabled = false,
 }: CharacterPickerFieldProps) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -36,8 +38,11 @@ export function CharacterPickerField({
       <button
         type="button"
         className="testing-char-picker-current chip compact"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (!disabled) setOpen((v) => !v)
+        }}
         aria-expanded={open}
+        disabled={disabled}
       >
         {selected ? (
           <>
