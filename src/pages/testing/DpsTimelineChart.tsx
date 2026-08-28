@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CharacterIcon } from '../rotations/CharacterIcon'
 import { getCharacter } from '../rotations/characters'
+import { runTimestampMs } from './runSort'
 import type { TestingRun } from './types'
 
 type DpsTimelineChartProps = {
@@ -18,6 +19,24 @@ const COLORS = [
   '#e6c07b',
 ]
 
+type ChartPoint = {
+  runId: string
+  mainDpsId: string
+  timeMs: number
+  dps: number
+  label: string
+  timeLabel: string
+}
+
+function formatAxisTime(ms: number): string {
+  return new Date(ms).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 export function DpsTimelineChart({
   runs,
   selectedRunId = null,
@@ -25,27 +44,45 @@ export function DpsTimelineChart({
 }: DpsTimelineChartProps) {
   const [hover, setHover] = useState<string | null>(null)
 
-  const series = useMemo(() => {
-    const byMain = new Map<
-      string,
-      Array<{ runId: string; index: number; dps: number; label: string }>
-    >()
-    runs.forEach((run, index) => {
+  const { series, minTime, maxTime } = useMemo(() => {
+    const points: ChartPoint[] = []
+    for (const run of runs) {
       const dps = run.dps
-      if (dps == null || !Number.isFinite(dps)) return
+      if (dps == null || !Number.isFinite(dps)) continue
+      const timeMs = runTimestampMs(run)
       const key = run.mainDpsId || 'unknown'
       const character = getCharacter(key)
-      const label = character?.name || 'Unknown'
-      const list = byMain.get(key) || []
-      list.push({ runId: run.id, index, dps, label })
-      byMain.set(key, list)
-    })
-    return [...byMain.entries()].map(([id, points], i) => ({
-      id,
-      label: points[0]?.label || id,
-      color: COLORS[i % COLORS.length],
-      points,
-    }))
+      points.push({
+        runId: run.id,
+        mainDpsId: key,
+        timeMs,
+        dps,
+        label: character?.name || 'Unknown',
+        timeLabel: formatAxisTime(timeMs),
+      })
+    }
+
+    const byMain = new Map<string, ChartPoint[]>()
+    for (const point of points) {
+      const list = byMain.get(point.mainDpsId) || []
+      list.push(point)
+      byMain.set(point.mainDpsId, list)
+    }
+
+    const timeValues = points.map((point) => point.timeMs)
+    const min = timeValues.length ? Math.min(...timeValues) : 0
+    const max = timeValues.length ? Math.max(...timeValues) : 1
+
+    return {
+      minTime: min,
+      maxTime: max,
+      series: [...byMain.entries()].map(([id, seriesPoints], i) => ({
+        id,
+        label: seriesPoints[0]?.label || id,
+        color: COLORS[i % COLORS.length],
+        points: [...seriesPoints].sort((a, b) => a.timeMs - b.timeMs),
+      })),
+    }
   }, [runs])
 
   if (series.length === 0) {
@@ -54,16 +91,18 @@ export function DpsTimelineChart({
 
   const width = 640
   const height = 220
-  const pad = { top: 16, right: 16, bottom: 36, left: 56 }
+  const pad = { top: 16, right: 16, bottom: 44, left: 56 }
   const innerW = width - pad.left - pad.right
   const innerH = height - pad.top - pad.bottom
-  const maxIndex = Math.max(1, runs.length - 1)
+  const timeSpan = Math.max(1, maxTime - minTime)
   const maxDps = Math.max(
     1,
     ...series.flatMap((s) => s.points.map((p) => p.dps)),
   )
-  const xAt = (index: number) => pad.left + (index / maxIndex) * innerW
+  const xAt = (timeMs: number) =>
+    pad.left + ((timeMs - minTime) / timeSpan) * innerW
   const yAt = (dps: number) => pad.top + innerH - (dps / maxDps) * innerH
+  const timeTicks = [0, 0.25, 0.5, 0.75, 1].map((t) => minTime + timeSpan * t)
 
   return (
     <div className="testing-dps-timeline">
@@ -86,9 +125,20 @@ export function DpsTimelineChart({
             </g>
           )
         })}
+        {timeTicks.map((timeMs, index) => (
+          <text
+            key={timeMs}
+            x={xAt(timeMs)}
+            y={height - 10}
+            textAnchor={index === 0 ? 'start' : index === timeTicks.length - 1 ? 'end' : 'middle'}
+            className="testing-chart-label"
+          >
+            {formatAxisTime(timeMs)}
+          </text>
+        ))}
         {series.map((s) => {
           const path = s.points
-            .map((p, i) => `${i === 0 ? 'M' : 'L'} ${xAt(p.index)} ${yAt(p.dps)}`)
+            .map((p, i) => `${i === 0 ? 'M' : 'L'} ${xAt(p.timeMs)} ${yAt(p.dps)}`)
             .join(' ')
           return (
             <g key={s.id}>
@@ -100,7 +150,7 @@ export function DpsTimelineChart({
                   <g key={p.runId}>
                     {selected ? (
                       <circle
-                        cx={xAt(p.index)}
+                        cx={xAt(p.timeMs)}
                         cy={yAt(p.dps)}
                         r={9}
                         className="testing-chart-point-ring"
@@ -108,7 +158,7 @@ export function DpsTimelineChart({
                       />
                     ) : null}
                     <circle
-                      cx={xAt(p.index)}
+                      cx={xAt(p.timeMs)}
                       cy={yAt(p.dps)}
                       r={active ? 5.5 : 3.5}
                       fill={s.color}
@@ -121,7 +171,7 @@ export function DpsTimelineChart({
                       tabIndex={onSelectRun ? 0 : undefined}
                       aria-label={
                         onSelectRun
-                          ? `Select run ${p.index + 1}: ${p.dps.toLocaleString()} DPS`
+                          ? `Select run at ${p.timeLabel}: ${p.dps.toLocaleString()} DPS`
                           : undefined
                       }
                       aria-pressed={onSelectRun ? selected : undefined}
@@ -144,7 +194,7 @@ export function DpsTimelineChart({
                       }
                     >
                       <title>
-                        {s.label}: {p.dps.toLocaleString()} DPS (run {p.index + 1})
+                        {s.label}: {p.dps.toLocaleString()} DPS · {p.timeLabel}
                       </title>
                     </circle>
                   </g>
@@ -153,13 +203,6 @@ export function DpsTimelineChart({
             </g>
           )
         })}
-        <text
-          x={pad.left}
-          y={height - 10}
-          className="testing-chart-label"
-        >
-          Run order
-        </text>
       </svg>
       <ul className="testing-chart-legend">
         {series.map((s) => {
