@@ -1,43 +1,42 @@
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { AuthControls } from '../components/AuthControls.tsx'
-import { BannerPullingDayNotice } from '../components/BannerPullingDayNotice.tsx'
-import {
-  BrandMoonLogo,
-  ChevronLeftIcon,
-} from '../components/icons.tsx'
-import { SiteSettingsMenu } from '../components/SiteSettingsMenu.tsx'
-import { useLocalStorage } from '../hooks/useLocalStorage.ts'
-import { BannerRegionProvider } from '../hooks/useBannerRegion.tsx'
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { AuthControls } from "../components/AuthControls.tsx";
+import { BannerPullingDayNotice } from "../components/BannerPullingDayNotice.tsx";
+import { BrandMoonLogo, ChevronLeftIcon } from "../components/icons.tsx";
+import { SiteSettingsMenu } from "../components/SiteSettingsMenu.tsx";
+import { useLocalStorage } from "../hooks/useLocalStorage.ts";
+import { BannerRegionProvider } from "../hooks/useBannerRegion.tsx";
 import {
   deskForPath,
   END_NAV_LINKS,
   linksForDesk,
   MAIN_NAV_LINKS,
   type PrimaryLink,
-} from './siteNav.ts'
+} from "./siteNav.ts";
 
-const GITHUB_URL = 'https://github.com/jadilorenzo/genshin_calculator'
+const GITHUB_URL = "https://github.com/jadilorenzo/genshin_calculator";
 
 function SidebarNavLink({
   link,
   active,
   collapsed,
 }: {
-  link: PrimaryLink
-  active: boolean
-  collapsed: boolean
+  link: PrimaryLink;
+  active: boolean;
+  collapsed: boolean;
 }) {
-  const Icon = link.icon
-  const classes = ['sidebar-link']
-  if (active) classes.push('active')
-  if (link.align === 'end') classes.push('sidebar-link-end')
+  const Icon = link.icon;
+  const classes = ["sidebar-link"];
+  if (active) classes.push("active");
+  if (link.align === "end") classes.push("sidebar-link-end");
 
   return (
-    <NavLink to={link.to} className={classes.join(' ')} title={link.label}>
+    <NavLink to={link.to} className={classes.join(" ")} title={link.label}>
       <Icon className="sidebar-link-icon" aria-hidden />
-      {collapsed ? null : <span className="sidebar-link-label">{link.label}</span>}
+      {collapsed ? null : (
+        <span className="sidebar-link-label">{link.label}</span>
+      )}
     </NavLink>
-  )
+  );
 }
 
 function SidebarAccordionItem({
@@ -46,40 +45,40 @@ function SidebarAccordionItem({
   collapsed,
   pathname,
 }: {
-  link: PrimaryLink
-  active: boolean
-  collapsed: boolean
-  pathname: string
+  link: PrimaryLink;
+  active: boolean;
+  collapsed: boolean;
+  pathname: string;
 }) {
-  const Icon = link.icon
-  const children = linksForDesk(link.desk)
-  const open = active || Boolean(link.defaultExpanded)
+  const Icon = link.icon;
+  const children = linksForDesk(link.desk);
+  const open = active || Boolean(link.defaultExpanded);
 
   if (collapsed) {
     return (
       <NavLink
         to={link.to}
-        className={active ? 'sidebar-link active' : 'sidebar-link'}
+        className={active ? "sidebar-link active" : "sidebar-link"}
         title={link.label}
       >
         <Icon className="sidebar-link-icon" aria-hidden />
       </NavLink>
-    )
+    );
   }
 
   return (
     <div
       className={[
-        'sidebar-accordion-item',
-        open ? 'is-open' : '',
-        active ? 'is-active-section' : '',
+        "sidebar-accordion-item",
+        open ? "is-open" : "",
+        active ? "is-active-section" : "",
       ]
         .filter(Boolean)
-        .join(' ')}
+        .join(" ")}
     >
       <NavLink
         to={link.to}
-        className={active ? 'sidebar-link active' : 'sidebar-link'}
+        className={active ? "sidebar-link active" : "sidebar-link"}
         title={link.label}
       >
         <Icon className="sidebar-link-icon" aria-hidden />
@@ -98,8 +97,8 @@ function SidebarAccordionItem({
                 end={child.end}
                 className={() =>
                   child.isActive(pathname)
-                    ? 'sidebar-sub-link active'
-                    : 'sidebar-sub-link'
+                    ? "sidebar-sub-link active"
+                    : "sidebar-sub-link"
                 }
               >
                 {child.label}
@@ -109,35 +108,39 @@ function SidebarAccordionItem({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export function AppLayout() {
-  const { pathname } = useLocation()
-  const isRotationEditor = pathname.startsWith('/rotations/editor')
-  const isLanding = pathname === '/'
-  const isCharacters = pathname.startsWith('/characters')
-  const desk = isRotationEditor ? null : deskForPath(pathname)
+  const { pathname } = useLocation();
+  const isRotationEditor = pathname.startsWith("/rotations/editor");
+  const isLanding = pathname === "/";
+  const isCharacters = pathname.startsWith("/characters");
+  const desk = isRotationEditor ? null : deskForPath(pathname);
   const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage(
-    'gc:sidebar:collapsed',
+    "gc:sidebar:collapsed",
     false,
-  )
+  );
 
   const appClass = [
-    'app',
-    isRotationEditor ? 'app--rotation-editor' : '',
-    isLanding ? 'app--landing' : '',
-    isCharacters ? 'app--fill-page' : '',
-    sidebarCollapsed ? 'app--sidebar-collapsed' : '',
+    "app",
+    isRotationEditor ? "app--rotation-editor" : "",
+    isLanding ? "app--landing" : "",
+    isCharacters ? "app--fill-page" : "",
+    sidebarCollapsed ? "app--sidebar-collapsed" : "",
   ]
     .filter(Boolean)
-    .join(' ')
+    .join(" ");
 
   return (
     <div className={appClass}>
       <aside className="site-sidebar" aria-label="Site">
         <div className="site-sidebar-inner">
-          <Link to="/" className="brand-block" aria-label="False Moon's Reckoning home">
+          <Link
+            to="/"
+            className="brand-block"
+            aria-label="False Moon's Reckoning home"
+          >
             <div className="brand-mark" aria-hidden="true">
               <BrandMoonLogo />
             </div>
@@ -153,8 +156,8 @@ export function AppLayout() {
             <div className="sidebar-nav-stack">
               <div className="sidebar-accordion" aria-label="Primary">
                 {MAIN_NAV_LINKS.map((link) => {
-                  const children = linksForDesk(link.desk)
-                  const active = desk === link.desk
+                  const children = linksForDesk(link.desk);
+                  const active = desk === link.desk;
 
                   if (children.length === 0) {
                     return (
@@ -164,7 +167,7 @@ export function AppLayout() {
                         active={active}
                         collapsed={sidebarCollapsed}
                       />
-                    )
+                    );
                   }
 
                   return (
@@ -175,7 +178,7 @@ export function AppLayout() {
                       collapsed={sidebarCollapsed}
                       pathname={pathname}
                     />
-                  )
+                  );
                 })}
               </div>
 
@@ -200,8 +203,10 @@ export function AppLayout() {
               className="sidebar-collapse-toggle"
               onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
               aria-expanded={!sidebarCollapsed}
-              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={
+                sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+              }
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               <ChevronLeftIcon className="sidebar-collapse-icon" aria-hidden />
             </button>
@@ -212,25 +217,25 @@ export function AppLayout() {
       <div className="app-main">
         <div className="app-body">
           <BannerRegionProvider>
-            {desk === 'wish' ? <BannerPullingDayNotice /> : null}
+            {desk === "wish" ? <BannerPullingDayNotice /> : null}
             <Outlet />
           </BannerRegionProvider>
           {isRotationEditor || isCharacters ? null : (
             <footer className="site-footnote">
               <p>
-                Built by Jacob Di Lorenzo ·{' '}
+                Built by Jacob Di Lorenzo ·{" "}
                 <a href={GITHUB_URL} target="_blank" rel="noreferrer">
                   GitHub
                 </a>
               </p>
               <p>
-                Estimates use community rate models and may not match live in-game odds or drop
-                tables. Not affiliated with HoYoverse.
+                Estimates use community rate models and may not match live
+                in-game odds or drop tables. Not affiliated with HoYoverse.
               </p>
             </footer>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }

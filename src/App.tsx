@@ -29,6 +29,9 @@ const TestingHubPage = lazy(() => import('./pages/testing/TestingHubPage.tsx'))
 const TestingSessionPage = lazy(
   () => import('./pages/testing/TestingSessionPage.tsx'),
 )
+const TestingComparePage = lazy(
+  () => import('./pages/testing/TestingComparePage.tsx'),
+)
 const FarmingPage = lazy(() => import('./pages/farming/FarmingPage.tsx'))
 const FarmingGoalPage = lazy(() => import('./pages/farming/FarmingGoalPage.tsx'))
 
@@ -84,6 +87,14 @@ function TestingSessionRoute() {
   return (
     <Suspense fallback={<p className="field-note">Loading session…</p>}>
       <TestingSessionPage />
+    </Suspense>
+  )
+}
+
+function TestingCompareRoute() {
+  return (
+    <Suspense fallback={<p className="field-note">Loading comparison…</p>}>
+      <TestingComparePage />
     </Suspense>
   )
 }
@@ -147,6 +158,7 @@ export default function App() {
           <Route path="characters/:characterId?" element={<CharactersRoute />} />
 
           <Route path="testing" element={<TestingHubRoute />} />
+          <Route path="testing/compare" element={<TestingCompareRoute />} />
           <Route path="testing/:sessionId" element={<TestingSessionRoute />} />
 
           <Route path="farming" element={<FarmingRoute />} />

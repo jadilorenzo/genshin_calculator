@@ -7,7 +7,7 @@
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   color: var(--text);
 }
 
@@ -101,7 +101,6 @@
   display: none;
 }
 
-
 .site-footnote {
   margin-top: 2.5rem;
   padding-top: 1.15rem;
@@ -157,7 +156,7 @@
 }
 
 .app:not(.app--sidebar-collapsed) .site-sidebar::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background:
@@ -508,7 +507,7 @@ a.brand-block:focus-visible {
 
 .brand {
   margin: 0;
-  font-family: 'Avenir Next', Avenir, Roboto, sans-serif;
+  font-family: "Avenir Next", Avenir, Roboto, sans-serif;
   font-size: 0.9rem;
   font-weight: 700;
   line-height: 1.2;
@@ -553,7 +552,10 @@ a.brand-block:focus-visible {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
 }
 
 .theme-toggle .icon {
@@ -594,7 +596,7 @@ a.brand-block:focus-visible {
 
 .page-intro h1 {
   margin: 0;
-  font-family: 'Avenir Next', Avenir, Roboto, sans-serif;
+  font-family: "Avenir Next", Avenir, Roboto, sans-serif;
   font-size: clamp(1.15rem, 2.4vw, 1.35rem);
   font-weight: 600;
   color: var(--mist);
@@ -623,7 +625,9 @@ a.brand-block:focus-visible {
   text-decoration: none;
   text-transform: none;
   white-space: nowrap;
-  transition: color 160ms ease, border-color 160ms ease;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
 }
 
 .tab-with-icon {
@@ -720,7 +724,9 @@ a.brand-block:focus-visible {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 160ms ease, border-color 160ms ease;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
 }
 
 .clear-page:hover {
@@ -735,7 +741,7 @@ a.brand-block:focus-visible {
 
 .hero h1 {
   margin: 0;
-  font-family: 'Avenir Next', Avenir, Roboto, sans-serif;
+  font-family: "Avenir Next", Avenir, Roboto, sans-serif;
   font-size: clamp(1.15rem, 2.8vw, 1.35rem);
   font-weight: 600;
   color: var(--mist);
@@ -783,7 +789,10 @@ a.brand-block:focus-visible {
   letter-spacing: 0.04em;
   text-decoration: none;
   cursor: pointer;
-  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
 }
 
 .sub-tab:hover {

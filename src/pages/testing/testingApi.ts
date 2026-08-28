@@ -1,5 +1,5 @@
 import type { TestingRun, TestingSession, TestingCharacterRow } from './types'
-import { sortTestingRunsByTimestamp } from './runSort'
+import { compareTestingRunsByTimestamp, sortTestingRunsByTimestamp } from './runSort'
 import {
   createLocalRun,
   createLocalSession,
@@ -196,4 +196,34 @@ export const deleteTestingRun = async (id: string, getToken: TokenFn) => {
   if (!response.ok) await readError(response, 'Failed to delete run')
   const body = await response.json().catch(() => ({}))
   return body as { ok: boolean }
+}
+
+export type TestingRunEntry = TestingRun & {
+  sessionTitle: string
+}
+
+/** All runs from every session, sorted oldest first. */
+export const listAllTestingRuns = async (
+  getToken: TokenFn,
+): Promise<TestingRunEntry[]> => {
+  const sessions: TestingSession[] = []
+  let page = 1
+  let totalPages = 1
+
+  while (page <= totalPages) {
+    const result = await listTestingSessions({ page, getToken })
+    sessions.push(...result.items)
+    totalPages = result.totalPages
+    page += 1
+  }
+
+  const entries: TestingRunEntry[] = []
+  for (const session of sessions) {
+    const { item, runs } = await getTestingSession(session.id, getToken)
+    for (const run of runs) {
+      entries.push({ ...run, sessionTitle: item.title })
+    }
+  }
+
+  return [...entries].sort(compareTestingRunsByTimestamp)
 }

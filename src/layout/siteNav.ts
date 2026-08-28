@@ -68,7 +68,6 @@ export const PRIMARY_LINKS: PrimaryLink[] = [
     to: '/farming',
     label: 'Character Goals',
     icon: CharacterGoalsNavIcon,
-    defaultExpanded: true,
   },
   {
     desk: 'wish',
@@ -154,6 +153,23 @@ export const GOALS_LINKS: SiteLink[] = [
   },
 ]
 
+export const TESTING_LINKS: SiteLink[] = [
+  {
+    to: '/testing',
+    label: 'Sessions',
+    end: true,
+    isActive: (pathname) =>
+      pathname === '/testing' ||
+      (pathname.startsWith('/testing/') &&
+        !pathname.startsWith('/testing/compare')),
+  },
+  {
+    to: '/testing/compare',
+    label: 'Compare over time',
+    isActive: (pathname) => pathname.startsWith('/testing/compare'),
+  },
+]
+
 export const WISH_LINKS: SiteLink[] = [
   {
     to: '/banners/odds',
@@ -181,6 +197,7 @@ export function linksForDesk(desk: DeskId): SiteLink[] {
   if (desk === 'rotations') return ROTATIONS_LINKS
   if (desk === 'farm') return FARM_LINKS
   if (desk === 'goals') return GOALS_LINKS
+  if (desk === 'testing') return TESTING_LINKS
   if (desk === 'wish') return WISH_LINKS
   return []
 }

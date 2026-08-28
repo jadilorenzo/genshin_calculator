@@ -14,6 +14,7 @@ export const PAGE_TITLES = {
   pullingDay: `Pulling Day Tracker · ${SITE_NAME}`,
   bannerCountdown: `Genshin Banner Countdown · ${SITE_NAME}`,
   personalTesting: `DPS Test Dashboard · ${SITE_NAME}`,
+  personalTestingCompare: `Compare DPS · ${SITE_NAME}`,
   personalTestingSession: `Testing Session · ${SITE_NAME}`,
   myStuff: `My Stuff · ${SITE_NAME}`,
   farming: `Character Goals · ${SITE_NAME}`,
