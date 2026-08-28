@@ -244,7 +244,7 @@ export default function BuildsPage() {
     <>
       <main className="panel">
         <div className="hero-top">
-          <h2 className="panel-section-title">Build lineup</h2>
+          <h2 className="panel-section-title">Set lineup</h2>
           <ClearPageButton prefix="gc:builds:" />
         </div>
         <section className="controls" aria-label="Build lineup">

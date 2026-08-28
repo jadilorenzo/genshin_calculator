@@ -159,24 +159,17 @@ function RotationsHubInner({
 
   return (
     <>
-      <header className="hero">
-        <div className="hero-top">
-          <h1>Rotations</h1>
-          <div className="hero-actions">
-            {isSignedIn ? (
-              <Link to="/mine/rotations" className="chip compact">
-                My rotations
-              </Link>
-            ) : null}
-            <Link to="/rotations/editor?new=1" className="chip filled">
-              New rotation
-            </Link>
-          </div>
+      <header className="page-intro">
+        <div className="page-intro-copy">
+          <h1>Shared rotations</h1>
+          <p className="lede">
+            Team timelines other people published. Open one to inspect it, or
+            start your own in the editor.
+          </p>
         </div>
-        <p className="lede">
-          Browse popular team timelines from the community — open one to discuss,
-          or build your own in the editor.
-        </p>
+        <Link to="/rotations/editor?new=1" className="chip filled">
+          New rotation
+        </Link>
       </header>
 
       <div className="rotations-hub-toolbar">

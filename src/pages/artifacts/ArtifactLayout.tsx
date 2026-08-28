@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { ClearPageButton } from '../../components/ClearPageButton.tsx'
 import { SlotIcon } from '../../components/icons.tsx'
 import {
@@ -180,36 +180,19 @@ export default function ArtifactLayout() {
   const isCompare = location.pathname.includes('/compare')
 
   return (
-    <>
-      <nav className="sub-tabs artifact-inner-tabs" aria-label="Single artifact tools">
-        <NavLink
-          to="expectations"
-          className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
-        >
-          Resin cost
-        </NavLink>
-        <NavLink
-          to="compare"
-          className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
-        >
-          Compare
-        </NavLink>
-      </nav>
-
-      <main className="panel">
-        <ArtifactTargetProvider>
-          <div className="hero-top">
-            <p className="field-note">
-              {isCompare
-                ? 'How common your piece is per 5★ drop next to everyday farm targets.'
-                : 'Estimated, likely, and near-guaranteed resin to farm your selected piece.'}
-            </p>
-            <ClearPageButton prefix="gc:artifacts:" />
-          </div>
-          <ArtifactControls />
-          <Outlet />
-        </ArtifactTargetProvider>
-      </main>
-    </>
+    <main className="panel">
+      <ArtifactTargetProvider>
+        <div className="hero-top">
+          <p className="field-note">
+            {isCompare
+              ? 'How common your piece is per 5★ drop next to everyday farm targets.'
+              : 'Estimated, likely, and near-guaranteed resin to farm your selected piece.'}
+          </p>
+          <ClearPageButton prefix="gc:artifacts:" />
+        </div>
+        <ArtifactControls />
+        <Outlet />
+      </ArtifactTargetProvider>
+    </main>
   )
 }

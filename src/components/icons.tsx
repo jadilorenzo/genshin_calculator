@@ -81,6 +81,22 @@ export function CheckIcon(props: IconProps) {
   )
 }
 
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m6 9 6 6 6-6" />
+    </Icon>
+  )
+}
+
+export function ChevronLeftIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m15 6-6 6 6 6" />
+    </Icon>
+  )
+}
+
 /** Construction barrier — marks work-in-progress UI. */
 export function ConstructionIcon(props: IconProps) {
   return (
@@ -104,7 +120,77 @@ export function ShareIcon(props: IconProps) {
   )
 }
 
-/** Filled crescent for brand/logo — angled ~45°, smaller cutout */
+export function RotationsNavIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="7" cy="12" r="2.25" />
+      <circle cx="17" cy="7" r="2.25" />
+      <circle cx="17" cy="17" r="2.25" />
+      <path d="M9.1 11.2 14.8 8.1M9.1 12.8 14.8 15.9" />
+    </Icon>
+  )
+}
+
+export function FarmNavIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="2.2" />
+      <path d="M12 4.5c1.4 2.2 1.4 4.3 0 5.5-1.4-1.2-1.4-3.3 0-5.5Z" />
+      <path d="M12 14c1.4 1.2 1.4 3.3 0 5.5-1.4-2.2-1.4-4.3 0-5.5Z" />
+      <path d="M4.5 12c2.2-1.4 4.3-1.4 5.5 0-1.2 1.4-3.3 1.4-5.5 0Z" />
+      <path d="M14 12c1.2-1.4 3.3-1.4 5.5 0-2.2 1.4-4.3 1.4-5.5 0Z" />
+      <path d="M6.8 6.8c2.4.6 3.9 2 4.2 3.6-1.6-.3-3-1.8-4.2-3.6Z" />
+      <path d="M13 13.6c.3 1.6 1.8 3 4.2 3.6-1.2-1.8-2.6-3.3-4.2-3.6Z" />
+      <path d="M13 10.4c1.6-.3 3-1.8 4.2-3.6-2.4.6-3.9 2-4.2 3.6Z" />
+      <path d="M6.8 17.2c1.2-1.8 2.6-3.3 4.2-3.6-.3 1.6-1.8 3-4.2 3.6Z" />
+    </Icon>
+  )
+}
+
+export function CharacterGoalsNavIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 19h14" />
+      <path d="M5 19V15h3.5v4" />
+      <path d="M8.5 15V11h3.5v4" />
+      <path d="M12 11V7h3.5v4" />
+      <path d="M15.5 7V4.5h3.5V7" />
+    </Icon>
+  )
+}
+
+export function WishNavIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m12 3.5 1.45 3.35 3.65.35-2.75 2.35.85 3.55L12 11.2l-3.2 1.9.85-3.55-2.75-2.35 3.65-.35L12 3.5Z" />
+      <path d="M6.5 16.5h11" />
+      <path d="M8.5 19.5h7" />
+    </Icon>
+  )
+}
+
+export function TestingNavIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 19V5" />
+      <path d="M4 19h16" />
+      <path d="M8 15l3-4 3 2.5 4-6.5" />
+    </Icon>
+  )
+}
+
+export function DataNavIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="4" y="4" width="7" height="7" rx="1" />
+      <rect x="13" y="4" width="7" height="7" rx="1" />
+      <rect x="4" y="13" width="7" height="7" rx="1" />
+      <rect x="13" y="13" width="7" height="7" rx="1" />
+    </Icon>
+  )
+}
+
+/** Filled crescent for brand/logo — angled ~45° */
 export function BrandMoonLogo({ className, title, ...props }: IconProps) {
   return (
     <svg
@@ -119,7 +205,7 @@ export function BrandMoonLogo({ className, title, ...props }: IconProps) {
       {title ? <title>{title}</title> : null}
       <path
         fill="currentColor"
-        d="M20.8 14.6A9 9 0 0 1 9.6 3.4 6.2 6.2 0 1 0 20.8 14.6Z"
+        d="M20.8 14.6A9 9 0 0 1 9.6 3.4A6.2 6.2 0 1 0 20.8 14.6Z"
       />
     </svg>
   )

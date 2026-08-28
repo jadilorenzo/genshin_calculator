@@ -118,11 +118,11 @@ function ProfilePageInner() {
         </form>
 
         <div className="auth-switch">
-          <Link to="/mine/rotations" className="text-button">
-            My Stuff
+          <Link to="/rotations/mine" className="text-button">
+            My rotations
           </Link>
           <Link to="/rotations" className="text-button">
-            Community
+            Browse rotations
           </Link>
         </div>
       </div>

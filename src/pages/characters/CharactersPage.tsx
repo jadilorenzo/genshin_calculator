@@ -66,16 +66,6 @@ export default function CharactersPage() {
 
   return (
     <>
-      <header className="hero">
-        <div className="hero-top">
-          <h1>Characters</h1>
-        </div>
-        <p className="field-note">
-          {CHARACTER_KITS.length} kits — animation timings, talents, passives,
-          and constellations.
-        </p>
-      </header>
-
       <div className="characters-workspace">
         <aside className="characters-list-panel" aria-label="Character list">
           <label className="rotation-search">
@@ -109,7 +99,7 @@ export default function CharactersPage() {
           </div>
 
           <p className="field-note characters-list-count">
-            {filtered.length} shown
+            {filtered.length} of {CHARACTER_KITS.length}
           </p>
 
           <ul className="characters-list" ref={listRef}>

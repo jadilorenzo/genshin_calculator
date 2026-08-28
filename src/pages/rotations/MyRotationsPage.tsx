@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@clerk/react'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
@@ -127,7 +127,21 @@ function MyRotationsInner({
   }
 
   if (!isSignedIn) {
-    return <Navigate to="/sign-in" replace />
+    return (
+      <main className="panel">
+        <p className="lede">
+          Sign in to see rotations you’ve saved to your account.
+        </p>
+        <div className="chip-row">
+          <Link to="/sign-in" className="chip filled">
+            Sign in
+          </Link>
+          <Link to="/rotations/editor?new=1" className="chip">
+            Open editor
+          </Link>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -136,13 +150,12 @@ function MyRotationsInner({
         <div className="mine-section-copy">
           <h2>My rotations</h2>
           <p className="field-note">
-            Your saved timelines — public ones appear on the community list;
-            private ones stay here.
+            Your saved timelines — public ones appear under Browse; private ones stay here.
           </p>
         </div>
         <div className="hero-actions">
           <Link to="/rotations" className="chip compact">
-            Community
+            Browse
           </Link>
           <Link to="/rotations/editor?new=1" className="chip filled">
             New rotation
@@ -324,7 +337,8 @@ function MyRotationsInner({
 }
 
 function MyRotationsWithClerk() {
-  const { getToken, isSignedIn } = useAuth()
+  const { getToken, isSignedIn, isLoaded } = useAuth()
+  if (!isLoaded) return <p className="field-note">Loading…</p>
   return (
     <MyRotationsInner
       getToken={() => getToken()}
@@ -341,7 +355,7 @@ export default function MyRotationsPage() {
           Auth is not configured, so saved rotations are unavailable.
         </p>
         <Link to="/rotations" className="chip">
-          Community rotations
+          Browse rotations
         </Link>
       </main>
     )

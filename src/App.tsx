@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { lazy, Suspense } from 'react'
 import { AppLayout } from './layout/AppLayout.tsx'
@@ -16,7 +16,6 @@ import AuthPage from './pages/auth/AuthPage.tsx'
 import ProfilePage from './pages/auth/ProfilePage.tsx'
 import SSOCallbackPage from './pages/auth/SSOCallbackPage.tsx'
 import { LandingPage } from './pages/LandingPage.tsx'
-import MyStuffLayout from './pages/mine/MyStuffLayout.tsx'
 import './styles/main.scss'
 
 const RotationsHubPage = lazy(() => import('./pages/rotations/RotationsHubPage.tsx'))
@@ -105,9 +104,22 @@ function FarmingGoalRoute() {
   )
 }
 
-function RedirectLegacyTestingSession() {
+function RedirectMineFarming() {
+  const { characterId } = useParams()
+  const [params] = useSearchParams()
+  const qs = params.toString()
+  const path = characterId
+    ? `/farming/${encodeURIComponent(characterId)}`
+    : '/farming'
+  return <Navigate to={qs ? `${path}?${qs}` : path} replace />
+}
+
+function RedirectMineTesting() {
   const { sessionId } = useParams()
-  return <Navigate to={`/mine/testing/${sessionId}`} replace />
+  const [params] = useSearchParams()
+  const qs = params.toString()
+  const path = sessionId ? `/testing/${sessionId}` : '/testing'
+  return <Navigate to={qs ? `${path}?${qs}` : path} replace />
 }
 
 export default function App() {
@@ -122,10 +134,7 @@ export default function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route index element={<LandingPage />} />
           <Route path="rotations" element={<RotationsHubRoute />} />
-          <Route
-            path="rotations/mine"
-            element={<Navigate to="/mine/rotations" replace />}
-          />
+          <Route path="rotations/mine" element={<MyRotationsRoute />} />
           <Route path="rotations/editor" element={<RotationEditorRoute />} />
           <Route
             path="rotations/editor/:rotationId"
@@ -137,19 +146,26 @@ export default function App() {
           />
           <Route path="characters/:characterId?" element={<CharactersRoute />} />
 
-          <Route path="mine" element={<MyStuffLayout />}>
-            <Route index element={<Navigate to="rotations" replace />} />
-            <Route path="rotations" element={<MyRotationsRoute />} />
-            <Route path="farming" element={<FarmingRoute />} />
-            <Route path="farming/:characterId" element={<FarmingGoalRoute />} />
-            <Route path="testing" element={<TestingHubRoute />} />
-            <Route path="testing/:sessionId" element={<TestingSessionRoute />} />
-          </Route>
+          <Route path="testing" element={<TestingHubRoute />} />
+          <Route path="testing/:sessionId" element={<TestingSessionRoute />} />
 
-          <Route path="testing" element={<Navigate to="/mine/testing" replace />} />
+          <Route path="farming" element={<FarmingRoute />} />
+          <Route path="farming/:characterId" element={<FarmingGoalRoute />} />
+
+          <Route path="mine" element={<Navigate to="/rotations/mine" replace />} />
           <Route
-            path="testing/:sessionId"
-            element={<RedirectLegacyTestingSession />}
+            path="mine/rotations"
+            element={<Navigate to="/rotations/mine" replace />}
+          />
+          <Route path="mine/farming" element={<RedirectMineFarming />} />
+          <Route
+            path="mine/farming/:characterId"
+            element={<RedirectMineFarming />}
+          />
+          <Route path="mine/testing" element={<RedirectMineTesting />} />
+          <Route
+            path="mine/testing/:sessionId"
+            element={<RedirectMineTesting />}
           />
 
           <Route path="artifacts" element={<ArtifactsHubLayout />}>

@@ -1,22 +1,43 @@
 import type { TestingRun, TestingSession, TestingCharacterRow } from './types'
+import {
+  createLocalRun,
+  createLocalSession,
+  deleteLocalRun,
+  deleteLocalSession,
+  getLocalSession,
+  isLocalTestingId,
+  listLocalSessions,
+  updateLocalRun,
+  updateLocalSession,
+} from './localTestingStore'
+
+export { isLocalTestingId, listLocalSessions }
 
 type TokenFn = () => Promise<string | null>
 
-const withAuth = async (getToken: TokenFn): Promise<HeadersInit> => {
+const withAuth = async (getToken: TokenFn): Promise<HeadersInit | null> => {
   const headers: Record<string, string> = {
     'content-type': 'application/json',
   }
-  const token = await getToken()
-  if (!token) throw new Error('Sign in required')
+  const token = await getToken().catch(() => null)
+  if (!token) return null
   headers.authorization = `Bearer ${token}`
   return headers
 }
 
-export const listTestingSessions = async (
-  opts: { page?: number; getToken: TokenFn },
-) => {
-  const page = opts.page ?? 1
+const readError = async (response: Response, fallback: string) => {
+  const body = await response.json().catch(() => ({}))
+  throw new Error((body as { error?: string }).error || fallback)
+}
+
+export const listTestingSessions = async (opts: {
+  page?: number
+  getToken: TokenFn
+}) => {
   const headers = await withAuth(opts.getToken)
+  if (!headers) return listLocalSessions()
+
+  const page = opts.page ?? 1
   const params = new URLSearchParams({ page: String(page) })
   const response = await fetch(`/api/testing-sessions?${params}`, { headers })
   const body = await response.json().catch(() => ({}))
@@ -35,6 +56,8 @@ export const createTestingSession = async (
   getToken: TokenFn,
 ) => {
   const headers = await withAuth(getToken)
+  if (!headers) return createLocalSession(input)
+
   const response = await fetch('/api/testing-sessions', {
     method: 'POST',
     headers,
@@ -46,7 +69,11 @@ export const createTestingSession = async (
 }
 
 export const getTestingSession = async (id: string, getToken: TokenFn) => {
+  if (isLocalTestingId(id)) return getLocalSession(id)
+
   const headers = await withAuth(getToken)
+  if (!headers) throw new Error('Session not found')
+
   const response = await fetch(
     `/api/testing-session?id=${encodeURIComponent(id)}`,
     { headers },
@@ -64,7 +91,11 @@ export const updateTestingSession = async (
   input: { title?: string; notes?: string },
   getToken: TokenFn,
 ) => {
+  if (isLocalTestingId(id)) return updateLocalSession(id, input)
+
   const headers = await withAuth(getToken)
+  if (!headers) throw new Error('Sign in required')
+
   const response = await fetch(
     `/api/testing-session?id=${encodeURIComponent(id)}`,
     {
@@ -79,13 +110,17 @@ export const updateTestingSession = async (
 }
 
 export const deleteTestingSession = async (id: string, getToken: TokenFn) => {
+  if (isLocalTestingId(id)) return deleteLocalSession(id)
+
   const headers = await withAuth(getToken)
+  if (!headers) throw new Error('Sign in required')
+
   const response = await fetch(
     `/api/testing-session?id=${encodeURIComponent(id)}`,
     { method: 'DELETE', headers },
   )
+  if (!response.ok) await readError(response, 'Failed to delete session')
   const body = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(body.error || 'Failed to delete session')
   return body as { ok: boolean }
 }
 
@@ -107,7 +142,11 @@ export const createTestingRun = async (
   input: CreateTestingRunInput,
   getToken: TokenFn,
 ) => {
+  if (isLocalTestingId(input.sessionId)) return createLocalRun(input)
+
   const headers = await withAuth(getToken)
+  if (!headers) throw new Error('Sign in required')
+
   const response = await fetch('/api/testing-runs', {
     method: 'POST',
     headers,
@@ -123,7 +162,11 @@ export const updateTestingRun = async (
   input: Partial<Omit<CreateTestingRunInput, 'sessionId' | 'imageBase64'>>,
   getToken: TokenFn,
 ) => {
+  if (isLocalTestingId(id)) return updateLocalRun(id, input)
+
   const headers = await withAuth(getToken)
+  if (!headers) throw new Error('Sign in required')
+
   const response = await fetch(
     `/api/testing-run?id=${encodeURIComponent(id)}`,
     {
@@ -138,12 +181,16 @@ export const updateTestingRun = async (
 }
 
 export const deleteTestingRun = async (id: string, getToken: TokenFn) => {
+  if (isLocalTestingId(id)) return deleteLocalRun(id)
+
   const headers = await withAuth(getToken)
+  if (!headers) throw new Error('Sign in required')
+
   const response = await fetch(
     `/api/testing-run?id=${encodeURIComponent(id)}`,
     { method: 'DELETE', headers },
   )
+  if (!response.ok) await readError(response, 'Failed to delete run')
   const body = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(body.error || 'Failed to delete run')
   return body as { ok: boolean }
 }

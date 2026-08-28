@@ -11,6 +11,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from '@clerk/react'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
+import { useLocalStorage } from '../../hooks/useLocalStorage.ts'
 import { getCharacter } from '../rotations/characters'
 import { CharacterIcon } from '../rotations/CharacterIcon'
 import { DpsTimelineChart } from './DpsTimelineChart'
@@ -43,11 +44,9 @@ function formatCompact(value: number | null): string {
 function TestingSessionInner({
   sessionId,
   getToken,
-  isSignedIn,
 }: {
   sessionId: string
   getToken: () => Promise<string | null>
-  isSignedIn: boolean
 }) {
   useDocumentTitle(PAGE_TITLES.personalTestingSession)
   const [session, setSession] = useState<TestingSession | null>(null)
@@ -65,6 +64,10 @@ function TestingSessionInner({
   const [metaOpen, setMetaOpen] = useState(false)
   const metaMenuRef = useRef<HTMLDivElement>(null)
   const metaPanelId = useId()
+  const [runsExpanded, setRunsExpanded] = useLocalStorage(
+    'gc:testing:runsExpanded',
+    false,
+  )
   const [expandedScreenshot, setExpandedScreenshot] = useState<{
     url: string
     label: string
@@ -89,10 +92,6 @@ function TestingSessionInner({
   }, [metaOpen])
 
   const load = useCallback(async () => {
-    if (!isSignedIn) {
-      setLoading(false)
-      return
-    }
     setLoading(true)
     setError(null)
     try {
@@ -109,7 +108,7 @@ function TestingSessionInner({
     } finally {
       setLoading(false)
     }
-  }, [getToken, isSignedIn, sessionId])
+  }, [getToken, sessionId])
 
   useEffect(() => {
     void load()
@@ -187,10 +186,6 @@ function TestingSessionInner({
       bestHit: bestHit || null,
     }
   }, [runs])
-
-  if (!isSignedIn) {
-    return <Navigate to="/sign-in" replace />
-  }
 
   const onSaveMeta = async (e: FormEvent) => {
     e.preventDefault()
@@ -283,7 +278,7 @@ function TestingSessionInner({
     return (
       <main className="panel">
         {error ? <p className="auth-error">{error}</p> : null}
-        <Link to="/mine/testing" className="chip compact">
+        <Link to="/testing" className="chip compact">
           Back to sessions
         </Link>
       </main>
@@ -349,7 +344,7 @@ function TestingSessionInner({
                 </div>
               ) : null}
             </div>
-            <Link to="/mine/testing" className="chip compact">
+            <Link to="/testing" className="chip compact">
               All sessions
             </Link>
           </div>
@@ -451,14 +446,34 @@ function TestingSessionInner({
               />
             </div>
           </div>
+        </div>
+      </main>
 
-          <section className="testing-runs testing-dashboard-runs">
-            <div className="testing-chart-block-head">
-              <h2>Saved runs</h2>
+      <section
+        className={[
+          'testing-runs testing-dashboard-runs',
+          runsExpanded ? 'is-expanded' : 'is-collapsed',
+        ].join(' ')}
+        aria-label="Saved runs"
+      >
+        <div className="testing-dashboard-runs-inner">
+          <div className="testing-chart-block-head testing-runs-dock-head">
+            <h2>Saved runs</h2>
+            <div className="testing-runs-head-actions">
               {runs.length ? (
                 <span className="field-note">{runs.length} total</span>
               ) : null}
+              <button
+                type="button"
+                className="chip compact"
+                aria-expanded={runsExpanded}
+                onClick={() => setRunsExpanded((open) => !open)}
+              >
+                {runsExpanded ? 'Collapse' : 'Expand'}
+              </button>
             </div>
+          </div>
+          <div className="testing-runs-dock-body">
             {runs.length === 0 ? (
               <p className="field-note">No saved runs yet.</p>
             ) : (
@@ -549,9 +564,16 @@ function TestingSessionInner({
                 })}
               </ul>
             )}
-          </section>
+          </div>
         </div>
-      </main>
+      </section>
+      <div
+        className={[
+          'testing-runs-dock-spacer',
+          runsExpanded ? 'is-expanded' : 'is-collapsed',
+        ].join(' ')}
+        aria-hidden="true"
+      />
       {expandedScreenshot ? (
         <ScreenshotLightbox
           url={expandedScreenshot.url}
@@ -564,28 +586,28 @@ function TestingSessionInner({
 }
 
 function TestingSessionWithClerk({ sessionId }: { sessionId: string }) {
-  const { getToken, isSignedIn, isLoaded } = useAuth()
+  const { getToken, isLoaded } = useAuth()
   if (!isLoaded) return <p className="field-note">Loading…</p>
   return (
     <TestingSessionInner
       sessionId={sessionId}
       getToken={() => getToken()}
-      isSignedIn={Boolean(isSignedIn)}
     />
   )
 }
 
 export default function TestingSessionPage() {
   const { sessionId } = useParams()
+  if (!sessionId) {
+    return <Navigate to="/testing" replace />
+  }
   if (!clerkConfigured) {
     return (
-      <main className="panel">
-        <p className="auth-error">Sign-in is not configured for this build.</p>
-      </main>
+      <TestingSessionInner
+        sessionId={sessionId}
+        getToken={async () => null}
+      />
     )
-  }
-  if (!sessionId) {
-    return <Navigate to="/mine/testing" replace />
   }
   return <TestingSessionWithClerk sessionId={sessionId} />
 }

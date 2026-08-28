@@ -67,12 +67,20 @@
   color: var(--ink);
 }
 
-.site-masthead-actions {
+.site-masthead-actions,
+.sidebar-footer .auth-controls {
   display: flex;
+  flex: 0 1 auto;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0.4rem;
-  flex: 0 0 auto;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.sidebar-footer .auth-action {
+  height: 1.95rem;
+  padding-inline: 0.48rem;
+  font-size: 0.74rem;
 }
 
 .site-settings {
@@ -83,8 +91,8 @@
 .site-settings-toggle {
   display: grid;
   place-items: center;
-  width: 2.15rem;
-  height: 2.15rem;
+  width: 1.95rem;
+  height: 1.95rem;
   border: 1px solid var(--line);
   border-radius: 2px;
   background: var(--chip-surface);
@@ -114,8 +122,8 @@
 
 .site-settings-panel {
   position: absolute;
-  top: calc(100% + 0.4rem);
   right: 0;
+  bottom: calc(100% + 0.4rem);
   z-index: 60;
   min-width: 14.5rem;
   display: grid;

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { TrashIcon } from '../../components/icons'
 import { PAGE_TITLES } from '../../documentTitles'
@@ -251,6 +251,7 @@ export default function FarmingGoalPage() {
   const {
     state,
     plans,
+    addCharacter,
     updatePlan,
     updateTalents,
     applyTalentPreset,
@@ -270,6 +271,11 @@ export default function FarmingGoalPage() {
     () => plans.find((p) => p.characterId === characterId) ?? null,
     [plans, characterId],
   )
+
+  useEffect(() => {
+    if (!characterId || !MATERIAL_CHAR_BY_ID[characterId] || plan) return
+    addCharacter(characterId)
+  }, [addCharacter, characterId, plan])
 
   const mat = plan ? MATERIAL_CHAR_BY_ID[plan.characterId] : null
   const name = mat?.name || characterId
@@ -299,11 +305,11 @@ export default function FarmingGoalPage() {
   const buildPct = plan ? buildProgress(plan).pct : 0
 
   if (!MATERIAL_CHAR_BY_ID[characterId]) {
-    return <Navigate to="/mine/farming" replace />
+    return <Navigate to="/farming" replace />
   }
 
   if (!plan) {
-    return <Navigate to="/mine/farming" replace />
+    return <p className="field-note">Loading goal…</p>
   }
 
   const onRemove = () => {
@@ -344,8 +350,8 @@ export default function FarmingGoalPage() {
         <div className="mine-section-head farming-goal-head">
           <div className="mine-section-copy">
             <p className="farming-back">
-              <Link to="/mine/farming" className="chip compact">
-                ← Build goals
+              <Link to="/farming" className="chip compact">
+                ← Character Goals
               </Link>
             </p>
             <h2>{name}</h2>

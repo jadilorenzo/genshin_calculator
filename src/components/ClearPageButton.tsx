@@ -1,7 +1,7 @@
 import { clearStoragePrefix } from '../hooks/clearStoragePrefix.ts'
 import { useOptionalUserData } from '../sync/UserDataProvider.tsx'
 
-/** Resets persisted inputs for a page prefix and reloads. */
+/** Resets persisted inputs for a page prefix and reloads (local-only, signed-out mode). */
 export function ClearPageButton({
   prefix,
   label = 'Clear',
@@ -11,13 +11,16 @@ export function ClearPageButton({
 }) {
   const userData = useOptionalUserData()
 
+  if (userData?.isSignedIn) {
+    return null
+  }
+
   return (
     <button
       type="button"
       className="clear-page"
       onClick={() => {
         clearStoragePrefix(prefix)
-        userData?.clearCloudPrefix(prefix)
         window.location.reload()
       }}
     >

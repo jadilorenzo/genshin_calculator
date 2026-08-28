@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { ClearPageButton } from '../../components/ClearPageButton.tsx'
 import {
   WishPlannerInputsProvider,
@@ -130,13 +130,9 @@ export default function PullLayout() {
   const isPullingDay = location.pathname.includes('/day')
 
   return (
-    <>
-      <header className="hero">
-        <div className="hero-top">
-          <h1>Banners</h1>
-          <ClearPageButton prefix="gc:pulls:" />
-        </div>
-        <p className="lede">
+    <main className="panel">
+      <div className="hero-top">
+        <p className="lede section-lede">
           {isCountdown
             ? 'Banner phase countdown by server region.'
             : isPace
@@ -145,40 +141,12 @@ export default function PullLayout() {
                 ? 'Pulling right now? Log each wish here to watch your pity move on the curve and see featured odds update live — without touching the saved numbers above.'
                 : 'Check your featured 5★ odds from pity and saved fates.'}
         </p>
-        <nav className="sub-tabs" aria-label="Banner tools">
-          <NavLink
-            to="odds"
-            className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
-          >
-            5★ Odds
-          </NavLink>
-          <NavLink
-            to="day"
-            className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
-          >
-            Pulling day
-          </NavLink>
-          <NavLink
-            to="pace"
-            className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
-          >
-            Daily pace
-          </NavLink>
-          <NavLink
-            to="countdown"
-            className={({ isActive }) => (isActive ? 'sub-tab active' : 'sub-tab')}
-          >
-            Banner countdown
-          </NavLink>
-        </nav>
-      </header>
-
-      <main className="panel">
-        <WishPlannerInputsProvider>
-          {!isCountdown ? <PullControls /> : null}
-          <Outlet />
-        </WishPlannerInputsProvider>
-      </main>
-    </>
+        {isCountdown ? null : <ClearPageButton prefix="gc:pulls:" />}
+      </div>
+      <WishPlannerInputsProvider>
+        {!isCountdown ? <PullControls /> : null}
+        <Outlet />
+      </WishPlannerInputsProvider>
+    </main>
   )
 }

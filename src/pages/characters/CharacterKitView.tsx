@@ -114,7 +114,7 @@ export function CharacterKitView({
           </div>
           {showAddGoal ? (
             <Link
-              to={`/mine/farming?add=${encodeURIComponent(character.id)}`}
+              to={`/farming?add=${encodeURIComponent(character.id)}`}
               className="character-kit-add-goal"
             >
               Add build goal

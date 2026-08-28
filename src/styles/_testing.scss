@@ -472,15 +472,9 @@
 
 .testing-dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
   align-items: start;
-}
-
-@media (max-width: 940px) {
-  .testing-dashboard-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .testing-dashboard-charts {
@@ -489,31 +483,77 @@
   min-width: 0;
 }
 
-.testing-dashboard-runs {
-  min-width: 0;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  background: var(--row-surface);
-  position: sticky;
-  top: 1rem;
+.testing-dashboard-runs,
+.testing-runs-dock-spacer {
+  --testing-runs-dock-collapsed: 3.1rem;
+}
 
-  .testing-run-list {
-    max-height: 34rem;
-    overflow: auto;
-    scrollbar-width: thin;
-    padding-right: 0.15rem;
+.testing-runs-dock-spacer {
+  height: var(--testing-runs-dock-collapsed);
+  pointer-events: none;
+
+  &.is-expanded {
+    height: min(36rem, 70dvh);
   }
 }
 
-@media (max-width: 940px) {
-  .testing-dashboard-runs {
-    position: static;
+.testing-dashboard-runs {
+  position: fixed;
+  left: var(--sidebar-width);
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  border-top: 1px solid var(--line);
+  background: var(--header-surface);
+  box-shadow: 0 -6px 20px color-mix(in srgb, var(--text) 12%, transparent);
+  overflow: hidden;
+  transition: max-height 220ms ease;
 
-    .testing-run-list {
-      max-height: none;
+  &.is-collapsed {
+    max-height: var(--testing-runs-dock-collapsed);
+
+    .testing-runs-dock-body {
+      display: none;
     }
   }
+
+  &.is-expanded {
+    max-height: min(36rem, 70dvh);
+  }
+}
+
+.testing-dashboard-runs-inner {
+  width: min(var(--content-width), 100%);
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  display: grid;
+  gap: 0;
+}
+
+.testing-dashboard-runs .testing-runs-dock-head {
+  min-height: var(--testing-runs-dock-collapsed);
+  padding: 0.55rem 0;
+  margin: 0;
+}
+
+.testing-dashboard-runs .testing-runs-dock-body {
+  min-height: 0;
+  padding: 0 0 0.85rem;
+  overflow: hidden;
+}
+
+.testing-dashboard-runs .testing-run-list {
+  max-height: min(32rem, calc(70dvh - 3.5rem));
+  overflow: auto;
+  scrollbar-width: thin;
+  padding-right: 0.15rem;
+}
+
+.testing-runs-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .testing-run-info {
@@ -765,6 +805,6 @@
 }
 
 .testing-runs h2 {
-  margin: 0 0 0.55rem;
+  margin: 0;
   font-size: 1.05rem;
 }

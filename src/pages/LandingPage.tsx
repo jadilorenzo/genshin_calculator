@@ -4,27 +4,39 @@ import { PAGE_TITLES } from '../documentTitles'
 const PATHS = [
   {
     to: '/rotations',
-    label: 'Rotations',
+    label: 'Rotation Visualizer',
     detail:
-      'Aura and buff timelines, community shares, and an editor for sequencing skills, swaps, and off-field applications.',
+      'Browse shared team timelines, or build one in the editor.',
+  },
+  {
+    to: '/artifacts/lineup',
+    label: 'Artifact Expectations',
+    detail:
+      'Plan a five-piece artifact set, check resin for one piece, and compare drop odds.',
+  },
+  {
+    to: '/farming',
+    label: 'Character Goals',
+    detail:
+      'Track levels, talents, and material farming for each character you’re building.',
   },
   {
     to: '/banners/countdown',
-    label: 'Banners',
+    label: 'Wish Planning',
     detail:
-      'Live banner countdowns, 5★ pity odds, daily pull pace, and a pulling-day tracker for your region.',
+      'Banner countdown, 5★ pity odds, daily pull pace, and a live pulling-day tracker.',
   },
   {
-    to: '/artifacts/expectations',
-    label: 'Artifacts',
+    to: '/testing',
+    label: 'DPS Test Dashboard',
     detail:
-      'Expected resin to land a target piece, single-artifact compare, and lineup planning for your builds.',
+      'Upload combat-result screenshots, correct the OCR, and compare DPS across main DPS options.',
   },
   {
     to: '/characters',
-    label: 'Characters',
+    label: 'Data',
     detail:
-      'Kit reference with talents, passives, and constellation notes so you can check numbers while you theorycraft.',
+      'Character kits with talents, passives, constellations, and animation timings.',
   },
 ] as const
 
@@ -41,7 +53,8 @@ export function LandingPage() {
               False Moon&apos;s Reckoning
             </h1>
             <p className="landing-lede">
-              Buff Visualizations · Artifact Farming Expectations · Banner Countdowns
+              Rotation Visualizer · Artifact Expectations · Character Goals · Wish
+              Planning · DPS Test Dashboard · Data
             </p>
             <div className="landing-cta">
               <Link to="/rotations" className="chip filled">
@@ -72,11 +85,8 @@ export function LandingPage() {
         <div className="landing-shell">
           <div className="landing-paths-head">
             <h2 id="landing-paths-title" className="landing-paths-title">
-              Choose a tool
+              Tools
             </h2>
-            <p className="landing-paths-lede">
-              Four desks for theorycraft — pick a lane and start from there.
-            </p>
           </div>
           <ul className="landing-path-list">
             {PATHS.map((path, index) => (

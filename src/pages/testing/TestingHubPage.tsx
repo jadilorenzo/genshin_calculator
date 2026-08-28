@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@clerk/react'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import {
   createTestingSession,
   deleteTestingSession,
+  isLocalTestingId,
+  listLocalSessions,
   listTestingSessions,
 } from './testingApi'
 import type { TestingSession } from './types'
@@ -24,6 +26,41 @@ function formatDate(iso: string) {
   }
 }
 
+function SessionCard({
+  item,
+  onDelete,
+}: {
+  item: TestingSession
+  onDelete: (id: string) => void
+}) {
+  const local = isLocalTestingId(item.id)
+  return (
+    <article className="testing-session-card">
+      <Link to={`/testing/${item.id}`} className="testing-session-main">
+        <h2>{item.title}</h2>
+        <p className="field-note">
+          {item.runsCount ?? 0} runs · {formatDate(item.updatedAt || item.createdAt)}
+          {local ? ' · on this device' : ''}
+        </p>
+      </Link>
+      <div className="chip-row">
+        <Link to={`/testing/${item.id}`} className="chip compact">
+          Open
+        </Link>
+        <button
+          type="button"
+          className="chip compact"
+          onClick={() => {
+            void onDelete(item.id)
+          }}
+        >
+          Delete
+        </button>
+      </div>
+    </article>
+  )
+}
+
 function TestingHubInner({
   getToken,
   isSignedIn,
@@ -37,6 +74,7 @@ function TestingHubInner({
   const page = Math.max(1, Number(searchParams.get('page') || '1') || 1)
 
   const [items, setItems] = useState<TestingSession[]>([])
+  const [localItems, setLocalItems] = useState<TestingSession[]>([])
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,11 +82,6 @@ function TestingHubInner({
   const [creating, setCreating] = useState(false)
 
   const load = useCallback(async () => {
-    if (!isSignedIn) {
-      setItems([])
-      setLoading(false)
-      return
-    }
     setLoading(true)
     setError(null)
     try {
@@ -58,6 +91,16 @@ function TestingHubInner({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
       setItems([])
+    }
+    try {
+      if (isSignedIn) {
+        const local = await listLocalSessions()
+        setLocalItems(local.items)
+      } else {
+        setLocalItems([])
+      }
+    } catch {
+      setLocalItems([])
     } finally {
       setLoading(false)
     }
@@ -66,10 +109,6 @@ function TestingHubInner({
   useEffect(() => {
     void load()
   }, [load])
-
-  if (!isSignedIn) {
-    return <Navigate to="/sign-in" replace />
-  }
 
   const onCreate = async (e: FormEvent) => {
     e.preventDefault()
@@ -80,7 +119,7 @@ function TestingHubInner({
     try {
       const item = await createTestingSession({ title: trimmed }, getToken)
       setTitle('')
-      navigate(`/mine/testing/${item.id}`)
+      navigate(`/testing/${item.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create session')
     } finally {
@@ -98,14 +137,23 @@ function TestingHubInner({
     }
   }
 
+  const cloudItems = isSignedIn
+    ? items.filter((item) => !isLocalTestingId(item.id))
+    : []
+  const deviceItems = isSignedIn ? localItems : items
+  const empty = !loading && cloudItems.length === 0 && deviceItems.length === 0
+
   return (
     <>
       <div className="mine-section-head">
         <div className="mine-section-copy">
-          <h2>Personal Testing</h2>
+          <h2>DPS Test Dashboard</h2>
           <p className="field-note">
             Upload combat-result screenshots, correct the OCR, and compare DPS
             across main DPS options.
+            {isSignedIn
+              ? null
+              : ' Sessions stay on this device until you sign in.'}
           </p>
         </div>
       </div>
@@ -134,44 +182,41 @@ function TestingHubInner({
         {error ? <p className="auth-error">{error}</p> : null}
         {loading ? <p className="field-note">Loading sessions…</p> : null}
 
-        {!loading && items.length === 0 ? (
+        {empty ? (
           <div className="rotations-hub-empty">
             <p>No testing sessions yet. Create one to upload screenshots.</p>
           </div>
         ) : null}
 
-        {items.length > 0 ? (
-          <ul className="testing-session-list">
-            {items.map((item) => (
-              <li key={item.id}>
-                <article className="testing-session-card">
-                  <Link to={`/mine/testing/${item.id}`} className="testing-session-main">
-                    <h2>{item.title}</h2>
-                    <p className="field-note">
-                      {item.runsCount ?? 0} runs · {formatDate(item.updatedAt || item.createdAt)}
-                    </p>
-                  </Link>
-                  <div className="chip-row">
-                    <Link to={`/mine/testing/${item.id}`} className="chip compact">
-                      Open
-                    </Link>
-                    <button
-                      type="button"
-                      className="chip compact"
-                      onClick={() => {
-                        void onDelete(item.id)
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </article>
-              </li>
-            ))}
-          </ul>
+        {cloudItems.length > 0 ? (
+          <section aria-label="Saved sessions">
+            <h3 className="panel-section-title">Saved to account</h3>
+            <ul className="testing-session-list">
+              {cloudItems.map((item) => (
+                <li key={item.id}>
+                  <SessionCard item={item} onDelete={onDelete} />
+                </li>
+              ))}
+            </ul>
+          </section>
         ) : null}
 
-        {totalPages > 1 ? (
+        {deviceItems.length > 0 ? (
+          <section aria-label="Sessions on this device">
+            {isSignedIn ? (
+              <h3 className="panel-section-title">On this device</h3>
+            ) : null}
+            <ul className="testing-session-list">
+              {deviceItems.map((item) => (
+                <li key={item.id}>
+                  <SessionCard item={item} onDelete={onDelete} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {isSignedIn && totalPages > 1 ? (
           <div className="rotations-hub-pager">
             <button
               type="button"
@@ -222,9 +267,7 @@ function TestingHubWithClerk() {
 export default function TestingHubPage() {
   if (!clerkConfigured) {
     return (
-      <main className="panel">
-        <p className="auth-error">Sign-in is not configured for this build.</p>
-      </main>
+      <TestingHubInner getToken={async () => null} isSignedIn={false} />
     )
   }
   return <TestingHubWithClerk />

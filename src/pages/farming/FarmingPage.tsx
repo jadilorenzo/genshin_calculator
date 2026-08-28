@@ -40,7 +40,7 @@ export default function FarmingPage() {
   const [goalQuery, setGoalQuery] = useState('')
   const [addOpen, setAddOpen] = useState(false)
 
-  // Deep-link from Characters: /mine/farming?add=<characterId>
+  // Deep-link from Characters: /farming?add=<characterId>
   useEffect(() => {
     const addId = searchParams.get('add') || searchParams.get('character')
     if (!addId) return
@@ -49,8 +49,7 @@ export default function FarmingPage() {
       return
     }
     addCharacter(addId)
-    setSearchParams({}, { replace: true })
-    navigate(`/mine/farming/${encodeURIComponent(addId)}?edit=1`, {
+    navigate(`/farming/${encodeURIComponent(addId)}?edit=1`, {
       replace: true,
     })
   }, [searchParams, setSearchParams, addCharacter, navigate])
@@ -118,16 +117,16 @@ export default function FarmingPage() {
   ) => {
     addCharacter(characterId, seed)
     setAddOpen(false)
-    navigate(`/mine/farming/${encodeURIComponent(characterId)}?edit=1`)
+    navigate(`/farming/${encodeURIComponent(characterId)}?edit=1`)
   }
 
   return (
     <main className="farming-page farming-dashboard">
       <div className="mine-section-head">
         <div className="mine-section-copy">
-          <h2>Build goals</h2>
+          <h2>Character Goals</h2>
           <p className="field-note">
-            Levels, talents, and materials for each character you’re farming.
+            Levels, talents, and materials for each character you’re building.
           </p>
         </div>
         <ClearPageButton prefix="gc:farming:" label="Clear goals" />
@@ -279,7 +278,7 @@ function GoalListRow({
         .join(' ')}
     >
       <Link
-        to={`/mine/farming/${encodeURIComponent(plan.characterId)}`}
+        to={`/farming/${encodeURIComponent(plan.characterId)}`}
         className="farming-goal-row-main"
       >
         {kit ? (
