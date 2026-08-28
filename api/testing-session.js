@@ -5,6 +5,17 @@ import {
   TESTING_BUCKET,
 } from './_testingDb.js'
 
+function compareRunRows(a, b) {
+  const timeA = a.captured_at || a.created_at || ''
+  const timeB = b.captured_at || b.created_at || ''
+  const byTime = String(timeA).localeCompare(String(timeB))
+  if (byTime !== 0) return byTime
+  const orderA = a.sort_order ?? 0
+  const orderB = b.sort_order ?? 0
+  if (orderA !== orderB) return orderA - orderB
+  return String(a.created_at || '').localeCompare(String(b.created_at || ''))
+}
+
 function idFrom(request) {
   return new URL(request.url).searchParams.get('id')
 }
@@ -49,13 +60,12 @@ export async function GET(request) {
       'id, session_id, owner_id, sort_order, storage_path, main_dps_id, dps, total_damage, elapsed_seconds, strongest_hit, captured_at, characters, ocr_raw, created_at, updated_at',
     )
     .eq('session_id', sessionId)
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: true })
 
   if (runsError) return json({ error: runsError.message }, 500)
 
+  const orderedRuns = [...(runs || [])].sort(compareRunRows)
   const mappedRuns = []
-  for (const row of runs || []) {
+  for (const row of orderedRuns) {
     const imageUrl = await signedUrlFor(db, row.storage_path)
     mappedRuns.push(mapTestingRunRow(row, { imageUrl }))
   }

@@ -24,6 +24,7 @@ import {
   getTestingSession,
   updateTestingSession,
 } from './testingApi'
+import { sortTestingRunsByTimestamp } from './runSort'
 import type { RunDraft, TestingRun, TestingSession } from './types'
 
 const clerkConfigured = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
@@ -97,7 +98,7 @@ function TestingSessionInner({
     try {
       const result = await getTestingSession(sessionId, getToken)
       setSession(result.item)
-      setRuns(result.runs)
+      setRuns(sortTestingRunsByTimestamp(result.runs))
       setTitleDraft(result.item.title)
       setNotesDraft(result.item.notes || '')
       setSelectedRunId((prev) => prev || result.runs[0]?.id || null)
@@ -232,7 +233,7 @@ function TestingSessionInner({
         },
         getToken,
       )
-      setRuns((prev) => [...prev, item])
+      setRuns((prev) => sortTestingRunsByTimestamp([...prev, item]))
       setSelectedRunId(item.id)
       if (draft.previewUrl) URL.revokeObjectURL(draft.previewUrl)
       setDrafts((prev) => prev.filter((d) => d.localId !== localId))

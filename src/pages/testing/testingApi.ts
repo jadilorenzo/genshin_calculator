@@ -1,4 +1,5 @@
 import type { TestingRun, TestingSession, TestingCharacterRow } from './types'
+import { sortTestingRunsByTimestamp } from './runSort'
 import {
   createLocalRun,
   createLocalSession,
@@ -82,7 +83,9 @@ export const getTestingSession = async (id: string, getToken: TokenFn) => {
   if (!response.ok) throw new Error(body.error || 'Failed to load session')
   return {
     item: body.item as TestingSession,
-    runs: Array.isArray(body.runs) ? (body.runs as TestingRun[]) : [],
+    runs: sortTestingRunsByTimestamp(
+      Array.isArray(body.runs) ? (body.runs as TestingRun[]) : [],
+    ),
   }
 }
 

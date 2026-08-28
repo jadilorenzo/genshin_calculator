@@ -1,4 +1,5 @@
 import type { TestingCharacterRow, TestingRun, TestingSession } from './types'
+import { sortTestingRunsByTimestamp } from './runSort'
 
 export type LocalRunInput = {
   sessionId: string
@@ -158,7 +159,7 @@ export async function getLocalSession(id: string): Promise<{
   const runs = await withStore<TestingRun[]>(RUNS, 'readonly', async (store) => {
     const index = store.index('sessionId')
     const rows = await idbReq(index.getAll(id))
-    return rows.sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt))
+    return sortTestingRunsByTimestamp(rows)
   })
   return { item: { ...item, runsCount: runs.length }, runs }
 }
