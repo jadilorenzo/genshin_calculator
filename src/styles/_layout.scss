@@ -31,6 +31,14 @@
   padding: 0.85rem 1.25rem 3rem;
 }
 
+.page-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  padding: 2rem 1rem;
+}
+
 .app--fill-page {
   height: 100vh;
   height: 100dvh;
@@ -57,6 +65,7 @@
 }
 
 .app--rotation-editor {
+  --sidebar-width: var(--sidebar-width-collapsed);
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
@@ -84,13 +93,13 @@
   min-height: 0;
 }
 
-.app--rotation-editor .site-sidebar {
-  width: auto;
-  min-width: 0;
+.app--rotation-editor .site-sidebar-inner {
+  padding: 0.65rem 0.45rem;
 }
 
-.app--rotation-editor .site-sidebar-inner {
-  padding: 0.65rem 0.85rem;
+.app--rotation-editor .brand-block {
+  justify-content: center;
+  padding-inline: 0;
 }
 
 .app--rotation-editor .brand-copy {
@@ -896,6 +905,10 @@ a.brand-block:focus-visible {
   .app--sidebar-collapsed .sidebar-footer {
     display: flex;
     justify-content: center;
+  }
+
+  .app--rotation-editor .sidebar-footer {
+    display: none;
   }
 
   .sidebar-footer .site-settings {

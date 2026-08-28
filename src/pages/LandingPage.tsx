@@ -1,39 +1,47 @@
 import { Link } from 'react-router-dom'
 import { PAGE_TITLES } from '../documentTitles'
+import { prefetchDesk } from '../layout/routePrefetch'
+import type { DeskId } from '../layout/siteNav'
 
 const PATHS = [
   {
     to: '/rotations',
+    desk: 'rotations' as const satisfies DeskId,
     label: 'Rotation Visualizer',
     detail:
       'Browse shared team timelines, or build one in the editor.',
   },
   {
     to: '/artifacts/lineup',
+    desk: 'farm' as const satisfies DeskId,
     label: 'Artifact Expectations',
     detail:
       'Plan a five-piece artifact set, check resin for one piece, and compare drop odds.',
   },
   {
     to: '/farming',
+    desk: 'goals' as const satisfies DeskId,
     label: 'Character Goals',
     detail:
       'Track levels, talents, and material farming for each character you’re building.',
   },
   {
     to: '/banners/countdown',
+    desk: 'wish' as const satisfies DeskId,
     label: 'Wish Planning',
     detail:
       'Banner countdown, 5★ pity odds, daily pull pace, and a live pulling-day tracker.',
   },
   {
     to: '/testing',
+    desk: 'testing' as const satisfies DeskId,
     label: 'DPS Test Dashboard',
     detail:
       'Upload combat-result screenshots, correct the OCR, and compare DPS across main DPS options.',
   },
   {
     to: '/characters',
+    desk: 'data' as const satisfies DeskId,
     label: 'Data',
     detail:
       'Character kits with talents, passives, constellations, and animation timings.',
@@ -57,10 +65,20 @@ export function LandingPage() {
               Planning · DPS Test Dashboard · Data
             </p>
             <div className="landing-cta">
-              <Link to="/rotations" className="chip filled">
+              <Link
+                to="/rotations"
+                className="chip filled"
+                onMouseEnter={() => prefetchDesk('rotations')}
+                onFocus={() => prefetchDesk('rotations')}
+              >
                 Browse rotations
               </Link>
-              <Link to="/rotations/editor" className="chip">
+              <Link
+                to="/rotations/editor"
+                className="chip"
+                onMouseEnter={() => import('./rotations/RotationsPage.tsx')}
+                onFocus={() => import('./rotations/RotationsPage.tsx')}
+              >
                 Open editor
               </Link>
             </div>
@@ -69,6 +87,8 @@ export function LandingPage() {
             to="/rotations/editor"
             className="landing-hero-preview"
             aria-label="Open the rotation editor"
+            onMouseEnter={() => import('./rotations/RotationsPage.tsx')}
+            onFocus={() => import('./rotations/RotationsPage.tsx')}
           >
             <img
               src="/landing-editor.png"
@@ -91,7 +111,12 @@ export function LandingPage() {
           <ul className="landing-path-list">
             {PATHS.map((path, index) => (
               <li key={path.to}>
-                <Link to={path.to} className="landing-path">
+                <Link
+                  to={path.to}
+                  className="landing-path"
+                  onMouseEnter={() => prefetchDesk(path.desk)}
+                  onFocus={() => prefetchDesk(path.desk)}
+                >
                   <span className="landing-path-index" aria-hidden="true">
                     {String(index + 1).padStart(2, '0')}
                   </span>

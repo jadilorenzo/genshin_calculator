@@ -1,10 +1,13 @@
+import { Suspense } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { AuthControls } from "../components/AuthControls.tsx";
 import { BannerPullingDayNotice } from "../components/BannerPullingDayNotice.tsx";
+import { PageLoader } from "../components/PageLoader.tsx";
 import { BrandMoonLogo, ChevronLeftIcon } from "../components/icons.tsx";
 import { SiteSettingsMenu } from "../components/SiteSettingsMenu.tsx";
 import { useLocalStorage } from "../hooks/useLocalStorage.ts";
 import { BannerRegionProvider } from "../hooks/useBannerRegion.tsx";
+import { prefetchDesk } from "./routePrefetch.ts";
 import {
   deskForPath,
   END_NAV_LINKS,
@@ -30,7 +33,13 @@ function SidebarNavLink({
   if (link.align === "end") classes.push("sidebar-link-end");
 
   return (
-    <NavLink to={link.to} className={classes.join(" ")} title={link.label}>
+    <NavLink
+      to={link.to}
+      className={classes.join(" ")}
+      title={link.label}
+      onMouseEnter={() => prefetchDesk(link.desk)}
+      onFocus={() => prefetchDesk(link.desk)}
+    >
       <Icon className="sidebar-link-icon" aria-hidden />
       {collapsed ? null : (
         <span className="sidebar-link-label">{link.label}</span>
@@ -60,6 +69,8 @@ function SidebarAccordionItem({
         to={link.to}
         className={active ? "sidebar-link active" : "sidebar-link"}
         title={link.label}
+        onMouseEnter={() => prefetchDesk(link.desk)}
+        onFocus={() => prefetchDesk(link.desk)}
       >
         <Icon className="sidebar-link-icon" aria-hidden />
       </NavLink>
@@ -80,6 +91,8 @@ function SidebarAccordionItem({
         to={link.to}
         className={active ? "sidebar-link active" : "sidebar-link"}
         title={link.label}
+        onMouseEnter={() => prefetchDesk(link.desk)}
+        onFocus={() => prefetchDesk(link.desk)}
       >
         <Icon className="sidebar-link-icon" aria-hidden />
         <span className="sidebar-link-label">{link.label}</span>
@@ -121,13 +134,14 @@ export function AppLayout() {
     "gc:sidebar:collapsed",
     false,
   );
+  const effectiveSidebarCollapsed = sidebarCollapsed || isRotationEditor;
 
   const appClass = [
     "app",
     isRotationEditor ? "app--rotation-editor" : "",
     isLanding ? "app--landing" : "",
     isCharacters ? "app--fill-page" : "",
-    sidebarCollapsed ? "app--sidebar-collapsed" : "",
+    effectiveSidebarCollapsed ? "app--sidebar-collapsed" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -152,65 +166,65 @@ export function AppLayout() {
             </div>
           </Link>
 
-          {isRotationEditor ? null : (
-            <div className="sidebar-nav-stack">
-              <div className="sidebar-accordion" aria-label="Primary">
-                {MAIN_NAV_LINKS.map((link) => {
-                  const children = linksForDesk(link.desk);
-                  const active = desk === link.desk;
+          <div className="sidebar-nav-stack">
+            <div className="sidebar-accordion" aria-label="Primary">
+              {MAIN_NAV_LINKS.map((link) => {
+                const children = linksForDesk(link.desk);
+                const active = desk === link.desk;
 
-                  if (children.length === 0) {
-                    return (
-                      <SidebarNavLink
-                        key={link.desk}
-                        link={link}
-                        active={active}
-                        collapsed={sidebarCollapsed}
-                      />
-                    );
-                  }
-
+                if (children.length === 0) {
                   return (
-                    <SidebarAccordionItem
+                    <SidebarNavLink
                       key={link.desk}
                       link={link}
                       active={active}
-                      collapsed={sidebarCollapsed}
-                      pathname={pathname}
+                      collapsed={effectiveSidebarCollapsed}
                     />
                   );
-                })}
-              </div>
+                }
 
-              <nav className="sidebar-nav sidebar-nav-end" aria-label="Data">
-                {END_NAV_LINKS.map((link) => (
-                  <SidebarNavLink
+                return (
+                  <SidebarAccordionItem
                     key={link.desk}
                     link={link}
-                    active={desk === link.desk}
-                    collapsed={sidebarCollapsed}
+                    active={active}
+                    collapsed={effectiveSidebarCollapsed}
+                    pathname={pathname}
                   />
-                ))}
-              </nav>
+                );
+              })}
+            </div>
+
+            <nav className="sidebar-nav sidebar-nav-end" aria-label="Data">
+              {END_NAV_LINKS.map((link) => (
+                <SidebarNavLink
+                  key={link.desk}
+                  link={link}
+                  active={desk === link.desk}
+                  collapsed={effectiveSidebarCollapsed}
+                />
+              ))}
+            </nav>
+          </div>
+
+          {isRotationEditor ? null : (
+            <div className="sidebar-footer">
+              <AuthControls />
+              <SiteSettingsMenu />
+              <button
+                type="button"
+                className="sidebar-collapse-toggle"
+                onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+                aria-expanded={!sidebarCollapsed}
+                aria-label={
+                  sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+                }
+                title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <ChevronLeftIcon className="sidebar-collapse-icon" aria-hidden />
+              </button>
             </div>
           )}
-
-          <div className="sidebar-footer">
-            <AuthControls />
-            <SiteSettingsMenu />
-            <button
-              type="button"
-              className="sidebar-collapse-toggle"
-              onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
-              aria-expanded={!sidebarCollapsed}
-              aria-label={
-                sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-              }
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <ChevronLeftIcon className="sidebar-collapse-icon" aria-hidden />
-            </button>
-          </div>
         </div>
       </aside>
 
@@ -218,7 +232,9 @@ export function AppLayout() {
         <div className="app-body">
           <BannerRegionProvider>
             {desk === "wish" ? <BannerPullingDayNotice /> : null}
-            <Outlet />
+            <Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </Suspense>
           </BannerRegionProvider>
           {isRotationEditor || isCharacters ? null : (
             <footer className="site-footnote">

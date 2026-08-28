@@ -1,22 +1,13 @@
-import { Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom'
-import { Analytics } from '@vercel/analytics/react'
 import { lazy, Suspense } from 'react'
+import { Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom'
 import { AppLayout } from './layout/AppLayout.tsx'
-import ArtifactsHubLayout from './pages/artifacts/ArtifactsHubLayout.tsx'
-import ArtifactLayout from './pages/artifacts/ArtifactLayout.tsx'
-import ArtifactChancesPage from './pages/artifacts/ArtifactChancesPage.tsx'
-import ArtifactComparePage from './pages/artifacts/ArtifactComparePage.tsx'
-import BuildsPage from './pages/BuildsPage.tsx'
-import PullLayout from './pages/pulls/PullLayout.tsx'
-import PullOddsPage from './pages/pulls/PullOddsPage.tsx'
-import PullPacePage from './pages/pulls/PullPacePage.tsx'
-import PullingDayPage from './pages/pulls/PullingDayPage.tsx'
-import BannerCountdownPage from './pages/pulls/BannerCountdownPage.tsx'
-import AuthPage from './pages/auth/AuthPage.tsx'
-import ProfilePage from './pages/auth/ProfilePage.tsx'
-import SSOCallbackPage from './pages/auth/SSOCallbackPage.tsx'
+import { PageLoader } from './components/PageLoader.tsx'
 import { LandingPage } from './pages/LandingPage.tsx'
 import './styles/main.scss'
+
+const Analytics = lazy(() =>
+  import('@vercel/analytics/react').then((m) => ({ default: m.Analytics })),
+)
 
 const RotationsHubPage = lazy(() => import('./pages/rotations/RotationsHubPage.tsx'))
 const MyRotationsPage = lazy(() => import('./pages/rotations/MyRotationsPage.tsx'))
@@ -35,85 +26,29 @@ const TestingComparePage = lazy(
 const FarmingPage = lazy(() => import('./pages/farming/FarmingPage.tsx'))
 const FarmingGoalPage = lazy(() => import('./pages/farming/FarmingGoalPage.tsx'))
 
-function RotationsHubRoute() {
-  return (
-    <Suspense fallback={<p className="field-note">Loading rotations…</p>}>
-      <RotationsHubPage />
-    </Suspense>
-  )
-}
+const ArtifactsHubLayout = lazy(
+  () => import('./pages/artifacts/ArtifactsHubLayout.tsx'),
+)
+const ArtifactLayout = lazy(() => import('./pages/artifacts/ArtifactLayout.tsx'))
+const ArtifactChancesPage = lazy(
+  () => import('./pages/artifacts/ArtifactChancesPage.tsx'),
+)
+const ArtifactComparePage = lazy(
+  () => import('./pages/artifacts/ArtifactComparePage.tsx'),
+)
+const BuildsPage = lazy(() => import('./pages/BuildsPage.tsx'))
 
-function MyRotationsRoute() {
-  return (
-    <Suspense fallback={<p className="field-note">Loading your rotations…</p>}>
-      <MyRotationsPage />
-    </Suspense>
-  )
-}
+const PullLayout = lazy(() => import('./pages/pulls/PullLayout.tsx'))
+const PullOddsPage = lazy(() => import('./pages/pulls/PullOddsPage.tsx'))
+const PullPacePage = lazy(() => import('./pages/pulls/PullPacePage.tsx'))
+const PullingDayPage = lazy(() => import('./pages/pulls/PullingDayPage.tsx'))
+const BannerCountdownPage = lazy(
+  () => import('./pages/pulls/BannerCountdownPage.tsx'),
+)
 
-function RotationEditorRoute() {
-  return (
-    <Suspense fallback={<p className="field-note">Loading editor…</p>}>
-      <RotationEditorPage />
-    </Suspense>
-  )
-}
-
-function RotationDetailRoute() {
-  return (
-    <Suspense fallback={<p className="field-note">Loading rotation…</p>}>
-      <RotationDetailPage />
-    </Suspense>
-  )
-}
-
-function CharactersRoute() {
-  return (
-    <Suspense fallback={<p className="field-note">Loading characters…</p>}>
-      <CharactersPage />
-    </Suspense>
-  )
-}
-
-function TestingHubRoute() {
-  return (
-    <Suspense fallback={<p className="field-note">Loading testing…</p>}>
-      <TestingHubPage />
-    </Suspense>
-  )
-}
-
-function TestingSessionRoute() {
-  return (
-    <Suspense fallback={<p className="field-note">Loading session…</p>}>
-      <TestingSessionPage />
-    </Suspense>
-  )
-}
-
-function TestingCompareRoute() {
-  return (
-    <Suspense fallback={<p className="field-note">Loading comparison…</p>}>
-      <TestingComparePage />
-    </Suspense>
-  )
-}
-
-function FarmingRoute() {
-  return (
-    <Suspense fallback={<p className="field-note">Loading build goals…</p>}>
-      <FarmingPage />
-    </Suspense>
-  )
-}
-
-function FarmingGoalRoute() {
-  return (
-    <Suspense fallback={<p className="field-note">Loading goal…</p>}>
-      <FarmingGoalPage />
-    </Suspense>
-  )
-}
+const AuthPage = lazy(() => import('./pages/auth/AuthPage.tsx'))
+const ProfilePage = lazy(() => import('./pages/auth/ProfilePage.tsx'))
+const SSOCallbackPage = lazy(() => import('./pages/auth/SSOCallbackPage.tsx'))
 
 function RedirectMineFarming() {
   const { characterId } = useParams()
@@ -137,32 +72,53 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="sign-in" element={<AuthPage />} />
-        <Route path="sign-up" element={<AuthPage />} />
-        <Route path="sso-callback" element={<SSOCallbackPage />} />
+        <Route
+          path="sign-in"
+          element={
+            <Suspense fallback={<PageLoader label="Loading sign in…" />}>
+              <AuthPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="sign-up"
+          element={
+            <Suspense fallback={<PageLoader label="Loading sign up…" />}>
+              <AuthPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="sso-callback"
+          element={
+            <Suspense fallback={<PageLoader label="Signing in…" />}>
+              <SSOCallbackPage />
+            </Suspense>
+          }
+        />
 
         <Route element={<AppLayout />}>
-          <Route path="profile" element={<ProfilePage />} />
           <Route index element={<LandingPage />} />
-          <Route path="rotations" element={<RotationsHubRoute />} />
-          <Route path="rotations/mine" element={<MyRotationsRoute />} />
-          <Route path="rotations/editor" element={<RotationEditorRoute />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="rotations" element={<RotationsHubPage />} />
+          <Route path="rotations/mine" element={<MyRotationsPage />} />
+          <Route path="rotations/editor" element={<RotationEditorPage />} />
           <Route
             path="rotations/editor/:rotationId"
-            element={<RotationEditorRoute />}
+            element={<RotationEditorPage />}
           />
           <Route
             path="rotations/:rotationId"
-            element={<RotationDetailRoute />}
+            element={<RotationDetailPage />}
           />
-          <Route path="characters/:characterId?" element={<CharactersRoute />} />
+          <Route path="characters/:characterId?" element={<CharactersPage />} />
 
-          <Route path="testing" element={<TestingHubRoute />} />
-          <Route path="testing/compare" element={<TestingCompareRoute />} />
-          <Route path="testing/:sessionId" element={<TestingSessionRoute />} />
+          <Route path="testing" element={<TestingHubPage />} />
+          <Route path="testing/compare" element={<TestingComparePage />} />
+          <Route path="testing/:sessionId" element={<TestingSessionPage />} />
 
-          <Route path="farming" element={<FarmingRoute />} />
-          <Route path="farming/:characterId" element={<FarmingGoalRoute />} />
+          <Route path="farming" element={<FarmingPage />} />
+          <Route path="farming/:characterId" element={<FarmingGoalPage />} />
 
           <Route path="mine" element={<Navigate to="/rotations/mine" replace />} />
           <Route
@@ -220,7 +176,9 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
-      <Analytics />
+      <Suspense fallback={null}>
+        <Analytics />
+      </Suspense>
     </>
   )
 }
