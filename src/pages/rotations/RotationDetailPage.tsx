@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth, useUser } from '@clerk/react'
 import { canModerateContent, isAdminUserId } from '../../auth/admin'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
+import { useStableGetToken } from '../../hooks/useStableGetToken.ts'
 import { getCharacter } from './characters'
 import {
   deleteCommunityComment,
@@ -525,7 +526,8 @@ function DetailInner({
 }
 
 function DetailWithClerk() {
-  const { getToken, isSignedIn, userId } = useAuth()
+  const { isSignedIn, userId } = useAuth()
+  const getToken = useStableGetToken()
   const { user } = useUser()
   const authorName =
     user?.fullName ||
@@ -534,7 +536,7 @@ function DetailWithClerk() {
     'Traveler'
   return (
     <DetailInner
-      getToken={() => getToken()}
+      getToken={getToken}
       isSignedIn={Boolean(isSignedIn)}
       authorName={authorName}
       userId={userId}

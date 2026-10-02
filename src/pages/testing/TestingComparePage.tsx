@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '@clerk/react'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
+import { useAuthHasLoaded, useStableGetToken } from '../../hooks/useStableGetToken.ts'
 import { DpsTimelineChart } from './DpsTimelineChart'
 import { SessionDamageChart } from './SessionDamageChart'
 import { listAllTestingRuns } from './testingApi'
@@ -105,9 +105,10 @@ function TestingCompareInner({
 }
 
 function TestingCompareWithClerk() {
-  const { getToken, isLoaded } = useAuth()
-  if (!isLoaded) return <p className="field-note">Loading…</p>
-  return <TestingCompareInner getToken={() => getToken()} />
+  const ready = useAuthHasLoaded()
+  const getToken = useStableGetToken()
+  if (!ready) return <p className="field-note">Loading…</p>
+  return <TestingCompareInner getToken={getToken} />
 }
 
 export default function TestingComparePage() {

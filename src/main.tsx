@@ -13,7 +13,13 @@ const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as
   | undefined
 
 const appTree = (
-  <BrowserRouter>
+  <BrowserRouter
+    future={{
+      // Keep the current page visible while the next route's code loads,
+      // instead of swapping the whole screen for the Suspense fallback.
+      v7_startTransition: true,
+    }}
+  >
     {publishableKey ? (
       <UserDataProvider>
         <App />

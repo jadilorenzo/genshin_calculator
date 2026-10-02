@@ -8,9 +8,9 @@ import {
   type FormEvent,
 } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { useAuth } from '@clerk/react'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
+import { useAuthHasLoaded, useStableGetToken } from '../../hooks/useStableGetToken.ts'
 import { useLocalStorage } from '../../hooks/useLocalStorage.ts'
 import { getTestingCharacter } from './ocr/ocrCharacters'
 import { CharacterIcon } from '../rotations/CharacterIcon'
@@ -633,14 +633,10 @@ function TestingSessionInner({
 }
 
 function TestingSessionWithClerk({ sessionId }: { sessionId: string }) {
-  const { getToken, isLoaded } = useAuth()
-  if (!isLoaded) return <p className="field-note">Loading…</p>
-  return (
-    <TestingSessionInner
-      sessionId={sessionId}
-      getToken={() => getToken()}
-    />
-  )
+  const ready = useAuthHasLoaded()
+  const getToken = useStableGetToken()
+  if (!ready) return <p className="field-note">Loading…</p>
+  return <TestingSessionInner sessionId={sessionId} getToken={getToken} />
 }
 
 export default function TestingSessionPage() {

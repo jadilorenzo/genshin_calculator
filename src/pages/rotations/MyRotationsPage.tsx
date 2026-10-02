@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@clerk/react'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
+import { useAuthHasLoaded, useStableGetToken } from '../../hooks/useStableGetToken.ts'
 import { CharacterIcon } from './CharacterIcon'
 import { getCharacter } from './characters'
 import {
@@ -337,13 +338,12 @@ function MyRotationsInner({
 }
 
 function MyRotationsWithClerk() {
-  const { getToken, isSignedIn, isLoaded } = useAuth()
-  if (!isLoaded) return <p className="field-note">Loading…</p>
+  const { isSignedIn } = useAuth()
+  const ready = useAuthHasLoaded()
+  const getToken = useStableGetToken()
+  if (!ready) return <p className="field-note">Loading…</p>
   return (
-    <MyRotationsInner
-      getToken={() => getToken()}
-      isSignedIn={Boolean(isSignedIn)}
-    />
+    <MyRotationsInner getToken={getToken} isSignedIn={Boolean(isSignedIn)} />
   )
 }
 

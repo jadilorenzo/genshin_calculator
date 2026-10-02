@@ -4,6 +4,7 @@ import { useAuth } from '@clerk/react'
 import { canModerateContent, isAdminUserId } from '../../auth/admin'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
+import { useStableGetToken } from '../../hooks/useStableGetToken.ts'
 import { CharacterIcon } from './CharacterIcon'
 import { getCharacter } from './characters'
 import {
@@ -348,10 +349,11 @@ function RotationsHubInner({
 }
 
 function RotationsHubWithClerk() {
-  const { getToken, isSignedIn, userId } = useAuth()
+  const { isSignedIn, userId } = useAuth()
+  const getToken = useStableGetToken()
   return (
     <RotationsHubInner
-      getToken={() => getToken()}
+      getToken={getToken}
       isSignedIn={Boolean(isSignedIn)}
       userId={userId}
     />
