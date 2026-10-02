@@ -9,6 +9,7 @@ type RunReviewCardProps = {
   onSave: () => void
   onDiscard: () => void
   onCancelOcr?: () => void
+  onRetryOcr?: () => void
 }
 
 export function RunReviewCard({
@@ -17,10 +18,24 @@ export function RunReviewCard({
   onSave,
   onDiscard,
   onCancelOcr,
+  onRetryOcr,
 }: RunReviewCardProps) {
   const patch = (partial: Partial<RunDraft>) => onChange({ ...draft, ...partial })
 
   const busy = draft.status === 'ocr' || draft.status === 'saving'
+  const stalled = draft.status === 'stalled'
+  const progress = draft.ocrProgress
+  const progressPct =
+    progress && progress.total > 0
+      ? Math.min(100, Math.round((progress.done / progress.total) * 100))
+      : 0
+  const progressLabel = stalled
+    ? 'Stalled'
+    : progress?.phase === 'queued'
+      ? 'Waiting'
+      : progress
+        ? `Reading text · ${progress.done}/${progress.total}`
+        : 'Reading text…'
   const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
@@ -44,18 +59,52 @@ export function RunReviewCard({
           <p className="field-note">No preview</p>
         )}
         <p className="field-note">{draft.fileName}</p>
-        {draft.status === 'ocr' ? (
+        {draft.status === 'ocr' || stalled ? (
           <div className="testing-ocr-status">
-            <p className="field-note">Reading text…</p>
-            {onCancelOcr ? (
-              <button
-                type="button"
-                className="chip compact"
-                onClick={onCancelOcr}
-              >
-                Cancel
-              </button>
-            ) : null}
+            <div className="testing-ocr-status-row">
+              <p className="field-note">{progressLabel}</p>
+              {stalled && onRetryOcr ? (
+                <button
+                  type="button"
+                  className="chip compact"
+                  onClick={onRetryOcr}
+                >
+                  Retry
+                </button>
+              ) : null}
+              {draft.status === 'ocr' && onCancelOcr ? (
+                <button
+                  type="button"
+                  className="chip compact"
+                  onClick={onCancelOcr}
+                >
+                  Cancel
+                </button>
+              ) : null}
+            </div>
+            <div
+              className={[
+                'testing-ocr-track',
+                progress?.phase === 'queued' ? 'is-waiting' : '',
+                stalled ? 'is-stalled' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={stalled || progress?.phase === 'reading' ? progressPct : undefined}
+              aria-label={progressLabel}
+            >
+              <div
+                className="testing-ocr-fill"
+                style={
+                  progress?.phase === 'queued'
+                    ? undefined
+                    : { width: `${progressPct}%` }
+                }
+              />
+            </div>
           </div>
         ) : null}
         {draft.error ? <p className="auth-error">{draft.error}</p> : null}
@@ -108,7 +157,7 @@ export function RunReviewCard({
           <button
             type="button"
             className="chip filled"
-            disabled={busy || draft.status === 'pending'}
+            disabled={busy || stalled || draft.status === 'pending'}
             onClick={onSave}
           >
             {draft.status === 'saving' ? 'Saving…' : 'Save run'}

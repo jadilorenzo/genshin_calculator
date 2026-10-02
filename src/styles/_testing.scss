@@ -1030,10 +1030,48 @@
 }
 
 .testing-ocr-status {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.testing-ocr-status-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.45rem;
+}
+
+.testing-ocr-track {
+  position: relative;
+  height: 0.4rem;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--line) 80%, transparent);
+  overflow: hidden;
+}
+
+.testing-ocr-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--gold), var(--gold-bright));
+  transition: width 0.2s ease;
+}
+
+.testing-ocr-track.is-waiting .testing-ocr-fill {
+  width: 40%;
+  animation: testing-ocr-indet 1.1s ease-in-out infinite;
+}
+
+.testing-ocr-track.is-stalled .testing-ocr-fill {
+  background: color-mix(in srgb, var(--gold) 45%, var(--line));
+}
+
+@keyframes testing-ocr-indet {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
 }
 
 .testing-saved-run-editor {

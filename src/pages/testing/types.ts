@@ -37,13 +37,22 @@ export type TestingSession = {
   updatedAt?: string
 }
 
+/** Live progress for one screenshot while OCR is queued, running, or stalled. */
+export type OcrProgress = {
+  phase: 'queued' | 'reading' | 'stalled'
+  done: number
+  total: number
+}
+
 /** Draft produced by OCR / review UI before (or while) saving. */
 export type RunDraft = {
   localId: string
   fileName: string
   previewUrl: string
   imageBase64: string | null
-  status: 'pending' | 'ocr' | 'ready' | 'saving' | 'saved' | 'error'
+  status: 'pending' | 'ocr' | 'stalled' | 'ready' | 'saving' | 'saved' | 'error'
+  /** Set while status is `ocr`. */
+  ocrProgress?: OcrProgress | null
   error?: string
   warnings: string[]
   mainDpsId: string

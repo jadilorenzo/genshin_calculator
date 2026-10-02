@@ -4,7 +4,11 @@ import {
   loadImageFromBlob,
 } from './ocr/preprocessOverlay'
 import { parseCapturedAtFromFilename } from './ocr/parseOverlayText'
-import { runOverlayOcr, terminateOverlayOcr } from './ocr/runOverlayOcr'
+import {
+  OcrStallError,
+  runOverlayOcr,
+  terminateOverlayOcr,
+} from './ocr/runOverlayOcr'
 import { RunReviewCard } from './RunReviewCard'
 import { flushFocusedField } from './runFormUtils'
 import type { RunDraft } from './types'
@@ -81,9 +85,21 @@ export function UploadRunsPanel({
     const controller = new AbortController()
     ocrAbortRef.current.set(localId, controller)
 
-    patchDraft(localId, { status: 'ocr', error: undefined })
+    patchDraft(localId, {
+      status: 'ocr',
+      error: undefined,
+      ocrProgress: { phase: 'queued', done: 0, total: 1 },
+    })
     try {
-      const parsed = await runOverlayOcr(file, { signal: controller.signal })
+      const parsed = await runOverlayOcr(file, {
+        signal: controller.signal,
+        onProgress: (ocrProgress) => {
+          if (controller.signal.aborted) return
+          const current = draftsRef.current.find((d) => d.localId === localId)
+          if (!current || current.status !== 'ocr') return
+          patchDraft(localId, { ocrProgress })
+        },
+      })
       if (controller.signal.aborted) return
       const current = draftsRef.current.find((d) => d.localId === localId)
       if (!current || current.status !== 'ocr') return
@@ -97,6 +113,7 @@ export function UploadRunsPanel({
         parsed.characters.length > 0 ? parsed.characters : emptyRows()
       patchDraft(localId, {
         status: 'ready',
+        ocrProgress: null,
         imageBase64,
         mainDpsId: parsed.mainDpsId,
         dps: parsed.dps,
@@ -111,8 +128,17 @@ export function UploadRunsPanel({
       })
     } catch (err) {
       if (controller.signal.aborted) return
+      if (err instanceof OcrStallError) {
+        patchDraft(localId, {
+          status: 'stalled',
+          error: undefined,
+          ocrProgress: { ...err.progress, phase: 'stalled' },
+        })
+        return
+      }
       patchDraft(localId, {
         status: 'error',
+        ocrProgress: null,
         error: err instanceof Error ? err.message : 'OCR failed',
         characters: emptyRows(),
       })
@@ -187,8 +213,8 @@ export function UploadRunsPanel({
       <div className="testing-upload-head">
         <h2>Upload screenshots</h2>
         <p className="field-note">
-          Drop combat-result overlays (or paste). Text is read automatically —
-          review and fix before saving.
+          Drop combat-result overlays (or paste). Several are read at once —
+          each one shows its progress, and a stalled one can be retried.
         </p>
       </div>
 
@@ -259,6 +285,13 @@ export function UploadRunsPanel({
                   onCancelOcr={
                     draft.status === 'ocr'
                       ? () => cancelOcr(draft.localId)
+                      : undefined
+                  }
+                  onRetryOcr={
+                    draft.status === 'stalled'
+                      ? () => {
+                          void reOcr(draft.localId)
+                        }
                       : undefined
                   }
                 />
