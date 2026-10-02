@@ -12,7 +12,7 @@ import { useAuth } from '@clerk/react'
 import { PAGE_TITLES } from '../../documentTitles.ts'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.ts'
 import { useLocalStorage } from '../../hooks/useLocalStorage.ts'
-import { getCharacter } from '../rotations/characters'
+import { getTestingCharacter } from './ocr/ocrCharacters'
 import { CharacterIcon } from '../rotations/CharacterIcon'
 import { DpsTimelineChart } from './DpsTimelineChart'
 import { SavedRunEditor } from './SavedRunEditor'
@@ -184,7 +184,7 @@ function TestingSessionInner({
       runCount: runs.length,
       bestDps: bestDpsRun?.dps ?? null,
       bestDpsMain: bestDpsRun
-        ? getCharacter(bestDpsRun.mainDpsId)?.name ?? null
+        ? getTestingCharacter(bestDpsRun.mainDpsId)?.name ?? null
         : null,
       avgDps: dpsValues.length
         ? dpsValues.reduce((a, b) => a + b, 0) / dpsValues.length
@@ -503,7 +503,7 @@ function TestingSessionInner({
             ) : (
               <ul className="testing-run-list">
                 {runs.map((run, index) => {
-                  const main = getCharacter(run.mainDpsId)
+                  const main = getTestingCharacter(run.mainDpsId)
                   const selected = run.id === selectedRunId
                   const editing = editingRunId === run.id
                   return (

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CharacterIcon } from '../rotations/CharacterIcon'
-import { getCharacter } from '../rotations/characters'
+import { getTestingCharacter } from './ocr/ocrCharacters'
 import { dpsChartLayout } from './dpsChartLayout'
 import { runTimestampMs, sortTestingRunsByTimestamp } from './runSort'
 import type { TestingRun } from './types'
@@ -49,7 +49,7 @@ export function DpsTimelineChart({
     dpsRuns.forEach((run, index) => {
       const dps = run.dps!
       const key = run.mainDpsId || 'unknown'
-      const character = getCharacter(key)
+      const character = getTestingCharacter(key)
       const list = byMain.get(key) || []
       list.push({
         runId: run.id,
@@ -257,7 +257,7 @@ export function DpsTimelineChart({
       </div>
       <ul className="testing-chart-legend">
         {series.map((s) => {
-          const character = getCharacter(s.id)
+          const character = getTestingCharacter(s.id)
           return (
             <li key={s.id}>
               <span

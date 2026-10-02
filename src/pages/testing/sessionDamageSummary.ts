@@ -1,4 +1,4 @@
-import { getCharacter } from '../rotations/characters'
+import { getTestingCharacter } from './ocr/ocrCharacters'
 import type { TestingRunEntry } from './testingApi'
 
 export type SessionDamageSegment = {
@@ -30,7 +30,7 @@ function characterKey(characterId: string, name: string) {
 }
 
 function characterName(characterId: string, name: string) {
-  return name || getCharacter(characterId)?.name || 'Unknown'
+  return name || getTestingCharacter(characterId)?.name || 'Unknown'
 }
 
 /** Group runs by session; average personal damage and team % per character. */

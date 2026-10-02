@@ -227,6 +227,32 @@ describe('matchCharacterName', () => {
     expect(matchCharacterName('Alyosha')?.name).toBe('Alyosha')
     expect(matchCharacterName('Traveler')?.name).toBe('Traveler (Cryo)')
     expect(matchCharacterName('Aether')?.name).toBe('Traveler (Cryo)')
+    expect(matchCharacterName('Vodianitsa')?.name).toBe('Vodyanitsa')
+    expect(matchCharacterName('Vodyanltsa')?.name).toBe('Vodyanitsa')
+    expect(matchCharacterName('Vesna')?.id).toBe('vesna')
+    expect(matchCharacterName('Mitya')?.id).toBe('mitya')
+    expect(matchCharacterName('Valery')?.name).toBe('Valeriy')
+    expect(matchCharacterName('The Tsaritsa')?.id).toBe('tsaritsa')
+    expect(matchCharacterName('Danlca')?.name).toBe('Danica')
+  })
+
+  it('parses a 7.1 team row', () => {
+    const parsed = parseOverlayText(`
+DPS : 90000
+Damage : 8000000
+Vesna : 5000000 (62%)
+Vodyanitsa : 1800000 (23%)
+Mitya : 800000 (10%)
+Danica : 400000 (5%)
+Time Elapsed : 90.00 s
+`)
+    expect(parsed.characters.map((row) => row.characterId)).toEqual([
+      'vesna',
+      'vodyanitsa',
+      'mitya',
+      'danica',
+    ])
+    expect(parsed.mainDpsId).toBe('vesna')
   })
 })
 

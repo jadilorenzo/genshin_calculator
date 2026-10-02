@@ -1,5 +1,5 @@
 import { DeferredNumberInput } from '../rotations/DeferredNumberInput'
-import { getCharacter } from '../rotations/characters'
+import { getTestingCharacter } from './ocr/ocrCharacters'
 import { CharacterPickerField } from './CharacterPickerField'
 import { formatRunInt, fromDatetimeLocal, toDatetimeLocal } from './runFormUtils'
 import type { TestingCharacterRow } from './types'
@@ -33,7 +33,7 @@ export function RunFormFields({
       if (i !== index) return row
       const next = { ...row, ...partial }
       if (partial.characterId != null) {
-        const character = getCharacter(partial.characterId)
+        const character = getTestingCharacter(partial.characterId)
         if (character) next.name = character.name
       }
       return next

@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
 import { CharacterIcon } from '../rotations/CharacterIcon'
-import { CHARACTER_KITS, getCharacter } from '../rotations/characters'
+import { CHARACTER_KITS } from '../rotations/characters'
+import {
+  getTestingCharacter,
+  ocrCharactersNotInKits,
+} from './ocr/ocrCharacters'
 
 type CharacterPickerFieldProps = {
   value: string
@@ -19,18 +23,22 @@ export function CharacterPickerField({
 }: CharacterPickerFieldProps) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
-  const selected = value ? getCharacter(value) : undefined
+  const roster = useMemo(
+    () => [...CHARACTER_KITS, ...ocrCharactersNotInKits()],
+    [],
+  )
+  const selected = value ? getTestingCharacter(value) : undefined
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return CHARACTER_KITS.slice(0, 12)
-    return CHARACTER_KITS.filter(
+    if (!q) return roster.slice(0, 12)
+    return roster.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.id.toLowerCase().includes(q) ||
         c.element.toLowerCase().includes(q),
     ).slice(0, 16)
-  }, [query])
+  }, [query, roster])
 
   return (
     <div className="testing-char-picker">

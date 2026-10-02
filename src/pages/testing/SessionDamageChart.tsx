@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CharacterIcon } from '../rotations/CharacterIcon'
-import { getCharacter } from '../rotations/characters'
+import { getTestingCharacter } from './ocr/ocrCharacters'
 import type { TestingRunEntry } from './testingApi'
 import {
   buildSessionDamageSummaries,
@@ -147,7 +147,7 @@ export function SessionDamageChart({ runs }: SessionDamageChartProps) {
                 {summary.characters.length > 0 || summary.peakTeamDamage > 0 ? (
                   <ul className="testing-session-char-columns">
                     {summary.characters.map((character) => {
-                      const kit = getCharacter(character.characterId)
+                      const kit = getTestingCharacter(character.characterId)
                       const element = kit?.element
                       const key = barKey(summary.sessionId, character.key)
                       const hovered = isBarHovered(key)

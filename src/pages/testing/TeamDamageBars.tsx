@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { CharacterIcon } from '../rotations/CharacterIcon'
-import { getCharacter } from '../rotations/characters'
+import { getTestingCharacter } from './ocr/ocrCharacters'
 import type { TestingCharacterRow, TestingRun } from './types'
 
 type TeamDamageBarsProps = {
@@ -25,7 +25,7 @@ export function TeamDamageBars({
   const rows = useMemo(() => {
     const activeRun = runs.find((r) => r.id === selectedRunId) || runs[0]
     const mainDpsId = activeRun?.mainDpsId || ''
-    const mainName = getCharacter(mainDpsId)?.name || ''
+    const mainName = getTestingCharacter(mainDpsId)?.name || ''
 
     /** Main DPS pinned to the top, everyone else alphabetical. */
     const byMainThenName = (a: BarRow, b: BarRow) => {
@@ -70,7 +70,7 @@ export function TeamDamageBars({
       .map((entry) => ({
         key: entry.characterId || entry.name,
         characterId: entry.characterId,
-        name: entry.name || getCharacter(entry.characterId)?.name || 'Unknown',
+        name: entry.name || getTestingCharacter(entry.characterId)?.name || 'Unknown',
         damage: entry.n ? entry.damage / entry.n : 0,
         teamPct: entry.n ? entry.pct / entry.n : 0,
       }))
@@ -86,7 +86,7 @@ export function TeamDamageBars({
   return (
     <ul className="testing-damage-bars">
       {rows.map((row) => {
-        const character = getCharacter(row.characterId)
+        const character = getTestingCharacter(row.characterId)
         const widthPct = Math.max(2, (row.damage / maxDamage) * 100)
         return (
           <li key={row.key}>
@@ -128,7 +128,7 @@ function toBar(c: TestingCharacterRow): BarRow {
   return {
     key: c.characterId || c.name || String(c.slot),
     characterId: c.characterId,
-    name: c.name || getCharacter(c.characterId)?.name || `Slot ${c.slot + 1}`,
+    name: c.name || getTestingCharacter(c.characterId)?.name || `Slot ${c.slot + 1}`,
     damage: c.damage ?? 0,
     teamPct: c.teamPct ?? 0,
   }

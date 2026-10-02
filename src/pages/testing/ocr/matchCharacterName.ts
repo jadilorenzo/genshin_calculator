@@ -3,6 +3,10 @@ import {
   getCharacterByName,
 } from '../../rotations/characters'
 import type { CharacterData } from '../../rotations/types'
+import {
+  getOcrCharacterByName,
+  ocrCharactersNotInKits,
+} from './ocrCharacters'
 import { OCR_NAME_ALIASES } from './ocrNameAliases'
 
 const levenshtein = (a: string, b: string): number => {
@@ -49,7 +53,7 @@ export function matchCharacterName(raw: string): CharacterData | null {
     OCR_NAME_ALIASES[cleaned.toLowerCase().replace(/\s+/g, '')] ||
     OCR_NAME_ALIASES[raw.toLowerCase().replace(/[^a-z0-9]/g, '')]
   if (alias) {
-    const fromAlias = getCharacterByName(alias)
+    const fromAlias = getCharacterByName(alias) ?? getOcrCharacterByName(alias)
     if (fromAlias) return fromAlias
   }
 
@@ -68,7 +72,8 @@ export function matchCharacterName(raw: string): CharacterData | null {
 
   let best: CharacterData | null = null
   let bestDist = Infinity
-  for (const character of CHARACTER_KITS) {
+  const roster = [...CHARACTER_KITS, ...ocrCharactersNotInKits()]
+  for (const character of roster) {
     const dist = Math.min(
       levenshtein(cleaned, character.name),
       levenshtein(cleaned.replace(/\s+/g, ''), character.name.replace(/\s+/g, '')),

@@ -83,6 +83,9 @@ export const OCR_NAME_ALIASES: Record<string, string> = {
   "cyno": "Cyno",
   // Dahlia
   "dahlia": "Dahlia",
+  // Danica
+  "danica": "Danica",
+  "danlca": "Danica",
   // Dehya
   "dehya": "Dehya",
   // Diluc
@@ -217,6 +220,10 @@ export const OCR_NAME_ALIASES: Record<string, string> = {
   // Mika
   "mika": "Mika",
   "rnika": "Mika",
+  // Mitya
+  "mitya": "Mitya",
+  "mltya": "Mitya",
+  "rnitya": "Mitya",
   // Mona
   "mona": "Mona",
   "rnona": "Mona",
@@ -300,6 +307,11 @@ export const OCR_NAME_ALIASES: Record<string, string> = {
   "sucrosee": "Sucrose",
   // Tartaglia
   "tartaglia": "Tartaglia",
+  // Tsaritsa
+  "thetsaritsa": "Tsaritsa",
+  "tsarista": "Tsaritsa",
+  "tsaritsa": "Tsaritsa",
+  "tsarltsa": "Tsaritsa",
   // Thoma
   "thoma": "Thoma",
   "thorna": "Thoma",
@@ -332,12 +344,25 @@ export const OCR_NAME_ALIASES: Record<string, string> = {
   // Traveler (Pyro)
   "travelerpyro": "Traveler (Pyro)",
   "travellerpyro": "Traveler (Pyro)",
+  // Valeriy
+  "valerlv": "Valeriy",
+  "valerly": "Valeriy",
+  "valery": "Valeriy",
+  "valeriy": "Valeriy",
   // Varesa
   "varesa": "Varesa",
   // Varka
   "varka": "Varka",
   // Venti
   "venti": "Venti",
+  // Vesna
+  "vesna": "Vesna",
+  "vesrna": "Vesna",
+  // Vodyanitsa
+  "vodianitsa": "Vodyanitsa",
+  "vodyanitsa": "Vodyanitsa",
+  "vodyanltsa": "Vodyanitsa",
+  "vodyarltsa": "Vodyanitsa",
   // Wanderer
   "wanderer": "Wanderer",
   "wanderor": "Wanderer",
